@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     supabase_anon_key: str = ""
     supabase_service_role_key: str = ""
 
+    # Auth
+    supabase_jwt_secret: str = ""
+
     # OpenAI
     openai_api_key: str = ""
 
