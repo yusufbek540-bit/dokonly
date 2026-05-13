@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from uuid import UUID
 
 
@@ -21,3 +21,9 @@ class TenantResponse(BaseModel):
     is_active: bool
 
     model_config = {"from_attributes": True}
+
+
+class ManualTransferSettings(BaseModel):
+    card_number: str = Field(min_length=1, max_length=50)
+    card_holder: str = Field(min_length=1, max_length=100)
+    bank_name: str = Field(min_length=1, max_length=100)

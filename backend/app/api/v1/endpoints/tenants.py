@@ -5,7 +5,7 @@ from sqlalchemy import select
 from app.core.database import get_db
 from app.core.auth import get_current_user
 from app.models.tenant import Tenant
-from app.schemas.tenant import TenantCreate, TenantResponse
+from app.schemas.tenant import ManualTransferSettings, TenantCreate, TenantResponse
 
 router = APIRouter(prefix="/tenants", tags=["tenants"])
 
@@ -40,3 +40,20 @@ async def get_my_tenant(
     if not tenant:
         raise HTTPException(404, "No tenant found")
     return tenant
+
+
+@router.post("/me/payment/manual-transfer", status_code=status.HTTP_200_OK)
+async def set_manual_transfer(
+    body: ManualTransferSettings,
+    user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Tenant).where(Tenant.owner_id == user["sub"]))
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No tenant found")
+    settings = dict(tenant.settings or {})
+    settings["manual_transfer"] = body.model_dump()
+    tenant.settings = settings
+    await db.commit()
+    return {"ok": True}
