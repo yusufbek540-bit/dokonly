@@ -6,6 +6,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from sqlalchemy import select
 
 from app.ai.tasks.photo_import import extract_product_from_photo
+from app.ai.tasks.voice_import import extract_products_from_text, transcribe_voice
 from app.core.database import AsyncSessionLocal
 from app.models.product import Product
 from app.models.tenant import Tenant
@@ -121,4 +122,42 @@ async def handle_photo_import(message: Message):
         f"<b>{product_data.name}</b>\n"
         f"{product_data.description or ''}\n"
         f"Цена: {product_data.price or 'не указана'}"
+    )
+
+
+@router.message(F.voice)
+async def handle_voice_import(message: Message):
+    await message.answer("🎤 Транскрибирую голосовое...")
+    file = await message.bot.get_file(message.voice.file_id)
+    buf = io.BytesIO()
+    await message.bot.download_file(file.file_path, buf)
+
+    text = await transcribe_voice(buf.getvalue())
+    await message.answer(f"Распознано: <i>{text}</i>\n\nСоздаю товары...")
+
+    products_data = await extract_products_from_text(text)
+
+    async with AsyncSessionLocal() as db:
+        bot_info = await message.bot.me()
+        result = await db.execute(select(Tenant).where(Tenant.bot_username == bot_info.username))
+        tenant = result.scalar_one_or_none()
+        if not tenant:
+            await message.answer("Сначала создайте магазин через /start")
+            return
+
+        created = []
+        for pd in products_data:
+            p = Product(
+                tenant_id=tenant.id,
+                name=pd["name"],
+                description=pd.get("description"),
+                price=pd.get("price") or 0,
+                currency=tenant.currency,
+            )
+            db.add(p)
+            created.append(pd["name"])
+        await db.commit()
+
+    await message.answer(
+        f"✅ Создано {len(created)} товаров:\n" + "\n".join(f"• {n}" for n in created)
     )
