@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     r2_bucket_name: str = "dokonly-media"
     r2_public_url: str = ""
 
+    # Database
+    database_url: str = ""
+
     # Redis
     redis_url: str = "redis://localhost:6379"
 
