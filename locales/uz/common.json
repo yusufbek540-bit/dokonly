@@ -1,0 +1,25 @@
+{
+  "app_name": "Dokonly",
+  "loading": "Yuklanmoqda...",
+  "save": "Saqlash",
+  "cancel": "Bekor qilish",
+  "delete": "O'chirish",
+  "confirm": "Tasdiqlash",
+  "back": "Orqaga",
+  "next": "Keyingi",
+  "error": "Xato",
+  "success": "Tayyor",
+  "currency": {
+    "UZS": "so'm",
+    "USD": "$",
+    "KZT": "₸"
+  },
+  "order_status": {
+    "new": "Yangi",
+    "confirmed": "Tasdiqlangan",
+    "packing": "Yig'ilmoqda",
+    "shipped": "Yuborilgan",
+    "delivered": "Yetkazilgan",
+    "cancelled": "Bekor qilingan"
+  }
+}

@@ -1,0 +1,18 @@
+country: UZ
+name: Uzbekistan
+default_currency: UZS
+default_locale: ru
+supported_locales: [ru, uz, en]
+phone_prefix: "+998"
+phone_format: "+998 XX XXX-XX-XX"
+
+features:
+  manual_card_transfer: true
+  cash_on_delivery: true
+  telegram_stars: true
+  click_provider: true
+  payme_provider: true
+  self_employed_wizard: true
+  fiscalization: false  # v2
+
+payment_providers: [manual_transfer, cash_on_delivery, telegram_stars, click, payme]

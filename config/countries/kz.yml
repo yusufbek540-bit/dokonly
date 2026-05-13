@@ -1,0 +1,16 @@
+country: KZ
+name: Kazakhstan
+default_currency: KZT
+default_locale: ru
+supported_locales: [ru, kk, en]
+phone_prefix: "+7"
+phone_format: "+7 (XXX) XXX-XX-XX"
+
+features:
+  manual_card_transfer: true
+  cash_on_delivery: true
+  telegram_stars: true
+  kaspi_provider: false   # v2
+  self_employed_wizard: false
+
+payment_providers: [manual_transfer, cash_on_delivery, telegram_stars]

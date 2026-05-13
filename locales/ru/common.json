@@ -1,0 +1,25 @@
+{
+  "app_name": "Dokonly",
+  "loading": "Загрузка...",
+  "save": "Сохранить",
+  "cancel": "Отмена",
+  "delete": "Удалить",
+  "confirm": "Подтвердить",
+  "back": "Назад",
+  "next": "Далее",
+  "error": "Ошибка",
+  "success": "Готово",
+  "currency": {
+    "UZS": "сум",
+    "USD": "$",
+    "KZT": "₸"
+  },
+  "order_status": {
+    "new": "Новый",
+    "confirmed": "Подтверждён",
+    "packing": "Собирается",
+    "shipped": "Отправлен",
+    "delivered": "Доставлен",
+    "cancelled": "Отменён"
+  }
+}

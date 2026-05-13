@@ -1,0 +1,1838 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dokonly — Конструктор тарифов</title>
+<style>
+  :root {
+    /* Telegram palette */
+    --tg-blue: #2AABEE;
+    --tg-blue-dark: #229ED9;
+    --tg-blue-darker: #1A91D0;
+    --tg-blue-light: #E8F4FB;
+    --tg-blue-lighter: #F2F9FD;
+
+    --tg-bg: #FFFFFF;
+    --tg-bg-alt: #F4F4F5;
+    --tg-bg-deep: #EBEBEC;
+
+    --tg-text: #000000;
+    --tg-text-secondary: #707579;
+    --tg-text-tertiary: #A2ACB0;
+
+    --tg-border: #E7E7E8;
+    --tg-border-light: #F0F0F1;
+
+    --tg-success: #00B96B;
+    --tg-success-light: #E1F5EC;
+    --tg-danger: #EE3F4D;
+    --tg-danger-light: #FCE7E9;
+    --tg-warning: #F2A516;
+
+    --radius-sm: 8px;
+    --radius: 12px;
+    --radius-lg: 16px;
+
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "SF Mono", "Monaco", "Cascadia Code", "Roboto Mono", monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    font-family: var(--font);
+    background: var(--tg-bg-alt);
+    color: var(--tg-text);
+    -webkit-font-smoothing: antialiased;
+    font-size: 15px;
+    line-height: 1.4;
+  }
+
+  .container { max-width: 1280px; margin: 0 auto; padding: 0 20px; }
+
+  /* HEADER */
+  .top-bar {
+    background: var(--tg-bg);
+    border-bottom: 1px solid var(--tg-border);
+    padding: 12px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .top-bar .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 17px;
+  }
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--tg-blue);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+  }
+  .logo-icon svg { width: 18px; height: 18px; }
+  .logo-tag {
+    font-size: 12px;
+    color: var(--tg-text-secondary);
+    font-weight: 400;
+  }
+
+  .top-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .btn {
+    border: none;
+    background: var(--tg-bg-alt);
+    color: var(--tg-text);
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover { background: var(--tg-bg-deep); }
+  .btn-primary {
+    background: var(--tg-blue);
+    color: white;
+  }
+  .btn-primary:hover { background: var(--tg-blue-dark); }
+  .btn-icon { width: 16px; height: 16px; }
+  .btn-ghost {
+    background: transparent;
+  }
+  .btn-ghost:hover { background: var(--tg-bg-alt); }
+
+  /* HERO */
+  .hero {
+    padding: 36px 0 20px;
+  }
+  .hero h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  .hero p {
+    font-size: 15px;
+    color: var(--tg-text-secondary);
+    max-width: 640px;
+  }
+
+  /* TIER CONFIG */
+  .tier-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 24px 0;
+  }
+  .tier-card {
+    background: var(--tg-bg);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    border: 1px solid var(--tg-border);
+    position: relative;
+  }
+  .tier-card.featured {
+    border: 2px solid var(--tg-blue);
+    padding: 19px;
+  }
+  .tier-card.enterprise {
+    border: 2px solid var(--tg-success);
+    padding: 19px;
+    background: linear-gradient(180deg, var(--tg-bg) 0%, #F7FCF9 100%);
+  }
+  .featured-badge {
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    background: var(--tg-blue);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .enterprise-badge {
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    background: var(--tg-success);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .tier-label {
+    font-size: 12px;
+    color: var(--tg-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  .tier-name-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: var(--font);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--tg-text);
+    padding: 4px 8px;
+    margin: -4px -8px 12px;
+    border-radius: var(--radius-sm);
+    outline: none;
+  }
+  .tier-name-input:hover, .tier-name-input:focus { background: var(--tg-bg-alt); }
+
+  .tier-price-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 8px;
+  }
+  .tier-price-block {
+    background: var(--tg-bg-alt);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+  }
+  .tier-price-label {
+    font-size: 11px;
+    color: var(--tg-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 4px;
+  }
+  .tier-price-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: var(--font);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--tg-text);
+    outline: none;
+    padding: 0;
+  }
+
+  /* TOOLBAR */
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 32px 0 12px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .stats {
+    font-size: 13px;
+    color: var(--tg-text-secondary);
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .stats strong {
+    color: var(--tg-blue);
+    font-weight: 600;
+  }
+  .preset-buttons {
+    display: flex;
+    gap: 6px;
+  }
+
+  /* TABLE */
+  .compare-table {
+    background: var(--tg-bg);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--tg-border);
+  }
+
+  .table-head {
+    display: grid;
+    grid-template-columns: 28px 1fr 90px 90px 90px 90px 80px;
+    background: var(--tg-bg);
+    padding: 14px 20px;
+    align-items: center;
+    border-bottom: 1px solid var(--tg-border);
+    position: sticky;
+    top: 57px;
+    z-index: 50;
+    gap: 6px;
+  }
+  .col-grip {
+    /* Empty column header for drag handle */
+  }
+
+  /* DRAG & DROP */
+  .drag-handle {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    color: var(--tg-text-tertiary);
+    transition: all 0.12s;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .drag-handle:hover {
+    background: var(--tg-bg-alt);
+    color: var(--tg-text);
+  }
+  .drag-handle:active { cursor: grabbing; }
+  .drag-handle svg { width: 14px; height: 14px; pointer-events: none; }
+
+  .dragging {
+    opacity: 0.4;
+  }
+  .drop-target-above {
+    box-shadow: inset 0 3px 0 0 var(--tg-blue);
+  }
+  .drop-target-below {
+    box-shadow: inset 0 -3px 0 0 var(--tg-blue);
+  }
+  .category.drop-target-above {
+    box-shadow: 0 -3px 0 0 var(--tg-blue);
+  }
+  .category.drop-target-below {
+    box-shadow: 0 3px 0 0 var(--tg-blue);
+  }
+  .col-feat {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--tg-text-secondary);
+    font-weight: 600;
+  }
+  .col-tier {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--tg-text);
+  }
+  .col-tier.featured-col {
+    color: var(--tg-blue);
+  }
+  .col-tier.enterprise-col {
+    color: var(--tg-success);
+  }
+  .col-actions {
+    text-align: right;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--tg-text-secondary);
+    font-weight: 600;
+  }
+
+  .category {
+    border-top: 1px solid var(--tg-border-light);
+  }
+  .category:first-of-type { border-top: none; }
+
+  .category-head {
+    padding: 18px 20px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--tg-bg-alt);
+    transition: box-shadow 0.12s;
+  }
+  .category-num {
+    width: 26px;
+    height: 26px;
+    background: var(--tg-blue);
+    color: white;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .category-title {
+    font-size: 17px;
+    font-weight: 600;
+    flex: 1;
+    padding: 4px 8px;
+    margin: -4px -8px;
+    border-radius: var(--radius-sm);
+    cursor: text;
+    outline: none;
+  }
+  .category-title:hover, .category-title:focus { background: var(--tg-bg); }
+
+  .category-actions {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .cat-btn {
+    border: none;
+    background: var(--tg-bg);
+    padding: 5px 9px;
+    border-radius: 6px;
+    font-size: 11px;
+    color: var(--tg-text-secondary);
+    cursor: pointer;
+    font-weight: 500;
+    font-family: var(--font);
+    transition: all 0.12s;
+  }
+  .cat-btn:hover { background: var(--tg-blue); color: white; }
+  .cat-btn.danger:hover { background: var(--tg-danger); color: white; }
+
+  .feature-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 90px 90px 90px 90px 80px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--tg-border-light);
+    align-items: center;
+    transition: background 0.12s, box-shadow 0.12s;
+    gap: 6px;
+  }
+  .feature-row:hover { background: var(--tg-blue-lighter); }
+  .feature-row.disabled { opacity: 0.5; }
+
+  .feat-name-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--tg-text);
+    padding: 4px 6px;
+    margin: -4px -6px 2px;
+    border-radius: 6px;
+    outline: none;
+  }
+  .feat-name-input:hover, .feat-name-input:focus { background: var(--tg-bg-alt); }
+  .feat-desc-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    font-family: var(--font);
+    font-size: 13px;
+    color: var(--tg-text-secondary);
+    line-height: 1.4;
+    padding: 3px 6px;
+    margin: -3px -6px;
+    border-radius: 6px;
+    outline: none;
+    resize: none;
+    overflow: hidden;
+  }
+  .feat-desc-input:hover, .feat-desc-input:focus { background: var(--tg-bg-alt); }
+
+  .tier-cell {
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .tier-cell.featured-cell {
+    background: var(--tg-blue-lighter);
+    margin: -12px 0;
+    padding: 12px 0;
+  }
+  .tier-cell.enterprise-cell {
+    background: #F2FAF6;
+    margin: -12px 0;
+    padding: 12px 0;
+  }
+
+  /* CHECKBOX TG STYLE */
+  .check-box {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--tg-border);
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: var(--tg-bg);
+    transition: all 0.12s;
+    color: transparent;
+  }
+  .check-box:hover {
+    border-color: var(--tg-blue);
+  }
+  .check-box.checked {
+    background: var(--tg-blue);
+    border-color: var(--tg-blue);
+    color: white;
+  }
+  .enterprise-cell .check-box.checked {
+    background: var(--tg-success);
+    border-color: var(--tg-success);
+  }
+  .check-box svg { width: 14px; height: 14px; }
+  .check-box.has-limit {
+    width: auto;
+    height: auto;
+    min-width: 56px;
+    padding: 5px 10px;
+    border: 1px solid var(--tg-blue);
+    background: var(--tg-blue-light);
+    color: var(--tg-blue-darker);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+  }
+  .check-box.has-limit:hover {
+    background: var(--tg-blue);
+    color: white;
+  }
+  .check-box.empty-limit {
+    background: transparent;
+    border: 1px dashed var(--tg-border);
+    color: var(--tg-text-tertiary);
+  }
+  .check-box.empty-limit:hover {
+    border-color: var(--tg-blue);
+    color: var(--tg-blue);
+  }
+
+  /* ROW ACTIONS */
+  .row-actions {
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+    align-items: center;
+  }
+  .icon-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--tg-text-tertiary);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s;
+  }
+  .icon-btn:hover {
+    background: var(--tg-bg-alt);
+    color: var(--tg-text);
+  }
+  .icon-btn.active {
+    background: var(--tg-success-light);
+    color: var(--tg-success);
+  }
+  .icon-btn.danger:hover {
+    background: var(--tg-danger-light);
+    color: var(--tg-danger);
+  }
+  .icon-btn svg { width: 14px; height: 14px; }
+
+  /* ADD ROW */
+  .add-row-btn {
+    width: 100%;
+    padding: 12px 20px;
+    border: none;
+    background: transparent;
+    color: var(--tg-blue);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .add-row-btn:hover { background: var(--tg-blue-lighter); }
+  .add-row-btn .plus-icon {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--tg-blue);
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 400;
+  }
+
+  .add-category-btn {
+    width: 100%;
+    padding: 16px;
+    margin-top: 12px;
+    border: 1px dashed var(--tg-border);
+    background: transparent;
+    color: var(--tg-text-secondary);
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.12s;
+  }
+  .add-category-btn:hover {
+    border-color: var(--tg-blue);
+    color: var(--tg-blue);
+    background: var(--tg-blue-lighter);
+  }
+
+  /* MODAL */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: var(--tg-bg);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    max-width: 360px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  }
+  .modal h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .modal p {
+    font-size: 14px;
+    color: var(--tg-text-secondary);
+    margin-bottom: 20px;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .modal-btn {
+    border: none;
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .modal-btn.cancel {
+    background: var(--tg-bg-alt);
+    color: var(--tg-text);
+  }
+  .modal-btn.cancel:hover { background: var(--tg-bg-deep); }
+  .modal-btn.danger {
+    background: var(--tg-danger);
+    color: white;
+  }
+  .modal-btn.danger:hover { background: #D63440; }
+  .modal-btn.primary {
+    background: var(--tg-blue);
+    color: white;
+  }
+  .modal-btn.primary:hover { background: var(--tg-blue-dark); }
+
+  /* LIMIT EDITOR */
+  .limit-editor {
+    position: absolute;
+    background: var(--tg-bg);
+    border: 1px solid var(--tg-border);
+    border-radius: var(--radius);
+    padding: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    z-index: 200;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .limit-editor input {
+    border: 1px solid var(--tg-border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: var(--font);
+    font-size: 13px;
+    width: 90px;
+    outline: none;
+  }
+  .limit-editor input:focus { border-color: var(--tg-blue); }
+  .limit-editor button {
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-family: var(--font);
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .limit-editor button.ok {
+    background: var(--tg-blue);
+    color: white;
+  }
+  .limit-editor button.cancel {
+    background: var(--tg-bg-alt);
+    color: var(--tg-text-secondary);
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--tg-text);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 24px;
+    font-size: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    opacity: 0;
+    transition: all 0.25s;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  /* PRINT */
+  @media print {
+    /* Force browsers to print background colors */
+    *, *::before, *::after {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+
+    @page { margin: 10mm; size: A4; }
+    body { background: white !important; }
+
+    /* Hide everything not needed for print */
+    .top-bar, .top-actions, .preset-buttons, .add-row-btn,
+    .category-actions, .icon-btn, .col-actions, .add-category-btn,
+    .modal-backdrop, .drag-handle, .col-grip, .toolbar,
+    .toast, .row-actions, .limit-editor { display: none !important; }
+
+    /* Reset positioning */
+    .top-bar { position: static; }
+    .table-head { position: static; }
+
+    /* Adjust grid for 4 tiers (without grip + actions) */
+    .table-head, .feature-row {
+      grid-template-columns: 1fr 70px 70px 70px 70px !important;
+      page-break-inside: avoid;
+      gap: 4px !important;
+    }
+
+    /* Tighten layout */
+    .hero { padding: 8px 0; }
+    .hero h1 { font-size: 20px; margin-bottom: 6px; }
+    .hero p { font-size: 12px; }
+    .tier-card { break-inside: avoid; box-shadow: none !important; padding: 12px !important; }
+    .tier-name-input, .tier-price-input { font-size: 16px !important; }
+    .tier-price { font-size: 18px !important; }
+    .feature-row { break-inside: avoid; box-shadow: none !important; padding: 8px 16px !important; }
+    .feat-name-input { font-size: 12px !important; }
+    .feat-desc-input { font-size: 11px !important; line-height: 1.3 !important; }
+    .category-head { padding: 12px 16px 6px !important; }
+    .category-title { font-size: 14px !important; }
+    .category-num {
+      width: 20px !important; height: 20px !important;
+      font-size: 11px !important;
+      background: #2AABEE !important;
+      color: white !important;
+    }
+
+    /* CHECKBOX — bullet-proof: dark checkmark + dark border so it's visible
+       even if browser ignores background colors entirely */
+    .check-box {
+      width: 18px !important;
+      height: 18px !important;
+      border: 1.5px solid #888 !important;
+      border-radius: 4px !important;
+      background: white !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    .check-box.checked {
+      background: #2AABEE !important;
+      border: 2px solid #0B5A93 !important;
+      color: #0B2A4A !important;
+    }
+    .check-box.checked svg {
+      width: 14px !important;
+      height: 14px !important;
+      stroke: #0B2A4A !important;
+      stroke-width: 4 !important;
+      fill: none !important;
+      visibility: visible !important;
+      display: inline !important;
+    }
+    /* Hide SVG inside empty checkboxes */
+    .check-box:not(.checked) svg {
+      display: none !important;
+    }
+    /* Enterprise (green) checkboxes */
+    .enterprise-cell .check-box.checked {
+      background: #00B96B !important;
+      border: 2px solid #006438 !important;
+    }
+    .enterprise-cell .check-box.checked svg {
+      stroke: #003E22 !important;
+    }
+
+    /* Limit pills — black border, dark text on light background */
+    .check-box.has-limit {
+      background: #E8F4FB !important;
+      border: 1px solid #2AABEE !important;
+      color: #102560 !important;
+      font-weight: 600 !important;
+      padding: 3px 8px !important;
+      min-width: auto !important;
+      width: auto !important;
+      height: auto !important;
+    }
+    .check-box.empty-limit {
+      background: white !important;
+      border: 1px dashed #BBB !important;
+      color: #999 !important;
+    }
+
+    /* Featured/Enterprise column backgrounds */
+    .featured-cell { background: rgba(42, 171, 238, 0.08) !important; }
+    .enterprise-cell { background: rgba(0, 185, 107, 0.08) !important; }
+    .featured-badge { background: #2AABEE !important; color: white !important; }
+    .enterprise-badge { background: #00B96B !important; color: white !important; }
+    .tier-card.featured { border: 2px solid #2AABEE !important; }
+    .tier-card.enterprise { border: 2px solid #00B96B !important; }
+
+    /* Stats — keep visible for context */
+    .stats { font-size: 10px !important; padding: 6px 0 !important; }
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 760px) {
+    .tier-grid { grid-template-columns: 1fr; }
+    .table-head, .feature-row {
+      grid-template-columns: 24px 1fr 44px 44px 44px 44px 56px;
+      gap: 4px;
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+    .col-tier, .col-actions { font-size: 10px; }
+    .feat-desc-input { display: none; }
+    .check-box { width: 22px; height: 22px; }
+    .check-box.has-limit { min-width: 38px; padding: 3px 4px; font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top-bar">
+  <div class="container">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.7 0 12 0zm5.6 8.2l-1.9 8.8c-.1.6-.5.8-1 .5l-2.8-2-1.3 1.3c-.1.1-.3.3-.5.3l.2-2.8 5.1-4.6c.2-.2 0-.3-.3-.1L8.7 13l-2.7-.8c-.6-.2-.6-.6.1-.9l10.6-4.1c.5-.2 1 .1.9.9z"/></svg>
+      </div>
+      <div>
+        <span style="color: var(--tg-text);">dok</span><span style="color: var(--tg-blue);">only</span>
+        <div class="logo-tag">конструктор тарифов</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="btn btn-ghost" onclick="askReset()">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+        Сброс
+      </button>
+      <button class="btn" onclick="saveToFile()">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Сохранить
+      </button>
+      <button class="btn" onclick="loadFromFile()">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Загрузить
+      </button>
+      <button class="btn btn-primary" onclick="doPrint()">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Печать / PDF
+      </button>
+    </div>
+  </div>
+</header>
+
+<input type="file" id="file-loader" accept=".json" style="display:none" onchange="handleFileLoad(event)">
+
+<section class="hero">
+  <div class="container">
+    <h1>Dokonly — конструктор тарифов</h1>
+    <p>Кликайте по галочкам, редактируйте функции, цены и описания. Удаляйте лишнее, добавляйте своё. Перетаскивайте строки и категории. Сохраняйте версию или печатайте PDF.</p>
+  </div>
+</section>
+
+<section class="container">
+
+  <div class="tier-grid">
+    <div class="tier-card" data-tier="0">
+      <div class="tier-label">Тариф 1</div>
+      <input class="tier-name-input" type="text" value="Старт" data-field="name">
+      <div class="tier-price-row">
+        <div class="tier-price-block">
+          <div class="tier-price-label">Цена/мес, тыс. сум</div>
+          <input class="tier-price-input" type="text" value="199" data-field="price">
+        </div>
+        <div class="tier-price-block">
+          <div class="tier-price-label">USD</div>
+          <input class="tier-price-input" type="text" value="$16" data-field="usd">
+        </div>
+      </div>
+    </div>
+
+    <div class="tier-card featured" data-tier="1">
+      <div class="featured-badge">Популярный</div>
+      <div class="tier-label">Тариф 2</div>
+      <input class="tier-name-input" type="text" value="Бизнес" data-field="name">
+      <div class="tier-price-row">
+        <div class="tier-price-block">
+          <div class="tier-price-label">Цена/мес, тыс. сум</div>
+          <input class="tier-price-input" type="text" value="499" data-field="price">
+        </div>
+        <div class="tier-price-block">
+          <div class="tier-price-label">USD</div>
+          <input class="tier-price-input" type="text" value="$40" data-field="usd">
+        </div>
+      </div>
+    </div>
+
+    <div class="tier-card" data-tier="2">
+      <div class="tier-label">Тариф 3</div>
+      <input class="tier-name-input" type="text" value="Премиум" data-field="name">
+      <div class="tier-price-row">
+        <div class="tier-price-block">
+          <div class="tier-price-label">Цена/мес, тыс. сум</div>
+          <input class="tier-price-input" type="text" value="999" data-field="price">
+        </div>
+        <div class="tier-price-block">
+          <div class="tier-price-label">USD</div>
+          <input class="tier-price-input" type="text" value="$80" data-field="usd">
+        </div>
+      </div>
+    </div>
+
+    <div class="tier-card enterprise" data-tier="3">
+      <div class="enterprise-badge">По запросу</div>
+      <div class="tier-label">Тариф 4</div>
+      <input class="tier-name-input" type="text" value="Enterprise" data-field="name">
+      <div class="tier-price-row">
+        <div class="tier-price-block">
+          <div class="tier-price-label">Цена/мес, тыс. сум</div>
+          <input class="tier-price-input" type="text" value="от 2 500" data-field="price">
+        </div>
+        <div class="tier-price-block">
+          <div class="tier-price-label">USD</div>
+          <input class="tier-price-input" type="text" value="от $200" data-field="usd">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="stats">
+      <span><strong id="active-count">0</strong> активных функций</span>
+      <span>Старт: <strong id="tier-0-count">0</strong></span>
+      <span>Бизнес: <strong id="tier-1-count">0</strong></span>
+      <span>Премиум: <strong id="tier-2-count">0</strong></span>
+      <span>Enterprise: <strong id="tier-3-count">0</strong></span>
+    </div>
+    <div class="preset-buttons">
+      <button class="btn btn-ghost" onclick="applyPreset('all')">Включить все</button>
+      <button class="btn btn-ghost" onclick="applyPreset('none')">Выключить все</button>
+    </div>
+  </div>
+
+  <div class="compare-table">
+    <div class="table-head">
+      <div class="col-grip"></div>
+      <div class="col-feat">Функция</div>
+      <div class="col-tier" id="head-tier-0">Старт</div>
+      <div class="col-tier featured-col" id="head-tier-1">Бизнес</div>
+      <div class="col-tier" id="head-tier-2">Премиум</div>
+      <div class="col-tier enterprise-col" id="head-tier-3">Enterprise</div>
+      <div class="col-actions">Действия</div>
+    </div>
+    <div id="categories-container"></div>
+  </div>
+
+  <button class="add-category-btn" onclick="addCategory()">+ Добавить новую категорию</button>
+
+  <div style="height: 80px"></div>
+</section>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">Удалить?</h3>
+    <p id="modal-message">Это действие нельзя отменить.</p>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal()">Отмена</button>
+      <button class="modal-btn danger" id="modal-confirm">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// =============================================================================
+// ДАННЫЕ ПО УМОЛЧАНИЮ
+// =============================================================================
+
+const DEFAULT_DATA = {
+  tiers: [
+    { name: "Старт", price: "199", usd: "$16" },
+    { name: "Бизнес", price: "499", usd: "$40" },
+    { name: "Премиум", price: "999", usd: "$80" },
+    { name: "Enterprise", price: "от 2 500", usd: "от $200" }
+  ],
+  categories: [
+    {
+      title: "Магазин и витрина",
+      features: [
+        { name: "Telegram-бот с Mini App витриной", desc: "Полноценный магазин открывается прямо в Telegram, без сайта. Покупатель листает каталог и оплачивает за 30 секунд внутри мессенджера.", values: [true, true, true, true] },
+        { name: "Брендирование без метки Dokonly", desc: "В магазине не видно отметки «работает на Dokonly» — клиенты видят только ваш бренд. Профессиональный вид с первого тарифа.", values: [true, true, true, true] },
+        { name: "Кастомизация витрины", desc: "Загрузите логотип, обложку и выберите цветовую схему магазина. Витрина соответствует фирменному стилю вашего бренда.", values: [true, true, true, true] },
+        { name: "Контактный блок", desc: "Адрес самовывоза, рабочие часы, ссылки на ваш Telegram и Instagram. Покупатель сам выбирает удобный способ связи.", values: [true, true, true, true] },
+        { name: "Stories и баннеры в магазине", desc: "Промо-блоки на главной с акциями и новинками. Запускайте сезонные кампании без редизайна каталога.", values: [false, true, true, true] },
+        { name: "Multi-store (несколько магазинов)", desc: "Управляйте несколькими брендами или франшизой из одного кабинета. До 5 магазинов с раздельной аналитикой.", values: [false, false, true, true] }
+      ]
+    },
+    {
+      title: "Каталог товаров",
+      features: [
+        { name: "Лимит товаров (SKU)", desc: "Сколько уникальных позиций можно держать в каталоге.", values: ["100", "2000", "∞", "∞"], isLimit: true },
+        { name: "Категории и подкатегории", desc: "Дерево категорий любой вложенности с фильтрами по характеристикам. Покупатель быстро находит нужное.", values: [true, true, true, true] },
+        { name: "Варианты товара", desc: "Один товар с разными размерами, цветами, объёмами. Покупатель переключает варианты внутри карточки.", values: [false, true, true, true] },
+        { name: "Управление остатками", desc: "Автосписание при заказе, уведомления о low-stock, блокировка покупки при нуле. Никаких перепродаж того, чего нет.", values: [true, true, true, true] },
+        { name: "Импорт из Excel и CSV", desc: "Загрузка прайс-листа массово. AI читает даже кривые таблицы и сам сопоставляет колонки.", values: [false, true, true, true] },
+        { name: "AI-импорт фото с подписями", desc: "Кидаете боту фото товара с подписью (название, цена, характеристики) — AI создаёт готовую карточку за 5 секунд. Работает с узбекским и русским.", values: [false, true, true, true] },
+        { name: "Импорт из Telegram-канала", desc: "Подключаете свой публичный канал — бот читает все посты с товарами, AI разбирает их на карточки. Идеально для тех кто уже ведёт TG-канал.", values: [false, true, true, true] },
+        { name: "Голосовой импорт через AI", desc: "Надиктуйте товары голосом в Telegram — AI сам создаст карточки. «Помада красная за 80 тысяч» превращается в товар автоматически.", values: [false, false, true, true] },
+        { name: "AI-описания товаров", desc: "Генерация продающих описаний по фото и названию на узбекском или русском. Экономит часы для тех, кто не любит писать.", values: [false, true, true, true] },
+        { name: "AI-обработка фотографий", desc: "Удаление фона, выравнивание света, каталожный вид из обычной фотки на iPhone. Ваш магазин выглядит профессионально.", values: [false, false, true, true] },
+        { name: "Массовое редактирование", desc: "Выделить 50 товаров и поднять цену на 10% или сменить категорию одной кнопкой. Часы работы превращаются в секунды.", values: [false, true, true, true] }
+      ]
+    },
+    {
+      title: "Заказы и обработка",
+      features: [
+        { name: "Канбан-доска заказов", desc: "Заказы движутся «новый → подтверждён → собирается → отправлен → доставлен». Видно весь pipeline сразу.", values: [true, true, true, true] },
+        { name: "Авто-уведомления покупателю", desc: "Telegram-сообщения о смене статуса заказа: «принят», «готов», «отправлен». Покупатель в курсе без вашей переписки.", values: [true, true, true, true] },
+        { name: "Способ доставки от продавца", desc: "В карточке заказа указываете удобный способ: «BTS на 35 тыс», «привезу сам в субботу». Гибкость без интеграций.", values: [true, true, true, true] },
+        { name: "База клиентов с историей", desc: "История покупок каждого клиента, общая сумма, любимые категории. Превращается в инструмент апсейла и повторных продаж.", values: [false, true, true, true] },
+        { name: "Возвраты и обмены", desc: "Покупатель оставляет заявку прямо в Mini App, продавец одобряет или отклоняет. Все возвраты в одной таблице.", values: [false, true, true, true] },
+        { name: "Чек-лист сборки заказа", desc: "Список товаров с галочками для упаковщика, фото-подтверждение упаковки. Снижает ошибки при отгрузке.", values: [false, false, true, true] }
+      ]
+    },
+    {
+      title: "Платежи",
+      features: [
+        { name: "Click интеграция", desc: "Самый популярный платёжный шлюз UZ. Клиент платит карточкой, через приложение Click или Click Pass.", values: [true, true, true, true] },
+        { name: "Payme интеграция", desc: "Второй массовый шлюз. Многие клиенты предпочитают именно его — даём выбор.", values: [true, true, true, true] },
+        { name: "Наличный расчёт", desc: "Возможность оформить заказ с оплатой при получении. Для регионов и старшей аудитории — критично.", values: [true, true, true, true] },
+        { name: "Uzumbank Pay", desc: "Растущий канал, особенно у молодой аудитории. Удобно для пользователей экосистемы Uzum.", values: [false, true, true, true] },
+        { name: "Humo / Visa / Mastercard", desc: "Прямой эквайринг для клиентов, у которых нет приложений Click и Payme. Расширяет конверсию.", values: [false, true, true, true] },
+        { name: "Рассрочка через Alif / Uzum", desc: "Интеграция с системами рассрочки на средний и крупный чек. Поднимает средний чек на 30–50%.", values: [false, true, true, true] },
+        { name: "Telegram Stars", desc: "Внутренняя валюта Telegram для цифровых товаров и подписок. Удобно для онлайн-курсов и контента.", values: [false, false, true, true] },
+        { name: "Сплит-платежи", desc: "Покупатель платит несколькими способами одновременно: часть с карты, часть Telegram Stars, часть наличными.", values: [false, false, true, true] }
+      ]
+    },
+    {
+      title: "Маркетинг и удержание",
+      features: [
+        { name: "Скидки и распродажи", desc: "Запланированные акции с автоматическим применением и таймером обратного отсчёта на витрине. Создают urgency.", values: [true, true, true, true] },
+        { name: "Промокоды и купоны", desc: "Создание ограниченных по времени и количеству промокодов. Можно делать персональные коды для блогеров.", values: [false, true, true, true] },
+        { name: "Программа лояльности и кэшбэк", desc: "Накопление баллов магазина за покупки, трата на следующих заказах. Удерживает клиентов и повышает LTV.", values: [false, true, true, true] },
+        { name: "Реферальная программа", desc: "«Приведи друга — получи 10%» прямо внутри Mini App. Виральный рост без затрат на рекламу.", values: [false, true, true, true] },
+        { name: "Кросспостинг в Telegram-канал", desc: "Новинки и акции автоматически публикуются в публичный канал магазина. Не надо постить вручную.", values: [false, true, true, true] },
+        { name: "Push-уведомления через Telegram", desc: "Бесплатная замена SMS — уведомления о поступлениях, акциях и скидках клиентам, которые делали заказы.", values: [false, true, true, true] },
+        { name: "Возврат брошенных корзин", desc: "Если покупатель добавил товар, но не оплатил — через 2 часа Telegram-напоминание со скидкой. Возвращает 15-25% потерянных продаж.", values: [false, true, true, true] },
+        { name: "SMS и Email рассылки", desc: "Сегментированная рассылка по базе клиентов: «не покупали 30 дней — вот промокод». Win-back кампании.", values: [false, false, true, true] }
+      ]
+    },
+    {
+      title: "AI-возможности",
+      features: [
+        { name: "AI-консультант на узбекском в чате", desc: "Покупатель пишет «есть в розовом за 100 тысяч?» — AI смотрит каталог и отвечает. Снимает 70% рутинных вопросов.", values: [false, true, true, true] },
+        { name: "AI-описания товаров", desc: "Генерация продающих описаний по фото и названию. Узбекский, русский, английский — на выбор.", values: [false, true, true, true] },
+        { name: "AI-рекомендации товаров", desc: "Под каждой карточкой блок «вам также понравится» на основе поведения. Поднимает средний чек.", values: [false, true, true, true] },
+        { name: "Голосовой импорт каталога", desc: "Надиктуйте голосовое сообщение боту — AI создаст карточки автоматически. Работает на узбекском и русском.", values: [false, false, true, true] },
+        { name: "AI-обработка фотографий", desc: "Удаление фона, выравнивание света, каталожный вид. Любое фото с iPhone превращается в studio-уровень.", values: [false, false, true, true] },
+        { name: "AI-помощник продавца", desc: "«Покажи продажи за неделю», «какой товар лучше всего продаётся» — голосовой/чат-интерфейс к аналитике.", values: [false, false, true, true] }
+      ]
+    },
+    {
+      title: "Аналитика",
+      features: [
+        { name: "Базовая аналитика продаж", desc: "Выручка, кол-во заказов, средний чек по дням, неделям и месяцам. Базовая картина бизнеса в одном экране.", values: [true, true, true, true] },
+        { name: "Аналитика по товарам", desc: "ТОП-продаж, медленно оборачивающиеся товары, маржинальность по SKU. Ясно что закупать, а что списать.", values: [false, true, true, true] },
+        { name: "Воронка покупателя", desc: "От захода в Mini App до оплаты — на каком шаге теряются клиенты. Помогает чинить конверсию точечно.", values: [false, true, true, true] },
+        { name: "Источники трафика", desc: "Откуда пришёл покупатель: блогер, реклама, реферал, прямой переход. Понимаете что окупается, а что — нет.", values: [false, true, true, true] },
+        { name: "Экспорт в Excel", desc: "Выгрузка любого отчёта в XLSX для бухгалтера или собственного анализа.", values: [false, true, true, true] },
+        { name: "Когорты и retention", desc: "Какой % клиентов возвращается через 30/60/90 дней. Главная метрика здоровья бизнеса.", values: [false, false, true, true] }
+      ]
+    },
+    {
+      title: "Команда и роли",
+      features: [
+        { name: "Админ-аккаунты", desc: "Сколько пользователей с доступом в кабинет. Каждый со своим логином и ролью.", values: ["1", "3", "∞", "∞"], isLimit: true },
+        { name: "Роли с правами доступа", desc: "Владелец, менеджер заказов, кладовщик, маркетолог, бухгалтер. Каждый видит только своё.", values: [false, true, true, true] },
+        { name: "Уведомления для команды", desc: "Новый заказ в Telegram-чат команды, эскалация при просрочке. Никто ничего не пропустит.", values: [false, true, true, true] },
+        { name: "Журнал действий", desc: "Кто, когда и что менял. Защита от ошибок персонала и важно для разрешения споров.", values: [false, false, true, true] }
+      ]
+    },
+    {
+      title: "Фискализация и бухгалтерия",
+      features: [
+        { name: "Онлайн-ККТ интеграция", desc: "Автоматическая отправка чека в Soliq.uz при оплате. С апреля 2026 это обязательно для большинства видов деятельности.", values: [false, true, true, true] },
+        { name: "ИКПУ-коды автоматически", desc: "Присвоение классификационных кодов товарам по категории. Без них фискализация не пройдёт.", values: [false, true, true, true] },
+        { name: "Документы для бухгалтера", desc: "Месячные отчёты в формате 1С и Excel. Бухгалтер не звонит каждые 3 дня за выгрузками.", values: [false, true, true, true] },
+        { name: "НДС-учёт", desc: "Расчёт НДС в товаре и в чеке для тех, кто на общем налоговом режиме. Полностью автоматически.", values: [false, false, true, true] }
+      ]
+    },
+    {
+      title: "Интеграции",
+      features: [
+        { name: "API доступ", desc: "Подключение собственных систем, интеграция с 1С, экспорт-импорт по расписанию. Для крупных каталогов — must.", values: [false, false, true, true] },
+        { name: "Webhooks", desc: "Уведомления вашему стороннему сервису о событиях: новый заказ, оплата, возврат. Для интеграции с CRM.", values: [false, false, true, true] },
+        { name: "Sync с Uzum и Wildberries UZ", desc: "Один источник остатков на маркетплейсы и в свой магазин. Не надо переписывать SKU вручную в трёх местах.", values: [false, false, true, true] },
+        { name: "Telegram Business интеграция", desc: "Связь магазина с бизнес-Telegram аккаунтом владельца, ответы от имени бренда.", values: [false, false, true, true] }
+      ]
+    },
+    {
+      title: "Поддержка",
+      features: [
+        { name: "База знаний и видео-гайды", desc: "Подробные инструкции и обучающие видео на узбекском и русском. Самостоятельное решение 80% вопросов.", values: [true, true, true, true] },
+        { name: "Скорость ответа в Telegram-чате", desc: "Время гарантированного первого ответа поддержки в рабочее время.", values: ["24ч", "4ч", "1ч", "30мин"], isLimit: true },
+        { name: "Onboarding с командой", desc: "Видеозвонок при подключении: помогаем с настройкой, импортом каталога, первой кампанией.", values: [false, true, true, true] },
+        { name: "Личный менеджер", desc: "Один человек, который знает ваш бизнес и помогает с настройкой и оптимизацией. Прямой Telegram-чат.", values: [false, false, true, true] },
+        { name: "SLA 99.9% с компенсацией", desc: "Гарантия аптайма с финансовой компенсацией при простоях больше норматива.", values: [false, false, true, true] }
+      ]
+    }
+  ]
+};
+
+// =============================================================================
+// СОСТОЯНИЕ
+// =============================================================================
+
+let state = JSON.parse(JSON.stringify(DEFAULT_DATA));
+
+// =============================================================================
+// ОТРИСОВКА
+// =============================================================================
+
+function render() {
+  state.tiers.forEach((tier, i) => {
+    document.getElementById('head-tier-' + i).textContent = tier.name;
+    const cfg = document.querySelector('[data-tier="' + i + '"]');
+    cfg.querySelector('[data-field="name"]').value = tier.name;
+    cfg.querySelector('[data-field="price"]').value = tier.price;
+    cfg.querySelector('[data-field="usd"]').value = tier.usd;
+  });
+
+  const container = document.getElementById('categories-container');
+  container.innerHTML = '';
+
+  state.categories.forEach((cat, catIdx) => {
+    const catBlock = document.createElement('div');
+    catBlock.className = 'category';
+    catBlock.dataset.catIdx = catIdx;
+
+    // Category header
+    const catHead = document.createElement('div');
+    catHead.className = 'category-head';
+    catHead.dataset.dropType = 'category';
+    catHead.dataset.catIdx = catIdx;
+    catHead.innerHTML =
+      '<span class="drag-handle" data-drag-type="category" data-cat-idx="' + catIdx + '" draggable="true" title="Перетащить категорию">' +
+        '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="5" cy="13" r="1.3"/><circle cx="11" cy="3" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="11" cy="13" r="1.3"/></svg>' +
+      '</span>' +
+      '<span class="category-num">' + (catIdx + 1) + '</span>' +
+      '<span class="category-title" contenteditable="true">' + escapeHtml(cat.title) + '</span>' +
+      '<div class="category-actions">' +
+        '<button class="cat-btn" data-action="bulk-starter">только Старт</button>' +
+        '<button class="cat-btn" data-action="bulk-business">от Бизнес</button>' +
+        '<button class="cat-btn" data-action="bulk-premium">от Премиум</button>' +
+        '<button class="cat-btn" data-action="bulk-enterprise">только Enterprise</button>' +
+        '<button class="cat-btn danger" data-action="delete-cat">Удалить</button>' +
+      '</div>';
+    catBlock.appendChild(catHead);
+
+    // Category title editing
+    const titleEl = catHead.querySelector('.category-title');
+    titleEl.addEventListener('blur', () => {
+      state.categories[catIdx].title = titleEl.textContent.trim() || 'Без названия';
+    });
+    titleEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); titleEl.blur(); }
+    });
+
+    // Category actions
+    catHead.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
+        if (action === 'bulk-starter') bulkCat(catIdx, 0);
+        if (action === 'bulk-business') bulkCat(catIdx, 1);
+        if (action === 'bulk-premium') bulkCat(catIdx, 2);
+        if (action === 'bulk-enterprise') bulkCat(catIdx, 3);
+        if (action === 'delete-cat') {
+          openModal({
+            title: 'Удалить категорию?',
+            message: 'Категория «' + cat.title + '» и все её ' + cat.features.length + ' функций будут удалены.',
+            danger: true,
+            confirmText: 'Удалить',
+            onConfirm: () => {
+              state.categories.splice(catIdx, 1);
+              render();
+              showToast('Категория удалена');
+            }
+          });
+        }
+      });
+    });
+
+    // Features
+    cat.features.forEach((feat, featIdx) => {
+      const isActive = feat.active !== false;
+      const row = document.createElement('div');
+      row.className = 'feature-row' + (isActive ? '' : ' disabled');
+      row.dataset.dropType = 'feature';
+      row.dataset.catIdx = catIdx;
+      row.dataset.featIdx = featIdx;
+
+      // Drag handle
+      const handle = document.createElement('span');
+      handle.className = 'drag-handle';
+      handle.draggable = true;
+      handle.dataset.dragType = 'feature';
+      handle.dataset.catIdx = catIdx;
+      handle.dataset.featIdx = featIdx;
+      handle.title = 'Перетащить функцию';
+      handle.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="3" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="5" cy="13" r="1.3"/><circle cx="11" cy="3" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="11" cy="13" r="1.3"/></svg>';
+      row.appendChild(handle);
+
+      // Name + description
+      const featDiv = document.createElement('div');
+      const nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.className = 'feat-name-input';
+      nameInput.value = feat.name;
+      nameInput.addEventListener('input', () => { feat.name = nameInput.value; });
+      featDiv.appendChild(nameInput);
+
+      const descInput = document.createElement('textarea');
+      descInput.className = 'feat-desc-input';
+      descInput.value = feat.desc;
+      descInput.rows = 1;
+      autoresize(descInput);
+      descInput.addEventListener('input', () => {
+        feat.desc = descInput.value;
+        autoresize(descInput);
+      });
+      featDiv.appendChild(descInput);
+      row.appendChild(featDiv);
+
+      // Tier cells
+      for (let t = 0; t < 4; t++) {
+        const cell = document.createElement('div');
+        let cellClass = 'tier-cell';
+        if (t === 1) cellClass += ' featured-cell';
+        if (t === 3) cellClass += ' enterprise-cell';
+        cell.className = cellClass;
+        const value = feat.values[t];
+
+        if (feat.isLimit) {
+          const limitBox = document.createElement('div');
+          const hasValue = value && value !== '' && value !== '—';
+          limitBox.className = 'check-box has-limit' + (hasValue ? '' : ' empty-limit');
+          limitBox.textContent = value || '—';
+          limitBox.addEventListener('click', (e) => {
+            e.stopPropagation();
+            editLimit(catIdx, featIdx, t, limitBox);
+          });
+          cell.appendChild(limitBox);
+        } else {
+          const cb = document.createElement('div');
+          cb.className = 'check-box' + (value === true ? ' checked' : '');
+          cb.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 8l3.5 3.5L13 5"/></svg>';
+          cb.addEventListener('click', () => {
+            feat.values[t] = !feat.values[t];
+            cb.classList.toggle('checked');
+            updateStats();
+          });
+          cell.appendChild(cb);
+        }
+        row.appendChild(cell);
+      }
+
+      // Row actions
+      const actions = document.createElement('div');
+      actions.className = 'row-actions';
+
+      const activeBtn = document.createElement('button');
+      activeBtn.className = 'icon-btn' + (isActive ? ' active' : '');
+      activeBtn.title = isActive ? 'Активна (отключить)' : 'Не активна (включить)';
+      activeBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 8l3.5 3.5L13 5"/></svg>';
+      activeBtn.addEventListener('click', () => {
+        feat.active = !isActive;
+        render();
+      });
+      actions.appendChild(activeBtn);
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'icon-btn danger';
+      deleteBtn.title = 'Удалить функцию';
+      deleteBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h10M6 5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2M5 5l1 9a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1l1-9"/></svg>';
+      deleteBtn.addEventListener('click', () => {
+        openModal({
+          title: 'Удалить функцию?',
+          message: '«' + feat.name + '» будет удалена из всех тарифов.',
+          danger: true,
+          confirmText: 'Удалить',
+          onConfirm: () => {
+            state.categories[catIdx].features.splice(featIdx, 1);
+            render();
+            showToast('Функция удалена');
+          }
+        });
+      });
+      actions.appendChild(deleteBtn);
+
+      row.appendChild(actions);
+      catBlock.appendChild(row);
+    });
+
+    // Add row button
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-row-btn';
+    addBtn.innerHTML = '<span class="plus-icon">+</span> Добавить функцию в «' + escapeHtml(cat.title) + '»';
+    addBtn.addEventListener('click', () => {
+      state.categories[catIdx].features.push({
+        name: 'Новая функция',
+        desc: 'Описание новой функции в 1-2 предложения.',
+        values: [false, true, true, true]
+      });
+      render();
+      // Focus on the new feature name input
+      requestAnimationFrame(() => {
+        const allRows = document.querySelectorAll('[data-cat-idx="' + catIdx + '"] .feat-name-input');
+        const last = allRows[allRows.length - 1];
+        if (last) { last.focus(); last.select(); }
+      });
+    });
+    catBlock.appendChild(addBtn);
+
+    container.appendChild(catBlock);
+  });
+
+  // Tier config inputs
+  document.querySelectorAll('.tier-name-input, .tier-price-input').forEach(input => {
+    input.oninput = function() {
+      const tierIdx = parseInt(this.closest('[data-tier]').dataset.tier);
+      const field = this.dataset.field;
+      state.tiers[tierIdx][field] = this.value;
+      if (field === 'name') {
+        document.getElementById('head-tier-' + tierIdx).textContent = this.value;
+      }
+    };
+  });
+
+  initDragAndDrop();
+  updateStats();
+}
+
+// =============================================================================
+// DRAG AND DROP
+// =============================================================================
+
+let dragState = null; // { type: 'feature'|'category', catIdx, featIdx }
+
+function initDragAndDrop() {
+  // Drag handles
+  document.querySelectorAll('.drag-handle').forEach(handle => {
+    handle.addEventListener('dragstart', (e) => {
+      const type = handle.dataset.dragType;
+      const catIdx = parseInt(handle.dataset.catIdx);
+      const featIdx = handle.dataset.featIdx !== undefined ? parseInt(handle.dataset.featIdx) : null;
+      dragState = { type, catIdx, featIdx };
+      e.dataTransfer.effectAllowed = 'move';
+      // Some browsers need data set, even if not used
+      try { e.dataTransfer.setData('text/plain', type + ':' + catIdx + ':' + featIdx); } catch(err) {}
+      // Mark source row/category as dragging
+      const sourceEl = type === 'feature'
+        ? document.querySelector('.feature-row[data-cat-idx="' + catIdx + '"][data-feat-idx="' + featIdx + '"]')
+        : document.querySelector('.category[data-cat-idx="' + catIdx + '"]');
+      if (sourceEl) {
+        // Defer the class add — Chrome takes drag-image snapshot synchronously
+        setTimeout(() => sourceEl.classList.add('dragging'), 0);
+      }
+    });
+
+    handle.addEventListener('dragend', () => {
+      cleanupDragVisuals();
+      dragState = null;
+    });
+  });
+
+  // Drop targets — feature rows
+  document.querySelectorAll('.feature-row').forEach(row => {
+    row.addEventListener('dragover', (e) => {
+      if (!dragState || dragState.type !== 'feature') return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const rect = row.getBoundingClientRect();
+      const isAbove = (e.clientY - rect.top) < (rect.height / 2);
+      cleanupDropIndicators();
+      row.classList.add(isAbove ? 'drop-target-above' : 'drop-target-below');
+    });
+
+    row.addEventListener('dragleave', (e) => {
+      // Remove indicator only if we left the row entirely (not entered a child)
+      if (e.relatedTarget && row.contains(e.relatedTarget)) return;
+      row.classList.remove('drop-target-above', 'drop-target-below');
+    });
+
+    row.addEventListener('drop', (e) => {
+      if (!dragState || dragState.type !== 'feature') return;
+      e.preventDefault();
+      const targetCatIdx = parseInt(row.dataset.catIdx);
+      const targetFeatIdx = parseInt(row.dataset.featIdx);
+      const rect = row.getBoundingClientRect();
+      const isAbove = (e.clientY - rect.top) < (rect.height / 2);
+
+      moveFeature(dragState.catIdx, dragState.featIdx, targetCatIdx, targetFeatIdx, isAbove);
+      cleanupDragVisuals();
+      dragState = null;
+    });
+  });
+
+  // Drop targets — category headers (drop INTO category, ends at last feature)
+  document.querySelectorAll('.category-head').forEach(head => {
+    const block = head.closest('.category');
+
+    head.addEventListener('dragover', (e) => {
+      if (!dragState) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      cleanupDropIndicators();
+      const rect = block.getBoundingClientRect();
+      const isAbove = (e.clientY - rect.top) < (rect.height / 2);
+
+      if (dragState.type === 'category') {
+        block.classList.add(isAbove ? 'drop-target-above' : 'drop-target-below');
+      } else if (dragState.type === 'feature') {
+        // Drop feature into this category at start
+        head.classList.add('drop-target-below');
+      }
+    });
+
+    head.addEventListener('dragleave', (e) => {
+      if (e.relatedTarget && head.contains(e.relatedTarget)) return;
+      block.classList.remove('drop-target-above', 'drop-target-below');
+      head.classList.remove('drop-target-below');
+    });
+
+    head.addEventListener('drop', (e) => {
+      if (!dragState) return;
+      e.preventDefault();
+      const targetCatIdx = parseInt(head.dataset.catIdx);
+
+      if (dragState.type === 'category') {
+        const rect = block.getBoundingClientRect();
+        const isAbove = (e.clientY - rect.top) < (rect.height / 2);
+        moveCategory(dragState.catIdx, targetCatIdx, isAbove);
+      } else if (dragState.type === 'feature') {
+        // Drop feature at start of this category
+        moveFeature(dragState.catIdx, dragState.featIdx, targetCatIdx, 0, true);
+      }
+
+      cleanupDragVisuals();
+      dragState = null;
+    });
+  });
+}
+
+function cleanupDropIndicators() {
+  document.querySelectorAll('.drop-target-above, .drop-target-below').forEach(el => {
+    el.classList.remove('drop-target-above', 'drop-target-below');
+  });
+}
+
+function cleanupDragVisuals() {
+  cleanupDropIndicators();
+  document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+}
+
+function moveFeature(srcCatIdx, srcFeatIdx, dstCatIdx, dstFeatIdx, dropAbove) {
+  // Same item — no-op
+  if (srcCatIdx === dstCatIdx && srcFeatIdx === dstFeatIdx) return;
+
+  // Remove from source
+  const item = state.categories[srcCatIdx].features.splice(srcFeatIdx, 1)[0];
+
+  // Compute destination index
+  let target = dstFeatIdx;
+  // If we removed an item from the same category before the destination, shift down
+  if (srcCatIdx === dstCatIdx && srcFeatIdx < dstFeatIdx) {
+    target -= 1;
+  }
+  if (!dropAbove) target += 1;
+
+  // Clamp
+  target = Math.max(0, Math.min(target, state.categories[dstCatIdx].features.length));
+
+  state.categories[dstCatIdx].features.splice(target, 0, item);
+  render();
+}
+
+function moveCategory(srcCatIdx, dstCatIdx, dropAbove) {
+  if (srcCatIdx === dstCatIdx) return;
+
+  const item = state.categories.splice(srcCatIdx, 1)[0];
+  let target = dstCatIdx;
+  if (srcCatIdx < dstCatIdx) target -= 1;
+  if (!dropAbove) target += 1;
+  target = Math.max(0, Math.min(target, state.categories.length));
+
+  state.categories.splice(target, 0, item);
+  render();
+}
+
+function autoresize(el) {
+  requestAnimationFrame(() => {
+    el.style.height = 'auto';
+    el.style.height = (el.scrollHeight + 2) + 'px';
+  });
+}
+
+function updateStats() {
+  let total = 0;
+  let perTier = [0, 0, 0, 0];
+  state.categories.forEach(cat => {
+    cat.features.forEach(feat => {
+      if (feat.active === false) return;
+      total++;
+      feat.values.forEach((v, i) => {
+        if (v === true || (typeof v === 'string' && v && v !== '—')) {
+          perTier[i]++;
+        }
+      });
+    });
+  });
+  document.getElementById('active-count').textContent = total;
+  document.getElementById('tier-0-count').textContent = perTier[0];
+  document.getElementById('tier-1-count').textContent = perTier[1];
+  document.getElementById('tier-2-count').textContent = perTier[2];
+  document.getElementById('tier-3-count').textContent = perTier[3];
+}
+
+// =============================================================================
+// BULK
+// =============================================================================
+
+function bulkCat(catIdx, fromTier) {
+  state.categories[catIdx].features.forEach(feat => {
+    if (feat.isLimit) return;
+    feat.values = feat.values.map((_, i) => i >= fromTier);
+  });
+  render();
+}
+
+function applyPreset(preset) {
+  state.categories.forEach(cat => {
+    cat.features.forEach(feat => {
+      if (feat.isLimit) return;
+      if (preset === 'all') feat.values = [true, true, true, true];
+      else if (preset === 'none') feat.values = [false, false, false, false];
+    });
+  });
+  render();
+}
+
+function addCategory() {
+  state.categories.push({
+    title: 'Новая категория',
+    features: [
+      { name: 'Новая функция', desc: 'Описание', values: [false, true, true, true] }
+    ]
+  });
+  render();
+  showToast('Категория добавлена');
+}
+
+// =============================================================================
+// LIMIT EDITOR
+// =============================================================================
+
+function editLimit(catIdx, featIdx, tierIdx, target) {
+  const existing = document.querySelector('.limit-editor');
+  if (existing) existing.remove();
+
+  const editor = document.createElement('div');
+  editor.className = 'limit-editor';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = state.categories[catIdx].features[featIdx].values[tierIdx] || '';
+  input.placeholder = '∞, 100, 24ч';
+
+  const okBtn = document.createElement('button');
+  okBtn.className = 'ok';
+  okBtn.textContent = 'OK';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'cancel';
+  cancelBtn.textContent = '✕';
+
+  editor.appendChild(input);
+  editor.appendChild(okBtn);
+  editor.appendChild(cancelBtn);
+
+  document.body.appendChild(editor);
+  const rect = target.getBoundingClientRect();
+  editor.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+  editor.style.left = Math.min(rect.left + window.scrollX - 30, window.innerWidth - 250) + 'px';
+
+  input.focus();
+  input.select();
+
+  function save() {
+    state.categories[catIdx].features[featIdx].values[tierIdx] = input.value || '—';
+    editor.remove();
+    render();
+  }
+  function cancel() { editor.remove(); }
+
+  okBtn.addEventListener('click', save);
+  cancelBtn.addEventListener('click', cancel);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') save();
+    if (e.key === 'Escape') cancel();
+  });
+
+  setTimeout(() => {
+    document.addEventListener('click', function handler(e) {
+      if (!editor.contains(e.target) && e.target !== target) {
+        editor.remove();
+        document.removeEventListener('click', handler);
+      }
+    });
+  }, 100);
+}
+
+// =============================================================================
+// MODAL
+// =============================================================================
+
+let modalConfirmHandler = null;
+
+function openModal({ title, message, danger, confirmText, onConfirm }) {
+  document.getElementById('modal-title').textContent = title || 'Подтвердить';
+  document.getElementById('modal-message').textContent = message || '';
+  const btn = document.getElementById('modal-confirm');
+  btn.textContent = confirmText || 'OK';
+  btn.className = 'modal-btn ' + (danger ? 'danger' : 'primary');
+  modalConfirmHandler = onConfirm;
+  document.getElementById('modal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+  modalConfirmHandler = null;
+}
+
+document.getElementById('modal-confirm').addEventListener('click', () => {
+  if (modalConfirmHandler) {
+    const fn = modalConfirmHandler;
+    closeModal();
+    fn();
+  } else {
+    closeModal();
+  }
+});
+
+document.getElementById('modal').addEventListener('click', (e) => {
+  if (e.target.id === 'modal') closeModal();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('modal').classList.contains('show')) {
+    closeModal();
+  }
+});
+
+// =============================================================================
+// УТИЛИТЫ
+// =============================================================================
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+function showToast(text) {
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// =============================================================================
+// SAVE / LOAD
+// =============================================================================
+
+function saveToFile() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = 'tg-shop-pricing-' + date + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Сохранено');
+}
+
+function loadFromFile() {
+  document.getElementById('file-loader').click();
+}
+
+function handleFileLoad(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const loaded = JSON.parse(e.target.result);
+      if (loaded.tiers && loaded.categories) {
+        state = loaded;
+        render();
+        showToast('Загружено');
+      } else {
+        openModal({ title: 'Ошибка', message: 'Файл повреждён или имеет неправильный формат.', confirmText: 'OK' });
+      }
+    } catch(err) {
+      openModal({ title: 'Ошибка', message: 'Не удалось прочитать файл: ' + err.message, confirmText: 'OK' });
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function askReset() {
+  openModal({
+    title: 'Сбросить всё?',
+    message: 'Все ваши изменения будут потеряны. Конфигурация вернётся к дефолтной.',
+    danger: true,
+    confirmText: 'Сбросить',
+    onConfirm: () => {
+      state = JSON.parse(JSON.stringify(DEFAULT_DATA));
+      render();
+      showToast('Сброшено');
+    }
+  });
+}
+
+// =============================================================================
+// PRINT
+// =============================================================================
+
+function doPrint() {
+  // Close any open modals/editors before print so they don't block layout
+  closeModal();
+  document.querySelectorAll('.limit-editor').forEach(el => el.remove());
+  cleanupDragVisuals();
+
+  // Hide toast if showing
+  document.getElementById('toast').classList.remove('show');
+
+  // Small delay so DOM updates before print dialog
+  setTimeout(() => {
+    try {
+      window.print();
+    } catch(err) {
+      openModal({
+        title: 'Не удалось открыть печать',
+        message: 'Попробуйте сочетание клавиш Ctrl+P (Cmd+P на Mac).',
+        confirmText: 'OK'
+      });
+    }
+  }, 100);
+}
+
+// =============================================================================
+// KEYBOARD SHORTCUTS
+// =============================================================================
+
+document.addEventListener('keydown', (e) => {
+  // Cmd/Ctrl + P → print
+  if ((e.metaKey || e.ctrlKey) && e.key === 'p') {
+    e.preventDefault();
+    doPrint();
+    return;
+  }
+  // Cmd/Ctrl + S → save
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+    e.preventDefault();
+    saveToFile();
+    return;
+  }
+});
+
+// START
+render();
+</script>
+
+</body>
+</html>

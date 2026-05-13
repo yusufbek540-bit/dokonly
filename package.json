@@ -1,0 +1,21 @@
+{
+  "name": "dokonly",
+  "private": true,
+  "scripts": {
+    "dev:miniapp": "pnpm --filter miniapp dev",
+    "dev:dashboard": "pnpm --filter dashboard dev",
+    "build:miniapp": "pnpm --filter miniapp build",
+    "build:dashboard": "pnpm --filter dashboard build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "sharp"
+    ]
+  }
+}
