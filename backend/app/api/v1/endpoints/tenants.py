@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
@@ -20,7 +21,11 @@ async def create_tenant(
         raise HTTPException(400, "Slug already taken")
     tenant = Tenant(**body.model_dump(), owner_id=user["sub"])
     db.add(tenant)
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Slug already taken")
     await db.refresh(tenant)
     return tenant
 
