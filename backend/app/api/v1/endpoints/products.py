@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,7 +47,7 @@ async def list_categories(
     return result.scalars().all()
 
 
-@router_categories.post("", response_model=CategoryResponse, status_code=201)
+@router_categories.post("", response_model=CategoryResponse, status_code=status.HTTP_201_CREATED)
 async def create_category(
     body: CategoryCreate,
     user: dict = Depends(get_current_user),
@@ -84,7 +86,7 @@ async def list_products(
     return result.scalars().all()
 
 
-@router_products.post("", response_model=ProductResponse, status_code=201)
+@router_products.post("", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
 async def create_product(
     body: ProductCreate,
     user: dict = Depends(get_current_user),
@@ -100,7 +102,7 @@ async def create_product(
 
 @router_products.patch("/{product_id}", response_model=ProductResponse)
 async def update_product(
-    product_id: str,
+    product_id: UUID,
     body: ProductUpdate,
     user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -119,9 +121,9 @@ async def update_product(
     return product
 
 
-@router_products.delete("/{product_id}", status_code=204)
+@router_products.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_product(
-    product_id: str,
+    product_id: UUID,
     user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
