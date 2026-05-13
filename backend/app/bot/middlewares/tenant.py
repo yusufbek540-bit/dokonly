@@ -17,7 +17,7 @@ class TenantMiddleware(BaseMiddleware):
     ) -> Any:
         bot = data.get("bot")
         if bot:
-            bot_info = await bot.get_me()
+            bot_info = await bot.me()
             async with AsyncSessionLocal() as db:
                 result = await db.execute(
                     select(Tenant).where(Tenant.bot_username == bot_info.username)
