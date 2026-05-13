@@ -5,6 +5,15 @@ import { useTelegram } from '@/hooks/useTelegram'
 import { useCart } from '@/store/cart'
 import { ProductCard } from './ProductCard'
 
+interface Product {
+  id: string
+  name: string
+  price: string | number
+  currency: string
+  images: string[]
+  description?: string
+}
+
 interface Props {
   tenantId: string
   currency: string
@@ -12,21 +21,22 @@ interface Props {
 
 export function Storefront({ tenantId, currency }: Props) {
   const { tg } = useTelegram()
+  const items = useCart((s) => s.items)
   const total = useCart((s) => s.total)
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['products', tenantId],
-    queryFn: () => api.getProducts(tenantId),
+    queryFn: () => api.getProducts(tenantId) as Promise<Product[]>,
   })
 
   useEffect(() => {
     const t = total()
     if (t > 0) {
-      tg!.MainButton.text = `Оформить заказ — ${t.toLocaleString()} ${currency}`
-      tg!.MainButton.show()
+      tg?.MainButton && (tg.MainButton.text = `Оформить заказ — ${t.toLocaleString()} ${currency}`)
+      tg?.MainButton.show()
     } else {
       tg?.MainButton.hide()
     }
-  }, [total()])
+  }, [items, tg, currency])
 
   if (isLoading) {
     return (
@@ -38,7 +48,7 @@ export function Storefront({ tenantId, currency }: Props) {
 
   return (
     <div className="p-4 grid grid-cols-2 gap-3">
-      {products.map((p: any) => (
+      {products.map((p) => (
         <ProductCard
           key={p.id}
           id={p.id}
