@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import router as api_v1_router
 from app.bot.setup import bot
+import app.bot.handlers  # noqa: F401 — registers routers and middleware into dp
 from app.core.config import settings
 
 

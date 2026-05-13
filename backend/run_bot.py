@@ -1,5 +1,6 @@
 import asyncio
 
+import app.bot.handlers  # noqa: F401 — registers routers and middleware into dp
 from app.bot.setup import bot, dp
 
 
