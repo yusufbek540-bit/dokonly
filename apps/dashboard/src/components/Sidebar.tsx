@@ -4,7 +4,6 @@ const links = [
   { to: '/', label: 'Обзор', icon: '📊' },
   { to: '/products', label: 'Товары', icon: '📦' },
   { to: '/orders', label: 'Заказы', icon: '🛒' },
-  { to: '/settings', label: 'Настройки', icon: '⚙️' },
 ]
 
 export function Sidebar() {
