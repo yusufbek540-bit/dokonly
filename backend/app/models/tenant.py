@@ -22,6 +22,6 @@ class Tenant(Base, TimestampMixin):
     logo_url = Column(Text)
     cover_url = Column(Text)
     description = Column(Text)
-    contact_info = Column(JSONB, default={})
-    settings = Column(JSONB, default={})
+    contact_info = Column(JSONB, default=dict)
+    settings = Column(JSONB, default=dict)
     is_active = Column(Boolean, nullable=False, default=True)

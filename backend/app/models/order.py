@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import BigInteger, Column, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from app.models.base import Base, TimestampMixin
@@ -15,11 +15,12 @@ class Customer(Base, TimestampMixin):
         ForeignKey("tenants.id", ondelete="CASCADE"),
         nullable=False,
     )
-    telegram_id = Column(Integer, nullable=False)
+    telegram_id = Column(BigInteger, nullable=False)
     first_name = Column(String(100))
     last_name = Column(String(100))
     username = Column(String(100))
     locale = Column(String(5), default="ru")
+    # Denormalized counters — must be updated by the order service when orders are created/cancelled.
     total_orders = Column(Integer, nullable=False, default=0)
     total_spent = Column(Numeric(14, 2), nullable=False, default=0)
 
@@ -34,7 +35,7 @@ class Order(Base, TimestampMixin):
         nullable=False,
     )
     customer_id = Column(
-        UUID(as_uuid=True), ForeignKey("customers.id"), nullable=False
+        UUID(as_uuid=True), ForeignKey("customers.id", ondelete="RESTRICT"), nullable=False
     )
     status = Column(String(20), nullable=False, default="new")
     payment_method = Column(String(30), nullable=False)
@@ -46,7 +47,7 @@ class Order(Base, TimestampMixin):
     currency = Column(String(3), nullable=False, default="UZS")
     delivery_note = Column(Text)
     customer_note = Column(Text)
-    meta = Column(JSONB, default={})
+    meta = Column(JSONB, default=dict)
 
 
 class OrderItem(Base):
