@@ -24,7 +24,7 @@ async def get_tenant_or_404(user: dict, db: AsyncSession) -> Tenant:
 
 @router.get("", response_model=list[OrderResponse])
 async def list_orders(
-    status: Optional[str] = None,
+    status_filter: Optional[str] = None,
     user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -34,8 +34,8 @@ async def list_orders(
         .where(Order.tenant_id == tenant.id)
         .order_by(Order.created_at.desc())
     )
-    if status is not None:
-        query = query.where(Order.status == status)
+    if status_filter is not None:
+        query = query.where(Order.status == status_filter)
     result = await db.execute(query)
     return result.scalars().all()
 
