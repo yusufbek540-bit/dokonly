@@ -30,7 +30,6 @@ dependencies = [
     "babel>=2.15.0",
     # Utils
     "python-multipart>=0.0.9",
-    "python-jose[cryptography]>=3.3.0",
     "PyJWT>=2.8.0",
     "passlib[bcrypt]>=1.7.4",
     "pillow>=10.4.0",
