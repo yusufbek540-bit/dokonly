@@ -1,8 +1,11 @@
+import io
+
 from aiogram import F, Router
 from aiogram.filters.callback_data import CallbackData
-from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from sqlalchemy import select
 
+from app.ai.tasks.photo_import import extract_product_from_photo
 from app.core.database import AsyncSessionLocal
 from app.models.product import Product
 from app.models.tenant import Tenant
@@ -81,3 +84,41 @@ async def show_product(callback: CallbackQuery, callback_data: ProductCallback):
     else:
         await callback.message.answer(text, reply_markup=kb)
     await callback.answer()
+
+
+@router.message(F.photo)
+async def handle_photo_import(message: Message):
+    await message.answer("🔍 Анализирую фото...")
+    photo = message.photo[-1]
+    file = await message.bot.get_file(photo.file_id)
+    buf = io.BytesIO()
+    await message.bot.download_file(file.file_path, buf)
+    image_bytes = buf.getvalue()
+
+    caption = message.caption or ""
+    product_data = await extract_product_from_photo(image_bytes, caption)
+
+    async with AsyncSessionLocal() as db:
+        bot_info = await message.bot.me()
+        result = await db.execute(select(Tenant).where(Tenant.bot_username == bot_info.username))
+        tenant = result.scalar_one_or_none()
+        if not tenant:
+            await message.answer("Сначала создайте магазин через /start")
+            return
+
+        product = Product(
+            tenant_id=tenant.id,
+            name=product_data.name,
+            description=product_data.description,
+            price=product_data.price or 0,
+            currency=tenant.currency,
+        )
+        db.add(product)
+        await db.commit()
+
+    await message.answer(
+        f"✅ Товар добавлен!\n\n"
+        f"<b>{product_data.name}</b>\n"
+        f"{product_data.description or ''}\n"
+        f"Цена: {product_data.price or 'не указана'}"
+    )
