@@ -4,12 +4,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import router as api_v1_router
+from app.bot.setup import bot
 from app.core.config import settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if settings.webhook_base_url:
+        await bot.set_webhook(f"{settings.webhook_base_url}/api/v1/webhook/telegram")
     yield
+    await bot.session.close()
 
 
 app = FastAPI(
