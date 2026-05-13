@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useTelegram } from '@/hooks/useTelegram'
+import { Storefront } from '@/pages/customer/Storefront'
 
 const SHOP_SLUG = new URLSearchParams(window.location.search).get('shop') ?? 'demo'
 
@@ -32,7 +33,7 @@ export default function App() {
       <header className="bg-white px-4 py-3 shadow-sm">
         <h1 className="text-lg font-bold">{shop.name}</h1>
       </header>
-      <p className="p-4 text-gray-500 text-sm">Загрузка каталога...</p>
+      <Storefront tenantId={shop.id} currency={shop.currency} />
     </div>
   )
 }
