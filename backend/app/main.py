@@ -7,13 +7,16 @@ from app.api.v1 import router as api_v1_router
 from app.bot.setup import bot
 import app.bot.handlers  # noqa: F401 — registers routers and middleware into dp
 from app.core.config import settings
+from app.workers import close_pool, init_pool
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await init_pool()
     if settings.webhook_base_url:
         await bot.set_webhook(f"{settings.webhook_base_url}/api/v1/webhook/telegram")
     yield
+    await close_pool()
     await bot.session.close()
 
 
