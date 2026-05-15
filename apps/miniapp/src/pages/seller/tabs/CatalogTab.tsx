@@ -32,6 +32,7 @@ function ProductForm({ mode, currency, onSave, onClose }: {
   const [description, setDescription] = useState(p?.description ?? '')
   const [category, setCategory] = useState(p?.category ?? '')
   const [active, setActive] = useState(p?.is_active ?? true)
+  const [featured, setFeatured] = useState(p?.is_featured ?? false)
   const [images, setImages] = useState<string[]>(p?.images ?? [])
   const [sizesStr, setSizesStr] = useState<string>((p?.sizes ?? []).join(', '))
   const [colorsStr, setColorsStr] = useState<string>((p?.colors ?? []).join(', '))
@@ -228,6 +229,26 @@ function ProductForm({ mode, currency, onSave, onClose }: {
               }}/>
             </button>
           </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
+            <div>
+              <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>⭐ Хит продаж</span>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>Показывается в разделе «Хиты»</div>
+            </div>
+            <button
+              onClick={() => setFeatured((f: boolean) => !f)}
+              style={{
+                width: 48, height: 28, borderRadius: 999,
+                background: featured ? '#F59E0B' : 'var(--border)',
+                position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+              }}
+            >
+              <div style={{
+                position: 'absolute', top: 3, width: 22, height: 22,
+                borderRadius: 999, background: 'white',
+                left: featured ? 23 : 3, transition: 'left 0.2s',
+              }}/>
+            </button>
+          </div>
           <button
             disabled={!canSave}
             onClick={() => {
@@ -237,7 +258,7 @@ function ProductForm({ mode, currency, onSave, onClose }: {
                 name, price: Number(price),
                 compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
                 stock: stock ? Number(stock) : null,
-                description, category, is_active: active, images,
+                description, category, is_active: active, is_featured: featured, images,
                 sizes, colors,
               })
             }}
@@ -337,7 +358,7 @@ export function CatalogTab({ tenant }: Props) {
   const [view, setView] = useState<'products' | 'categories'>('products')
   const [form, setForm] = useState<FormMode | null>(null)
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState<'all' | 'active' | 'inactive' | 'out_of_stock'>('all')
+  const [filter, setFilter] = useState<'all' | 'active' | 'inactive' | 'out_of_stock' | 'featured'>('all')
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['seller-products'],
@@ -364,6 +385,7 @@ export function CatalogTab({ tenant }: Props) {
     if (filter === 'active') return p.is_active !== false
     if (filter === 'inactive') return p.is_active === false
     if (filter === 'out_of_stock') return p.stock === 0
+    if (filter === 'featured') return !!p.is_featured
     return true
   })
 
@@ -422,6 +444,7 @@ export function CatalogTab({ tenant }: Props) {
                 { id: 'all', label: 'Все' },
                 { id: 'active', label: 'Активные' },
                 { id: 'inactive', label: 'Скрытые' },
+                { id: 'featured', label: '⭐ Хиты' },
                 { id: 'out_of_stock', label: 'Нет в наличии' },
               ].map(f => (
                 <button key={f.id} onClick={() => setFilter(f.id as any)} style={{
@@ -487,6 +510,10 @@ export function CatalogTab({ tenant }: Props) {
                     <div style={{ position: 'absolute', top: 8, left: 8, background: 'var(--danger)', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 6 }}>
                       Нет
                     </div>
+                  )}
+                  {/* Featured badge */}
+                  {p.is_featured && (
+                    <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 14, lineHeight: 1 }}>⭐</div>
                   )}
                 </div>
 

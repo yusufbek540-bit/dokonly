@@ -175,6 +175,7 @@ async def get_shop_products(tenant_id: str, db: AsyncSession = Depends(get_db)):
             "category": category_name,
             "sizes": meta.get("sizes", []),
             "colors": meta.get("colors", []),
+            "is_featured": meta.get("is_featured", False),
         }
         out.append(d)
     return out

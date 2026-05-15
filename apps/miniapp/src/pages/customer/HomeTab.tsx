@@ -38,7 +38,8 @@ function tone(name: string) {
 
 export function HomeTab({ shop, products, onProduct, onShowCatalog }: Props) {
   const activeProducts = products.filter((p: any) => p.is_active)
-  const featured = activeProducts.slice(0, 6)
+  const featuredProducts = activeProducts.filter((p: any) => p.is_featured)
+  const featured = featuredProducts.length > 0 ? featuredProducts : activeProducts.slice(0, 6)
   const preview = activeProducts.slice(0, 4)
 
   const hasCover = !!shop.cover_url

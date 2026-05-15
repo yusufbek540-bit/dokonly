@@ -82,11 +82,14 @@ export function CatalogContent({ shop, onProduct }: Props) {
     },
   })
 
-  const categories = ['Все', ...Array.from(new Set(products.map((p: any) => p.category).filter(Boolean)))]
+  const activeProducts = products.filter((p: any) => p.is_active)
+  const uniqueCats = Array.from(new Set(activeProducts.map((p: any) => p.category).filter(Boolean))) as string[]
+  const catCounts: Record<string, number> = { 'Все': activeProducts.length }
+  for (const c of uniqueCats) catCounts[c] = activeProducts.filter((p: any) => p.category === c).length
+  const categories = ['Все', ...uniqueCats]
 
-  const visible = products
+  const visible = activeProducts
     .filter((p: any) => {
-      if (!p.is_active) return false
       if (cat !== 'Все' && p.category !== cat) return false
       if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false
       return true
@@ -98,7 +101,9 @@ export function CatalogContent({ shop, onProduct }: Props) {
       return 0
     })
 
-  const featured = products.filter((p: any) => p.is_active).slice(0, 4)
+  const allActive = products.filter((p: any) => p.is_active)
+  const trulyFeatured = allActive.filter((p: any) => p.is_featured)
+  const featured = trulyFeatured.length > 0 ? trulyFeatured.slice(0, 4) : allActive.slice(0, 4)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -195,7 +200,7 @@ export function CatalogContent({ shop, onProduct }: Props) {
                 key={c}
                 onClick={() => setCat(c)}
                 style={{
-                  display: 'inline-flex', alignItems: 'center',
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
                   padding: '7px 14px', borderRadius: 999,
                   background: cat === c ? 'var(--ink)' : 'var(--subtle)',
                   color: cat === c ? 'var(--bg)' : 'var(--ink)',
@@ -204,7 +209,17 @@ export function CatalogContent({ shop, onProduct }: Props) {
                   border: '1px solid transparent',
                   transition: 'all 0.15s',
                 }}
-              >{c}</button>
+              >
+                {c}
+                <span style={{
+                  fontSize: 11, fontWeight: 600,
+                  background: cat === c ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.08)',
+                  borderRadius: 999, padding: '1px 5px',
+                  color: cat === c ? 'var(--bg)' : 'var(--muted)',
+                }}>
+                  {catCounts[c] ?? 0}
+                </span>
+              </button>
             ))}
           </div>
         )}

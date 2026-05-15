@@ -31,7 +31,7 @@ router = APIRouter(prefix="/miniapp", tags=["miniapp"])
 
 
 async def _enrich_orders(orders: list, db: AsyncSession) -> list[dict]:
-    """Fetch order items for each order and return enriched dicts."""
+    """Fetch order items and customer telegram_ids, return enriched dicts."""
     if not orders:
         return []
     order_ids = [o.id for o in orders]
@@ -51,8 +51,18 @@ async def _enrich_orders(orders: list, db: AsyncSession) -> list[dict]:
             "color": item.color,
         })
 
+    customer_ids = [o.customer_id for o in orders if o.customer_id]
+    customers_by_id: dict = {}
+    if customer_ids:
+        cust_result = await db.execute(
+            select(Customer).where(Customer.id.in_(customer_ids))
+        )
+        for c in cust_result.scalars().all():
+            customers_by_id[str(c.id)] = c
+
     result = []
     for o in orders:
+        customer = customers_by_id.get(str(o.customer_id)) if o.customer_id else None
         result.append({
             "id": str(o.id),
             "status": o.status,
@@ -64,6 +74,7 @@ async def _enrich_orders(orders: list, db: AsyncSession) -> list[dict]:
             "currency": o.currency,
             "customer_name": getattr(o, "customer_name", None),
             "customer_phone": getattr(o, "customer_phone", None),
+            "customer_telegram_id": customer.telegram_id if customer else None,
             "delivery_address": getattr(o, "delivery_address", None),
             "delivery_type": getattr(o, "delivery_type", None),
             "customer_note": o.customer_note,
@@ -350,6 +361,7 @@ async def seller_list_products(
             "category_id": str(p.category_id) if p.category_id else None,
             "sizes": meta.get("sizes", []),
             "colors": meta.get("colors", []),
+            "is_featured": meta.get("is_featured", False),
         })
     return out
 
@@ -364,11 +376,14 @@ async def seller_create_product(
     data = body.model_dump()
     sizes = data.pop("sizes", [])
     colors = data.pop("colors", [])
+    is_featured = data.pop("is_featured", False)
     meta = {}
     if sizes:
         meta["sizes"] = sizes
     if colors:
         meta["colors"] = colors
+    if is_featured:
+        meta["is_featured"] = is_featured
     product = Product(**data, tenant_id=tenant.id, meta=meta)
     db.add(product)
     await db.commit()
@@ -393,14 +408,17 @@ async def seller_update_product(
     update_data = body.model_dump(exclude_none=True)
     sizes = update_data.pop("sizes", None)
     colors = update_data.pop("colors", None)
+    is_featured = update_data.pop("is_featured", None)
     for k, v in update_data.items():
         setattr(product, k, v)
-    if sizes is not None or colors is not None:
+    if sizes is not None or colors is not None or is_featured is not None:
         current_meta = dict(product.meta or {})
         if sizes is not None:
             current_meta["sizes"] = sizes
         if colors is not None:
             current_meta["colors"] = colors
+        if is_featured is not None:
+            current_meta["is_featured"] = is_featured
         product.meta = current_meta
     await db.commit()
     await db.refresh(product)

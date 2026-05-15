@@ -29,6 +29,7 @@ class ProductCreate(BaseModel):
     images: list[str] = []
     sizes: list[str] = []
     colors: list[str] = []
+    is_featured: bool = False
 
 
 class ProductUpdate(BaseModel):
@@ -42,6 +43,7 @@ class ProductUpdate(BaseModel):
     category_id: Optional[UUID] = None
     sizes: Optional[list[str]] = None
     colors: Optional[list[str]] = None
+    is_featured: Optional[bool] = None
 
 
 class ProductResponse(BaseModel):
@@ -55,6 +57,7 @@ class ProductResponse(BaseModel):
     stock: Optional[int]
     images: list[str]
     is_active: bool
+    is_featured: bool = False
     sort_order: int
     category_id: Optional[UUID]
     model_config = {"from_attributes": True}

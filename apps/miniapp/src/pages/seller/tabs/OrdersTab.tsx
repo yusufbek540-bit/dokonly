@@ -97,9 +97,41 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
         <div style={{ margin: '16px 16px 0', padding: '14px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Покупатель</div>
           <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{order.customer_name || 'Не указано'}</div>
-          {order.customer_phone && <div style={{ fontSize: 13, color: 'var(--muted)' }}>{order.customer_phone}</div>}
+          {order.customer_phone && <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10 }}>{order.customer_phone}</div>}
+          {/* Quick action buttons */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {order.customer_phone && (
+              <a
+                href={`tel:${order.customer_phone}`}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '7px 12px', borderRadius: 999,
+                  background: 'var(--subtle)', border: '1px solid var(--border)',
+                  fontSize: 13, fontWeight: 500, color: 'var(--ink)', textDecoration: 'none',
+                }}
+              >
+                📞 Позвонить
+              </a>
+            )}
+            {order.customer_telegram_id && (
+              <button
+                onClick={() => {
+                  const url = `tg://user?id=${order.customer_telegram_id}`;
+                  (window as any).Telegram?.WebApp?.openTelegramLink?.(url) ?? window.open(url, '_blank')
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '7px 12px', borderRadius: 999,
+                  background: 'var(--subtle)', border: '1px solid var(--border)',
+                  fontSize: 13, fontWeight: 500, color: 'var(--ink)',
+                }}
+              >
+                💬 Написать
+              </button>
+            )}
+          </div>
           {order.delivery_address && (
-            <div style={{ marginTop: 8, display: 'flex', gap: 6 }}>
+            <div style={{ marginTop: 10, display: 'flex', gap: 6 }}>
               <Icon name="pin" size={13} color="var(--muted)"/>
               <span style={{ fontSize: 13, color: 'var(--muted)' }}>{order.delivery_address}</span>
             </div>
