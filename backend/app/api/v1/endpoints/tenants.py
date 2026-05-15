@@ -1,7 +1,9 @@
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.auth import get_current_user
 from app.models.tenant import Tenant
@@ -57,3 +59,22 @@ async def set_manual_transfer(
     tenant.settings = settings
     await db.commit()
     return {"ok": True}
+
+
+@router.post("/me/configure-bot", status_code=status.HTTP_200_OK)
+async def configure_bot_menu(
+    user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(Tenant).where(Tenant.owner_id == user["sub"]))
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No tenant found")
+
+    mini_app_url = f"https://dokonly-miniapp.pages.dev?shop={tenant.slug}"
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"https://api.telegram.org/bot{settings.telegram_bot_token}/setChatMenuButton",
+            json={"menu_button": {"type": "web_app", "text": "Открыть магазин", "web_app": {"url": mini_app_url}}},
+        )
+    return {"ok": resp.status_code == 200, "url": mini_app_url}

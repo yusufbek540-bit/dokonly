@@ -22,20 +22,26 @@ class ProductCreate(BaseModel):
     name: str
     description: Optional[str] = None
     price: Decimal
+    compare_at_price: Optional[Decimal] = None
     currency: str = "UZS"
     stock: Optional[int] = None
     category_id: Optional[UUID] = None
     images: list[str] = []
+    sizes: list[str] = []
+    colors: list[str] = []
 
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     price: Optional[Decimal] = None
+    compare_at_price: Optional[Decimal] = None
     stock: Optional[int] = None
     is_active: Optional[bool] = None
     images: Optional[list[str]] = None
     category_id: Optional[UUID] = None
+    sizes: Optional[list[str]] = None
+    colors: Optional[list[str]] = None
 
 
 class ProductResponse(BaseModel):
@@ -44,6 +50,7 @@ class ProductResponse(BaseModel):
     name: str
     description: Optional[str]
     price: Decimal
+    compare_at_price: Optional[Decimal] = None
     currency: str
     stock: Optional[int]
     images: list[str]

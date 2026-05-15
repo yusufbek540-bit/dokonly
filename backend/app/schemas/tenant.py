@@ -19,6 +19,7 @@ class TenantResponse(BaseModel):
     locale: str
     tier: str
     is_active: bool
+    bot_username: str | None = None
 
     model_config = {"from_attributes": True}
 

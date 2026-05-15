@@ -10,7 +10,11 @@ arq_pool: ArqRedis | None = None
 
 async def init_pool() -> None:
     global arq_pool
-    arq_pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
+    try:
+        arq_pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
+    except Exception as e:
+        import logging
+        logging.warning(f"Redis unavailable, cart reminders disabled: {e}")
 
 
 async def close_pool() -> None:

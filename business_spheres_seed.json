@@ -1,0 +1,508 @@
+{
+  "$schema_version": "1.0",
+  "$description": "Dokonly business spheres seed. 15 categories with theme defaults (Storefront Theme System §9.0), default product attributes, sphere-specific onboarding hints. Used in onboarding wizard step 2 (sphere selection) to preselect step 5 (visual identity) defaults.",
+  "$last_updated": "2026-05-14",
+  "$total_count": 15,
+  "$translations_languages": ["ru", "uz", "en"],
+
+  "$theme_options_reference": {
+    "typography_bundles": ["modern", "editorial", "bold", "warm", "minimal"],
+    "accent_colors": [
+      "forest", "emerald", "mint", "lime",
+      "ocean", "sky", "indigo",
+      "sunset", "coral", "rose",
+      "graphite", "sand"
+    ],
+    "layouts": ["boutique", "catalog", "lookbook", "marketplace", "bento"]
+  },
+
+  "$layout_descriptions": {
+    "boutique": "Fashion-forward, photo-heavy, vertical product cards",
+    "catalog": "Specs and filters, organized, compact density",
+    "lookbook": "Story-driven, lifestyle imagery first",
+    "marketplace": "Many products, fast browsing, grid 2x2",
+    "bento": "Magazine-style, mixed card sizes"
+  },
+
+  "$attribute_descriptions": {
+    "size": "Product size (clothing/shoes — XS/S/M/L/XL or 36-46)",
+    "color": "Product color (free-form or predefined palette)",
+    "material": "Material (cotton, leather, plastic, etc.)",
+    "brand": "Brand name (Samsung, Apple, Nike, etc.)",
+    "model": "Specific model identifier",
+    "specifications": "Technical specs (free-form text)",
+    "warranty": "Warranty period (months/years)",
+    "volume": "Volume/capacity (ml, L)",
+    "weight": "Weight (g, kg)",
+    "scent": "Scent/fragrance type",
+    "skin_type": "Skin type (oily, dry, sensitive, etc.)",
+    "dimensions": "Length × Width × Height",
+    "car_brand": "Car brand (for auto parts)",
+    "car_model": "Car model (for auto parts)",
+    "year": "Year (model year, publication year)",
+    "compatible": "Compatibility list",
+    "age": "Age group (newborn, 1-3y, 4-6y, etc.)",
+    "gender": "Gender (boy/girl/unisex)",
+    "pet_type": "Pet type (dog, cat, bird, etc.)",
+    "author": "Book author",
+    "publisher": "Publisher name",
+    "language": "Content language",
+    "expiry_date": "Expiration date",
+    "ingredients": "Ingredients list (food/cosmetics)",
+    "duration_minutes": "Service duration in minutes"
+  },
+
+  "spheres": [
+    {
+      "id": "fashion",
+      "emoji": "👗",
+      "name_translations": {
+        "ru": "Мода и стиль",
+        "uz": "Moda va uslub",
+        "en": "Fashion & Style"
+      },
+      "description_translations": {
+        "ru": "Одежда, обувь, аксессуары",
+        "uz": "Kiyim, poyabzal, aksessuarlar",
+        "en": "Clothing, shoes, accessories"
+      },
+      "theme_defaults": {
+        "typography_bundle": "editorial",
+        "accent_color": "rose",
+        "layout": "boutique"
+      },
+      "default_attributes": ["size", "color", "material"],
+      "recommended_attributes": ["brand", "season"],
+      "required_fields": ["size_chart"],
+      "video_recommended": true,
+      "skip_inventory": false,
+      "delivery_methods_recommended": ["courier", "self_pickup"],
+      "tips_translations": {
+        "ru": "Добавьте таблицу размеров — это снижает возвраты на 40%. Загрузите видео примерки — конверсия растёт.",
+        "uz": "O'lcham jadvalini qo'shing — bu qaytarishlarni 40% kamaytiradi. Kiyish videosini yuklang — konversiya oshadi.",
+        "en": "Add a size chart — reduces returns by 40%. Upload fitting videos — conversion goes up."
+      }
+    },
+    {
+      "id": "electronics",
+      "emoji": "📱",
+      "name_translations": {
+        "ru": "Электроника и техника",
+        "uz": "Elektronika va texnika",
+        "en": "Electronics"
+      },
+      "description_translations": {
+        "ru": "Смартфоны, ноутбуки, гаджеты",
+        "uz": "Smartfonlar, noutbuklar, gadjetlar",
+        "en": "Smartphones, laptops, gadgets"
+      },
+      "theme_defaults": {
+        "typography_bundle": "modern",
+        "accent_color": "indigo",
+        "layout": "catalog"
+      },
+      "default_attributes": ["brand", "model", "specifications", "warranty"],
+      "recommended_attributes": ["color", "memory", "year"],
+      "required_fields": ["warranty", "specifications"],
+      "video_recommended": false,
+      "skip_inventory": false,
+      "delivery_methods_recommended": ["courier", "self_pickup"],
+      "tips_translations": {
+        "ru": "Подробные характеристики — ваш козырь. Покупатели сравнивают spec'и, не картинки.",
+        "uz": "Batafsil texnik xususiyatlar — sizning ustunligingiz. Xaridorlar rasmlarni emas, spec'larni solishtirishadi.",
+        "en": "Detailed specs are your edge. Buyers compare specs, not photos."
+      }
+    },
+    {
+      "id": "beauty",
+      "emoji": "💄",
+      "name_translations": {
+        "ru": "Красота и здоровье",
+        "uz": "Go'zallik va sog'liq",
+        "en": "Beauty & Health"
+      },
+      "description_translations": {
+        "ru": "Косметика, парфюм, уход за собой",
+        "uz": "Kosmetika, parfyum, o'z g'amxo'rligi",
+        "en": "Cosmetics, perfume, self-care"
+      },
+      "theme_defaults": {
+        "typography_bundle": "editorial",
+        "accent_color": "coral",
+        "layout": "lookbook"
+      },
+      "default_attributes": ["volume", "scent", "skin_type"],
+      "recommended_attributes": ["brand", "ingredients", "expiry_date"],
+      "required_fields": [],
+      "video_recommended": true,
+      "skip_inventory": false,
+      "delivery_methods_recommended": ["courier", "self_pickup"],
+      "tips_translations": {
+        "ru": "Видео-обзоры товаров увеличивают продажи косметики в 2-3 раза. Покажите как наносить.",
+        "uz": "Mahsulot video-sharhlari kosmetika sotuvini 2-3 baravar oshiradi. Qanday surtilishini ko'rsating.",
+        "en": "Video reviews 2-3× cosmetics sales. Show how to apply."
+      }
+    },
+    {
+      "id": "home",
+      "emoji": "🏠",
+      "name_translations": {
+        "ru": "Товары для дома и интерьера",
+        "uz": "Uy va interyer mahsulotlari",
+        "en": "Home & Interior"
+      },
+      "description_translations": {
+        "ru": "Мебель, декор, текстиль",
+        "uz": "Mebel, dekor, to'qimachilik",
+        "en": "Furniture, decor, textiles"
+      },
+      "theme_defaults": {
+        "typography_bundle": "warm",
+        "accent_color": "sand",
+        "layout": "lookbook"
+      },
+      "default_attributes": ["dimensions", "material", "color"],
+      "recommended_attributes": ["weight", "style"],
+      "required_fields": ["dimensions"],
+      "video_recommended": false,
+      "skip_inventory": false,
+      "delivery_methods_recommended": ["courier", "discuss_with_seller"],
+      "tips_translations": {
+        "ru": "Lifestyle-фото в интерьере продают лучше чем студийные. Покажите как товар выглядит в реальной комнате.",
+        "uz": "Interyerdagi lifestyle suratlar studio suratlardan yaxshiroq sotiladi. Mahsulot haqiqiy xonada qanday ko'rinishini ko'rsating.",
+        "en": "Lifestyle photos in interior sell better than studio. Show how the product looks in a real room."
+      }
+    },
+    {
+      "id": "auto",
+      "emoji": "🚗",
+      "name_translations": {
+        "ru": "Авто-товары",
+        "uz": "Avtomobil mahsulotlari",
+        "en": "Auto"
+      },
+      "description_translations": {
+        "ru": "Запчасти, аксессуары, масла",
+        "uz": "Ehtiyot qismlar, aksessuarlar, moylar",
+        "en": "Parts, accessories, oils"
+      },
+      "theme_defaults": {
+        "typography_bundle": "bold",
+        "accent_color": "graphite",
+        "layout": "catalog"
+      },
+      "default_attributes": ["car_brand", "car_model", "year", "compatible"],
+      "recommended_attributes": ["brand", "specifications"],
+      "required_fields": ["compatible"],
+      "video_recommended": false,
+      "skip_inventory": false,
+      "delivery_methods_recommended": ["self_pickup", "courier"],
+      "tips_translations": {
+        "ru": "Список совместимости — критически важен. Без него покупатель не купит, чтобы не ошибиться.",
+        "uz": "Moslashuvchanlik ro'yxati — juda muhim. Bu bo'lmasa, xaridor xato qilmaslik uchun sotib olmaydi.",
+        "en": "Compatibility list is critical. Without it, buyers won't risk buying the wrong part."
+      }
+    },
+    {
+      "id": "kids",
+      "emoji": "🧸",
+      "name_translations": {
+        "ru": "Детские товары",
+        "uz": "Bolalar uchun mahsulotlar",
+        "en": "Kids"
+      },
+      "description_translations": {
+        "ru": "Игрушки, одежда, питание",
+        "uz": "O'yinchoqlar, kiyim, oziq-ovqat",
+        "en": "Toys, clothing, food"
+      },
+      "theme_defaults": {
+        "typography_bundle": "bold",
+        "accent_color": "sky",
+        "layout": "marketplace"
+      },
+      "default_attributes": ["age", "size", "gender"],
+      "recommended_attributes": ["color", "material", "brand"],
+      "required_fields": ["age"],
+      "video_recommended": true,
+      "skip_inventory": false,
+      "delivery_methods_recommended": ["courier", "self_pickup"],
+      "tips_translations": {
+        "ru": "Указывайте возрастные группы чётко (0-3 года, 3-6 лет). Это первое что смотрит мама.",
+        "uz": "Yosh guruhlarini aniq ko'rsating (0-3 yosh, 3-6 yosh). Bu onaning birinchi qaraydigan narsasi.",
+        "en": "Specify age groups clearly (0-3y, 3-6y). It's the first thing parents check."
+      }
+    },
+    {
+      "id": "hobby",
+      "emoji": "🎨",
+      "name_translations": {
+        "ru": "Хобби и творчество",
+        "uz": "Hobbi va ijodkorlik",
+        "en": "Hobby & Crafts"
+      },
+      "description_translations": {
+        "ru": "Художественные принадлежности, рукоделие, конструкторы",
+        "uz": "Badiiy buyumlar, qo'l mehnati, konstruktorlar",
+        "en": "Art supplies, handicrafts, building sets"
+      },
+      "theme_defaults": {
+        "typography_bundle": "editorial",
+        "accent_color": "rose",
+        "layout": "boutique"
+      },
+      "default_attributes": ["color", "material"],
+      "recommended_attributes": ["brand", "size", "weight"],
+      "required_fields": [],
+      "video_recommended": true,
+      "skip_inventory": false,
+      "delivery_methods_recommended": ["courier", "self_pickup"],
+      "tips_translations": {
+        "ru": "Покажите готовый результат на фото — что можно сделать с этим набором или материалом.",
+        "uz": "Tayyor natijani fotoda ko'rsating — bu to'plam yoki material bilan nima qilish mumkin.",
+        "en": "Show the finished result in photos — what can be made with the set or material."
+      }
+    },
+    {
+      "id": "sport",
+      "emoji": "⚽",
+      "name_translations": {
+        "ru": "Спорт и отдых",
+        "uz": "Sport va dam olish",
+        "en": "Sport & Outdoor"
+      },
+      "description_translations": {
+        "ru": "Спортивная одежда, инвентарь, фитнес",
+        "uz": "Sport kiyimi, jihozlar, fitnes",
+        "en": "Sportswear, equipment, fitness"
+      },
+      "theme_defaults": {
+        "typography_bundle": "bold",
+        "accent_color": "lime",
+        "layout": "marketplace"
+      },
+      "default_attributes": ["size", "color"],
+      "recommended_attributes": ["brand", "material", "weight"],
+      "required_fields": [],
+      "video_recommended": true,
+      "skip_inventory": false,
+      "delivery_methods_recommended": ["courier", "self_pickup"],
+      "tips_translations": {
+        "ru": "Видео использования в действии конвертирует лучше всего. Покажите товар в спортивном контексте.",
+        "uz": "Harakatdagi foydalanish videosi eng yaxshi konvertatsiya qiladi. Mahsulotni sport kontekstida ko'rsating.",
+        "en": "Action video converts best. Show the product in sport context."
+      }
+    },
+    {
+      "id": "food",
+      "emoji": "🍎",
+      "name_translations": {
+        "ru": "Продукты питания",
+        "uz": "Oziq-ovqat mahsulotlari",
+        "en": "Food"
+      },
+      "description_translations": {
+        "ru": "Еда, напитки, сладости",
+        "uz": "Ovqat, ichimliklar, shirinliklar",
+        "en": "Food, beverages, sweets"
+      },
+      "theme_defaults": {
+        "typography_bundle": "warm",
+        "accent_color": "sunset",
+        "layout": "marketplace"
+      },
+      "default_attributes": ["weight", "expiry_date", "ingredients"],
+      "recommended_attributes": ["origin", "storage_conditions"],
+      "required_fields": ["expiry_date"],
+      "video_recommended": false,
+      "skip_inventory": false,
+      "delivery_methods_recommended": ["courier", "self_pickup"],
+      "tips_translations": {
+        "ru": "Указывайте срок годности и условия хранения. Аппетитные фото — критичны для food.",
+        "uz": "Yaroqlilik muddati va saqlash shartlarini ko'rsating. Ishtahali suratlar — food uchun juda muhim.",
+        "en": "Specify expiry and storage conditions. Appetizing photos are critical for food."
+      }
+    },
+    {
+      "id": "pets",
+      "emoji": "🐾",
+      "name_translations": {
+        "ru": "Товары для животных",
+        "uz": "Hayvonlar uchun mahsulotlar",
+        "en": "Pets"
+      },
+      "description_translations": {
+        "ru": "Корма, аксессуары, игрушки",
+        "uz": "Yem, aksessuarlar, o'yinchoqlar",
+        "en": "Food, accessories, toys"
+      },
+      "theme_defaults": {
+        "typography_bundle": "warm",
+        "accent_color": "sky",
+        "layout": "marketplace"
+      },
+      "default_attributes": ["pet_type", "age", "size"],
+      "recommended_attributes": ["brand", "weight", "ingredients"],
+      "required_fields": ["pet_type"],
+      "video_recommended": false,
+      "skip_inventory": false,
+      "delivery_methods_recommended": ["courier", "self_pickup"],
+      "tips_translations": {
+        "ru": "Чётко указывайте для какого животного (собака мелкая/крупная, кошка взрослая/котёнок).",
+        "uz": "Qaysi hayvon uchun ekanini aniq ko'rsating (kichik/katta it, katta/kichik mushuk).",
+        "en": "Clearly specify which pet (small/large dog, adult/kitten cat)."
+      }
+    },
+    {
+      "id": "books",
+      "emoji": "📚",
+      "name_translations": {
+        "ru": "Книги и образование",
+        "uz": "Kitoblar va ta'lim",
+        "en": "Books & Education"
+      },
+      "description_translations": {
+        "ru": "Книги, учебники, курсы",
+        "uz": "Kitoblar, darsliklar, kurslar",
+        "en": "Books, textbooks, courses"
+      },
+      "theme_defaults": {
+        "typography_bundle": "editorial",
+        "accent_color": "graphite",
+        "layout": "catalog"
+      },
+      "default_attributes": ["author", "publisher", "year", "language"],
+      "recommended_attributes": ["pages", "genre", "edition"],
+      "required_fields": ["author"],
+      "video_recommended": false,
+      "skip_inventory": false,
+      "delivery_methods_recommended": ["courier", "self_pickup", "instant_download"],
+      "tips_translations": {
+        "ru": "Аннотация — самое важное. Покупатели читают её перед решением о покупке.",
+        "uz": "Annotatsiya — eng muhimi. Xaridorlar sotib olishdan oldin uni o'qiydi.",
+        "en": "Description is most important. Buyers read it before deciding."
+      }
+    },
+    {
+      "id": "construction",
+      "emoji": "🔨",
+      "name_translations": {
+        "ru": "Стройматериалы",
+        "uz": "Qurilish materiallari",
+        "en": "Construction"
+      },
+      "description_translations": {
+        "ru": "Материалы, инструменты, оборудование",
+        "uz": "Materiallar, asboblar, jihozlar",
+        "en": "Materials, tools, equipment"
+      },
+      "theme_defaults": {
+        "typography_bundle": "bold",
+        "accent_color": "graphite",
+        "layout": "catalog"
+      },
+      "default_attributes": ["dimensions", "weight", "material"],
+      "recommended_attributes": ["brand", "model", "specifications"],
+      "required_fields": ["dimensions"],
+      "video_recommended": false,
+      "skip_inventory": false,
+      "delivery_methods_recommended": ["courier", "self_pickup", "discuss_with_seller"],
+      "tips_translations": {
+        "ru": "Объёмы важны — продавайте поштучно/упаковками/паллетами. Габариты + вес обязательны для доставки.",
+        "uz": "Hajmlar muhim — donalab/qadoq/pallet bilan soting. Yetkazib berish uchun o'lcham va og'irlik majburiy.",
+        "en": "Volume matters — sell by piece/pack/pallet. Dimensions + weight required for delivery."
+      }
+    },
+    {
+      "id": "digital",
+      "emoji": "💻",
+      "name_translations": {
+        "ru": "Цифровые товары",
+        "uz": "Raqamli mahsulotlar",
+        "en": "Digital Goods"
+      },
+      "description_translations": {
+        "ru": "ПО, файлы, ключи активации",
+        "uz": "Dasturlar, fayllar, faollashtirish kalitlari",
+        "en": "Software, files, activation keys"
+      },
+      "theme_defaults": {
+        "typography_bundle": "modern",
+        "accent_color": "ocean",
+        "layout": "catalog"
+      },
+      "default_attributes": ["specifications"],
+      "recommended_attributes": ["brand", "license_type"],
+      "required_fields": [],
+      "video_recommended": false,
+      "skip_inventory": true,
+      "delivery_methods_recommended": ["instant_download"],
+      "preferred_payment_methods": ["click", "payme", "card"],
+      "tips_translations": {
+        "ru": "Включите instant_download — покупатель получает товар сразу после оплаты. Это снимает нагрузку с вас.",
+        "uz": "instant_download'ni yoqing — xaridor to'lovdan keyin darhol mahsulotni oladi. Bu sizdan yukni olib tashlaydi.",
+        "en": "Enable instant_download — buyer receives the product immediately after payment. Removes manual work."
+      }
+    },
+    {
+      "id": "services",
+      "emoji": "🛠",
+      "name_translations": {
+        "ru": "Услуги",
+        "uz": "Xizmatlar",
+        "en": "Services"
+      },
+      "description_translations": {
+        "ru": "Консультации, обучение, ремонт",
+        "uz": "Maslahatlar, o'qitish, ta'mirlash",
+        "en": "Consulting, training, repair"
+      },
+      "theme_defaults": {
+        "typography_bundle": "minimal",
+        "accent_color": "graphite",
+        "layout": "boutique"
+      },
+      "default_attributes": ["duration_minutes"],
+      "recommended_attributes": ["location", "language"],
+      "required_fields": [],
+      "video_recommended": false,
+      "skip_inventory": true,
+      "delivery_methods_recommended": ["discuss_with_seller"],
+      "tips_translations": {
+        "ru": "Подробно опишите что входит в услугу и сколько времени занимает. Отзывы клиентов критичны для услуг.",
+        "uz": "Xizmatga nima kirishini va qancha vaqt olishini batafsil tasvirlang. Mijoz sharhlari xizmatlar uchun juda muhim.",
+        "en": "Describe in detail what's included and how long it takes. Customer reviews are critical for services."
+      }
+    },
+    {
+      "id": "other",
+      "emoji": "📦",
+      "name_translations": {
+        "ru": "Другое",
+        "uz": "Boshqa",
+        "en": "Other"
+      },
+      "description_translations": {
+        "ru": "Универсальная категория",
+        "uz": "Universal kategoriya",
+        "en": "General category"
+      },
+      "theme_defaults": {
+        "typography_bundle": "modern",
+        "accent_color": "emerald",
+        "layout": "boutique"
+      },
+      "default_attributes": [],
+      "recommended_attributes": ["color", "material", "weight", "dimensions"],
+      "required_fields": [],
+      "video_recommended": false,
+      "skip_inventory": false,
+      "delivery_methods_recommended": ["courier", "self_pickup"],
+      "tips_translations": {
+        "ru": "После добавления первых товаров рассмотрите переключение на более конкретную сферу — это даст лучшие defaults.",
+        "uz": "Birinchi mahsulotlarni qo'shgandan keyin aniqroq sohaga o'tishni ko'rib chiqing — bu yaxshiroq defaultlar beradi.",
+        "en": "After adding first products, consider switching to a more specific sphere — it gives better defaults."
+      }
+    }
+  ]
+}

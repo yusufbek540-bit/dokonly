@@ -17,6 +17,30 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  // Platform Ops
+  platform: {
+    stats: () => request<any>('/api/v1/platform/stats'),
+    tenants: (params?: { q?: string; tier?: string; skip?: number; limit?: number }) => {
+      const qs = new URLSearchParams()
+      if (params?.q) qs.set('q', params.q)
+      if (params?.tier) qs.set('tier', params.tier)
+      if (params?.skip !== undefined) qs.set('skip', String(params.skip))
+      if (params?.limit !== undefined) qs.set('limit', String(params.limit))
+      return request<any[]>(`/api/v1/platform/tenants?${qs}`)
+    },
+    tenant: (id: string) => request<any>(`/api/v1/platform/tenants/${id}`),
+    updateTenant: (id: string, body: object) =>
+      request<any>(`/api/v1/platform/tenants/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+    orders: (params?: { skip?: number; limit?: number }) => {
+      const qs = new URLSearchParams()
+      if (params?.skip !== undefined) qs.set('skip', String(params.skip))
+      if (params?.limit !== undefined) qs.set('limit', String(params.limit))
+      return request<any[]>(`/api/v1/platform/orders?${qs}`)
+    },
+  },
+  getTenant: () => request<Tenant>('/api/v1/tenants/me'),
+  createTenant: (body: { name: string; slug: string; currency: string }) =>
+    request<Tenant>('/api/v1/tenants', { method: 'POST', body: JSON.stringify(body) }),
   getProducts: () => request<Product[]>('/api/v1/products'),
   createProduct: (body: Partial<Product>) =>
     request<Product>('/api/v1/products', { method: 'POST', body: JSON.stringify(body) }),
@@ -29,6 +53,17 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify({ status }),
     }),
+  configureBotMenu: () =>
+    request<{ ok: boolean; url: string }>('/api/v1/tenants/me/configure-bot', { method: 'POST' }),
+}
+
+export interface Tenant {
+  id: string
+  name: string
+  slug: string
+  currency: string
+  tier: string
+  is_active: boolean
 }
 
 export interface Product {

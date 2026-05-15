@@ -39,6 +39,7 @@ class Product(Base, TimestampMixin):
     name = Column(String(255), nullable=False)
     description = Column(Text)
     price = Column(Numeric(14, 2), nullable=False)
+    compare_at_price = Column(Numeric(14, 2), nullable=True)
     currency = Column(String(3), nullable=False, default="UZS")
     stock = Column(Integer)
     sku = Column(String(100))

@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import BigInteger, Column, ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy import BigInteger, Column, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from app.models.base import Base, TimestampMixin
@@ -35,8 +35,13 @@ class Order(Base, TimestampMixin):
         nullable=False,
     )
     customer_id = Column(
-        UUID(as_uuid=True), ForeignKey("customers.id", ondelete="RESTRICT"), nullable=False
+        UUID(as_uuid=True), ForeignKey("customers.id", ondelete="RESTRICT"), nullable=True
     )
+    customer_name = Column(String(200))
+    customer_phone = Column(String(50))
+    delivery_address = Column(Text)
+    delivery_type = Column(String(50), default="pickup")
+    coupon_code = Column(String(50))
     status = Column(String(20), nullable=False, default="new")
     payment_method = Column(String(30), nullable=False)
     payment_status = Column(String(20), nullable=False, default="pending")
@@ -66,3 +71,25 @@ class OrderItem(Base):
     price = Column(Numeric(14, 2), nullable=False)
     quantity = Column(Integer, nullable=False)
     subtotal = Column(Numeric(14, 2), nullable=False)
+    size = Column(String(100))
+    color = Column(String(100))
+
+
+class WishlistItem(Base, TimestampMixin):
+    __tablename__ = "wishlist_items"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "customer_telegram_id", "product_id", name="uq_wishlist"),
+    )
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    customer_telegram_id = Column(BigInteger, nullable=False)
+    product_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("products.id", ondelete="CASCADE"),
+        nullable=False,
+    )

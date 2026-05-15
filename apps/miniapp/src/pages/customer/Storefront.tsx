@@ -1,64 +1,352 @@
-import { useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { useTelegram } from '@/hooks/useTelegram'
+import { Icon } from '@/components/Icon'
 import { useCart } from '@/store/cart'
-import { ProductCard } from './ProductCard'
-
-interface Product {
-  id: string
-  name: string
-  price: string | number
-  currency: string
-  images: string[]
-  description?: string
-}
 
 interface Props {
-  tenantId: string
-  currency: string
+  shop: { id: string; name: string; currency: string; logo_url: string | null }
+  onProduct: (id: string) => void
 }
 
-export function Storefront({ tenantId, currency }: Props) {
-  const { tg } = useTelegram()
-  const items = useCart((s) => s.items)
-  const total = useCart((s) => s.total)
+function fmtPrice(n: number, currency: string) {
+  if (currency === 'UZS') return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' сум'
+  return n.toLocaleString() + ' ' + currency
+}
+
+function tone(name: string) {
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffffffff
+  return Math.abs(h) % 8
+}
+
+type SortOption = 'newest' | 'price_asc' | 'price_desc' | 'name_asc'
+
+const SORT_LABELS: Record<SortOption, string> = {
+  newest: 'Новинки',
+  price_asc: 'Дешевле',
+  price_desc: 'Дороже',
+  name_asc: 'А-Я',
+}
+
+export function CatalogContent({ shop, onProduct }: Props) {
+  const [cat, setCat] = useState('Все')
+  const [search, setSearch] = useState('')
+  const [sort, setSort] = useState<SortOption>('newest')
+  const [showSort, setShowSort] = useState(false)
+  const qc = useQueryClient()
+
   const { data: products = [], isLoading } = useQuery({
-    queryKey: ['products', tenantId],
-    queryFn: () => api.getProducts(tenantId) as Promise<Product[]>,
+    queryKey: ['products', shop.id],
+    queryFn: () => api.getProducts(shop.id) as Promise<any[]>,
   })
 
-  useEffect(() => {
-    const t = total()
-    if (t > 0) {
-      tg?.MainButton && (tg.MainButton.text = `Оформить заказ — ${t.toLocaleString()} ${currency}`)
-      tg?.MainButton.show()
-    } else {
-      tg?.MainButton.hide()
-    }
-  }, [items, tg, currency])
+  const { data: wishlistIds = [] } = useQuery({
+    queryKey: ['wishlist', shop.id],
+    queryFn: () => api.getWishlist(shop.id),
+    retry: false,
+  })
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center pt-20">
-        <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full" />
-      </div>
-    )
+  const addToCart = useCart((s) => s.add)
+  const [justAdded, setJustAdded] = useState<string | null>(null)
+
+  const handleQuickAdd = (e: React.MouseEvent, p: any) => {
+    e.stopPropagation()
+    addToCart({
+      productId: p.id,
+      name: p.name,
+      price: Number(p.price),
+      qty: 1,
+      imageUrl: p.images?.[0] ?? undefined,
+    })
+    setJustAdded(p.id)
+    setTimeout(() => setJustAdded(null), 1200)
   }
 
+  const { mutate: toggleWishlist } = useMutation({
+    mutationFn: (productId: string) => api.toggleWishlist(shop.id, productId),
+    onMutate: async (productId: string) => {
+      await qc.cancelQueries({ queryKey: ['wishlist', shop.id] })
+      const prev = qc.getQueryData<string[]>(['wishlist', shop.id]) ?? []
+      const next = prev.includes(productId)
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+      qc.setQueryData(['wishlist', shop.id], next)
+      return { prev }
+    },
+    onError: (_err: any, _vars: any, ctx: any) => {
+      if (ctx?.prev) qc.setQueryData(['wishlist', shop.id], ctx.prev)
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['wishlist', shop.id] })
+    },
+  })
+
+  const categories = ['Все', ...Array.from(new Set(products.map((p: any) => p.category).filter(Boolean)))]
+
+  const visible = products
+    .filter((p: any) => {
+      if (!p.is_active) return false
+      if (cat !== 'Все' && p.category !== cat) return false
+      if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false
+      return true
+    })
+    .sort((a: any, b: any) => {
+      if (sort === 'price_asc') return Number(a.price) - Number(b.price)
+      if (sort === 'price_desc') return Number(b.price) - Number(a.price)
+      if (sort === 'name_asc') return a.name.localeCompare(b.name, 'ru')
+      return 0
+    })
+
+  const featured = products.filter((p: any) => p.is_active).slice(0, 4)
+
   return (
-    <div className="p-4 grid grid-cols-2 gap-3">
-      {products.map((p) => (
-        <ProductCard
-          key={p.id}
-          id={p.id}
-          name={p.name}
-          price={Number(p.price)}
-          currency={currency}
-          images={p.images ?? []}
-          description={p.description}
-        />
-      ))}
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+      {/* Sticky top */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 20,
+        background: 'var(--bg)',
+        borderBottom: '1px solid var(--border)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px' }}>
+          <div style={{ flex: 1, fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>
+            Каталог
+          </div>
+          <button
+            onClick={() => setShowSort(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '6px 12px', borderRadius: 999,
+              background: sort !== 'newest' ? 'var(--accent-soft)' : 'var(--subtle)',
+              border: `1px solid ${sort !== 'newest' ? 'var(--accent)' : 'var(--border)'}`,
+              fontSize: 13, fontWeight: 500,
+              color: sort !== 'newest' ? 'var(--accent)' : 'var(--ink)',
+            }}
+          >
+            {SORT_LABELS[sort]}
+            <Icon name="chevronRight" size={12} color={sort !== 'newest' ? 'var(--accent)' : 'var(--muted)'}/>
+          </button>
+        </div>
+      </div>
+
+      {/* Sort bottom sheet */}
+      {showSort && (
+        <div
+          onClick={() => setShowSort(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px 32px' }}
+          >
+            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 16 }}>
+              Сортировка
+            </div>
+            {(Object.keys(SORT_LABELS) as SortOption[]).map(opt => (
+              <button
+                key={opt}
+                onClick={() => { setSort(opt); setShowSort(false) }}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  width: '100%', padding: '13px 16px', borderRadius: 12, marginBottom: 6,
+                  background: sort === opt ? 'var(--accent-soft)' : 'var(--card)',
+                  border: `1.5px solid ${sort === opt ? 'var(--accent)' : 'var(--border)'}`,
+                  fontSize: 15, fontWeight: sort === opt ? 700 : 500,
+                  color: sort === opt ? 'var(--accent)' : 'var(--ink)',
+                }}
+              >
+                {SORT_LABELS[opt]}
+                {sort === opt && (
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <circle cx="9" cy="9" r="9" fill="var(--accent)"/>
+                    <path d="M5 9l3 3 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="screen-scroll" style={{ flex: 1, paddingBottom: 24 }}>
+        {/* Search */}
+        <div style={{ padding: '12px 16px' }}>
+          <div style={{ position: 'relative' }}>
+            <Icon name="search" size={18} color="var(--muted)" style={{ position: 'absolute', left: 14, top: 15 }}/>
+            <input
+              placeholder="Поиск товаров"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{
+                width: '100%', height: 48, paddingLeft: 42, paddingRight: 14,
+                borderRadius: 12, background: 'var(--card)',
+                border: '1px solid var(--border)', outline: 'none',
+                fontSize: 15, color: 'var(--ink)',
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Categories */}
+        {categories.length > 1 && (
+          <div style={{ display: 'flex', gap: 6, padding: '0 16px 16px', overflowX: 'auto' }}>
+            {categories.map(c => (
+              <button
+                key={c}
+                onClick={() => setCat(c)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center',
+                  padding: '7px 14px', borderRadius: 999,
+                  background: cat === c ? 'var(--ink)' : 'var(--subtle)',
+                  color: cat === c ? 'var(--bg)' : 'var(--ink)',
+                  fontSize: 13, fontWeight: 500,
+                  whiteSpace: 'nowrap', flexShrink: 0,
+                  border: '1px solid transparent',
+                  transition: 'all 0.15s',
+                }}
+              >{c}</button>
+            ))}
+          </div>
+        )}
+
+        {/* Featured strip */}
+        {cat === 'Все' && !search && featured.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 16px 10px' }}>
+              <Icon name="starFilled" size={14} color="var(--warning)"/>
+              <span style={{ fontFamily: 'Sora', fontWeight: 600, fontSize: 15, color: 'var(--ink)' }}>Хиты</span>
+            </div>
+            <div style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '0 16px 4px' }}>
+              {featured.map((p: any) => (
+                <button key={p.id} onClick={() => onProduct(p.id)} style={{ flexShrink: 0, width: 148, textAlign: 'left' }}>
+                  {p.images?.[0]
+                    ? <img src={p.images[0]} alt={p.name} style={{ width: 148, height: 148, borderRadius: 12, objectFit: 'cover' }}/>
+                    : <div className="img-ph" data-tone={tone(p.name)} style={{ width: 148, height: 148 }}><span>{p.name.split(' ').slice(0,2).join(' ')}</span></div>
+                  }
+                  <div style={{ padding: '8px 2px 0' }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+                    <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginTop: 4 }}>
+                      {fmtPrice(Number(p.price), shop.currency)}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Product grid */}
+        <div style={{ padding: '0 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <h3 style={{ fontFamily: 'Sora', fontWeight: 600, fontSize: 15, color: 'var(--ink)', margin: 0 }}>
+              {cat === 'Все' ? 'Все товары' : cat}
+            </h3>
+            {!isLoading && (
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                {visible.length} {visible.length === 1 ? 'товар' : visible.length < 5 ? 'товара' : 'товаров'}
+              </span>
+            )}
+          </div>
+          {isLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 40 }}>
+              <div style={{ width: 28, height: 28, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }}/>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          ) : visible.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)' }}>
+              {search ? 'Ничего не найдено' : 'Товары появятся скоро'}
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {visible.map((p: any) => {
+                const inWishlist = wishlistIds.includes(p.id)
+                return (
+                  <div key={p.id} style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => onProduct(p.id)}>
+                    <div style={{ position: 'relative' }}>
+                      {p.images?.[0]
+                        ? <img src={p.images[0]} alt={p.name} style={{ width: '100%', aspectRatio: '1/1', borderRadius: 12, objectFit: 'cover' }}/>
+                        : <div className="img-ph" data-tone={tone(p.name)}><span>{p.name.split(' ').slice(0,2).join(' ')}</span></div>
+                      }
+                      {p.stock === 0 && (
+                        <div style={{
+                          position: 'absolute', inset: 0, borderRadius: 12,
+                          background: 'rgba(0,0,0,0.45)', color: 'white',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontWeight: 600, fontSize: 12,
+                        }}>Нет в наличии</div>
+                      )}
+                      {/* Discount badge */}
+                      {p.compare_at_price && Number(p.compare_at_price) > Number(p.price) && (
+                        <div style={{
+                          position: 'absolute', top: 6, left: 6,
+                          background: 'var(--accent)', color: 'white',
+                          borderRadius: 6, fontSize: 11, fontWeight: 700,
+                          padding: '2px 6px',
+                        }}>
+                          -{Math.round((1 - Number(p.price) / Number(p.compare_at_price)) * 100)}%
+                        </div>
+                      )}
+                      {/* Wishlist heart */}
+                      <button
+                        onClick={e => { e.stopPropagation(); toggleWishlist(p.id) }}
+                        style={{
+                          position: 'absolute', top: 6, right: 6,
+                          width: 30, height: 30, borderRadius: 999,
+                          background: 'rgba(255,255,255,0.92)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill={inWishlist ? 'var(--accent)' : 'none'} stroke={inWishlist ? 'var(--accent)' : 'var(--muted)'} strokeWidth="1.5">
+                          <path d="M8 13.5S1.5 9.5 1.5 5.5A3.5 3.5 0 0 1 8 3.8a3.5 3.5 0 0 1 6.5 1.7C14.5 9.5 8 13.5 8 13.5z" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <div style={{ padding: '8px 2px 0' }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.3, marginBottom: 4, height: 34, overflow: 'hidden' }}>
+                        {p.name}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                        <div>
+                          <span style={{ fontFamily: 'JetBrains Mono', fontSize: 13, fontWeight: 700, color: p.compare_at_price ? 'var(--accent)' : 'var(--ink)' }}>
+                            {fmtPrice(Number(p.price), shop.currency)}
+                          </span>
+                          {p.compare_at_price && Number(p.compare_at_price) > Number(p.price) && (
+                            <div style={{ fontFamily: 'JetBrains Mono', fontSize: 10, color: 'var(--muted)', textDecoration: 'line-through' }}>
+                              {fmtPrice(Number(p.compare_at_price), shop.currency)}
+                            </div>
+                          )}
+                        </div>
+                        {/* Quick-add button for products without variants */}
+                        {(!p.sizes?.length && !p.colors?.length) && p.stock !== 0 && (
+                          <button
+                            onClick={e => handleQuickAdd(e, p)}
+                            style={{
+                              width: 28, height: 28, borderRadius: 999, flexShrink: 0,
+                              background: justAdded === p.id ? 'var(--accent)' : 'var(--subtle)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'background 0.2s, transform 0.15s',
+                              transform: justAdded === p.id ? 'scale(0.9)' : 'scale(1)',
+                            }}
+                          >
+                            {justAdded === p.id
+                              ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              : <Icon name="plus" size={14} color="var(--ink)"/>
+                            }
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
+
+// Legacy alias kept for any other imports
+export { CatalogContent as Storefront }

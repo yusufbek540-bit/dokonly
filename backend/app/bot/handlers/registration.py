@@ -1,11 +1,20 @@
 import re
+import uuid
 
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
+from sqlalchemy.exc import IntegrityError
+
+from app.core.database import AsyncSessionLocal
+from app.models.tenant import Tenant as TenantModel
 
 router = Router()
+
+
+def _telegram_owner_id(telegram_user_id: int) -> uuid.UUID:
+    return uuid.uuid5(uuid.NAMESPACE_X500, f"telegram:{telegram_user_id}")
 
 _CYR_TO_LAT = {
     "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "yo",
@@ -58,8 +67,23 @@ async def got_slug(message: Message, state: FSMContext):
         slug = data["suggested_slug"]
     else:
         slug = _make_slug(text)
-    await state.update_data(slug=slug)
-    data = await state.get_data()
+
+    owner_id = _telegram_owner_id(message.from_user.id)
+    async with AsyncSessionLocal() as db:
+        tenant = TenantModel(
+            owner_id=owner_id,
+            name=data["name"],
+            slug=slug,
+            currency="UZS",
+        )
+        db.add(tenant)
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            await message.answer("Этот адрес уже занят. Попробуйте другой.")
+            return
+
     await state.clear()
     await message.answer(
         f"🎉 Магазин <b>{data['name']}</b> создан!\n"
