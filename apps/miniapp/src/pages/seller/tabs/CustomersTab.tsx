@@ -14,10 +14,151 @@ function fmtDate(iso: string) {
   return d.toLocaleDateString('ru', { day: 'numeric', month: 'short' })
 }
 
+function fmtDateFull(iso: string) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleDateString('ru', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+interface CustomerData {
+  name: string
+  phone: string
+  telegramId: number | null
+  orderCount: number
+  totalSpent: number
+  lastOrderAt: string
+  orders: any[]
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  new: 'Новый', confirmed: 'Подтверждён', shipping: 'Доставка',
+  delivered: 'Доставлен', completed: 'Завершён', cancelled: 'Отменён',
+}
+const STATUS_COLORS: Record<string, string> = {
+  new: '#3B82F6', confirmed: '#8B5CF6', shipping: '#F59E0B',
+  delivered: '#10B981', completed: '#00B383', cancelled: '#EF4444',
+}
+
+function CustomerDetail({ customer, currency, onBack }: { customer: CustomerData; currency: string; onBack: () => void }) {
+  const aov = customer.orderCount > 0 ? customer.totalSpent / customer.orderCount : 0
+  const segment = customer.orderCount >= 5 ? 'VIP' : customer.orderCount >= 2 ? 'Постоянный' : 'Новый'
+  const segmentColor = customer.orderCount >= 5 ? '#F59E0B' : customer.orderCount >= 2 ? '#8B5CF6' : '#3B82F6'
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 20,
+        background: 'var(--bg)', borderBottom: '1px solid var(--border)',
+        padding: '10px 16px',
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <button
+          onClick={onBack}
+          style={{ width: 34, height: 34, borderRadius: 999, background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+        >
+          <Icon name="arrowLeft" size={18} color="var(--ink)" />
+        </button>
+        <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', flex: 1 }}>{customer.name}</span>
+        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 999, background: segmentColor + '20', color: segmentColor, fontWeight: 700 }}>
+          {segment}
+        </span>
+      </div>
+
+      <div className="screen-scroll" style={{ flex: 1, padding: '16px', paddingBottom: 40, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Stats grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {[
+            { label: 'Заказов', value: customer.orderCount },
+            { label: 'Средний чек', value: fmtPrice(aov, currency) },
+            { label: 'Потрачено', value: fmtPrice(customer.totalSpent, currency) },
+            { label: 'Последний заказ', value: customer.lastOrderAt ? fmtDate(customer.lastOrderAt) : '—' },
+          ].map(s => (
+            <div key={s.label} style={{ padding: '14px 16px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>{s.label}</div>
+              <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>{s.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Quick actions */}
+        {(customer.phone || customer.telegramId) && (
+          <div style={{ display: 'flex', gap: 10 }}>
+            {customer.phone && (
+              <a
+                href={`tel:${customer.phone}`}
+                style={{
+                  flex: 1, height: 44, borderRadius: 12,
+                  background: 'var(--card)', border: '1px solid var(--border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  fontSize: 14, fontWeight: 600, color: 'var(--ink)', textDecoration: 'none',
+                }}
+              >
+                <span>📞</span> Позвонить
+              </a>
+            )}
+            {customer.telegramId && (
+              <button
+                onClick={() => {
+                  const url = `tg://user?id=${customer.telegramId}`
+                  ;(window as any).Telegram?.WebApp?.openTelegramLink?.(url) ?? window.open(url, '_blank')
+                }}
+                style={{
+                  flex: 1, height: 44, borderRadius: 12,
+                  background: 'var(--accent)', border: 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  fontSize: 14, fontWeight: 600, color: 'white', cursor: 'pointer',
+                }}
+              >
+                <span>💬</span> Написать
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Orders list */}
+        {customer.orders.length > 0 && (
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+              История заказов
+            </div>
+            <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)' }}>
+              {customer.orders.map((o: any, i: number, arr: any[]) => {
+                const orderId = '#' + (o.id ?? '').slice(0, 8).toUpperCase()
+                const statusColor = STATUS_COLORS[o.status] ?? '#888'
+                return (
+                  <div
+                    key={o.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '12px 16px', background: 'var(--card)',
+                      borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
+                    }}
+                  >
+                    <div style={{ width: 8, height: 8, borderRadius: 999, background: statusColor, flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'JetBrains Mono', color: 'var(--ink)' }}>{orderId}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                        {STATUS_LABELS[o.status] ?? o.status} · {o.created_at ? fmtDateFull(o.created_at) : ''}
+                      </div>
+                    </div>
+                    <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 13, color: 'var(--ink)', flexShrink: 0 }}>
+                      {fmtPrice(Number(o.total ?? 0), currency)}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 interface Props { tenant: any }
 
 export function CustomersTab({ tenant }: Props) {
   const [search, setSearch] = useState('')
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerData | null>(null)
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['seller-orders'],
@@ -25,34 +166,37 @@ export function CustomersTab({ tenant }: Props) {
   })
 
   const customers = useMemo(() => {
-    const map = new Map<string, {
-      name: string
-      phone: string
-      orderCount: number
-      totalSpent: number
-      lastOrderAt: string
-    }>()
+    const map = new Map<string, CustomerData>()
 
     for (const order of orders as any[]) {
-      const key = order.customer_telegram_id ?? `${order.customer_name}_${order.customer_phone}`
+      const key = order.customer_telegram_id
+        ? String(order.customer_telegram_id)
+        : `${order.customer_name}_${order.customer_phone}`
       const existing = map.get(key)
       if (existing) {
         existing.orderCount++
         existing.totalSpent += Number(order.total ?? 0)
         if (order.created_at > existing.lastOrderAt) existing.lastOrderAt = order.created_at
+        existing.orders.push(order)
       } else {
         map.set(key, {
           name: order.customer_name ?? 'Покупатель',
           phone: order.customer_phone ?? '',
+          telegramId: order.customer_telegram_id ?? null,
           orderCount: 1,
           totalSpent: Number(order.total ?? 0),
           lastOrderAt: order.created_at ?? '',
+          orders: [order],
         })
       }
     }
 
     return Array.from(map.values()).sort((a, b) => b.totalSpent - a.totalSpent)
   }, [orders])
+
+  if (selectedCustomer) {
+    return <CustomerDetail customer={selectedCustomer} currency={tenant.currency} onBack={() => setSelectedCustomer(null)} />
+  }
 
   const filtered = useMemo(() => {
     if (!search.trim()) return customers
@@ -153,6 +297,7 @@ export function CustomersTab({ tenant }: Props) {
             {filtered.map((c, i) => (
               <div
                 key={i}
+                onClick={() => setSelectedCustomer(c)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -160,6 +305,7 @@ export function CustomersTab({ tenant }: Props) {
                   padding: '12px 16px',
                   borderBottom: '1px solid var(--border)',
                   background: 'var(--bg)',
+                  cursor: 'pointer',
                 }}
               >
                 {/* Avatar */}
@@ -218,6 +364,7 @@ export function CustomersTab({ tenant }: Props) {
                     </div>
                   ) : null}
                 </div>
+                <Icon name="chevronRight" size={15} color="var(--muted)" />
               </div>
             ))}
           </div>
