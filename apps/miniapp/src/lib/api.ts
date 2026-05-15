@@ -55,6 +55,21 @@ export const api = {
       `/api/v1/shop/${tenantId}/wishlist/toggle`,
       { method: 'POST', body: JSON.stringify({ product_id: productId }) },
     ),
+  getMyProfile: (tenantId: string) =>
+    request<{
+      first_name: string; last_name: string; username: string;
+      phone: string | null; email: string | null; birthday: string | null;
+      saved_address: string | null; custom_avatar_url: string | null; locale: string;
+    }>(`/api/v1/shop/${tenantId}/my-profile`),
+  updateMyProfile: (tenantId: string, body: object) =>
+    request<{ ok: boolean }>(`/api/v1/shop/${tenantId}/my-profile`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  cancelOrder: (tenantId: string, orderId: string) =>
+    request<{ ok: boolean; status: string }>(`/api/v1/shop/${tenantId}/orders/${orderId}/cancel`, {
+      method: 'POST',
+    }),
 
   // Seller Mini App endpoints (Telegram initData auth)
   seller: {

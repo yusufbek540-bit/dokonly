@@ -522,6 +522,130 @@ async def check_channel_membership(
     return {"is_member": False}
 
 
+@router.get("/{tenant_id}/my-profile")
+async def get_buyer_profile(
+    tenant_id: str,
+    x_telegram_init_data: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the buyer's saved profile for this tenant."""
+    if not x_telegram_init_data:
+        return {}
+    tg_user = _validate_init_data(x_telegram_init_data)
+    if tg_user is None:
+        return {}
+    tg_id = tg_user.get("id")
+
+    result = await db.execute(
+        select(Customer).where(
+            Customer.tenant_id == tenant_id,
+            Customer.telegram_id == tg_id,
+        )
+    )
+    customer = result.scalar_one_or_none()
+    if not customer:
+        return {
+            "first_name": tg_user.get("first_name", ""),
+            "last_name": tg_user.get("last_name", ""),
+            "username": tg_user.get("username", ""),
+            "phone": None,
+            "email": None,
+            "birthday": None,
+            "saved_address": None,
+            "custom_avatar_url": None,
+            "locale": tg_user.get("language_code", "ru"),
+        }
+    return {
+        "first_name": customer.first_name or tg_user.get("first_name", ""),
+        "last_name": customer.last_name or tg_user.get("last_name", ""),
+        "username": customer.username or tg_user.get("username", ""),
+        "phone": customer.phone,
+        "email": customer.email,
+        "birthday": customer.birthday.isoformat() if customer.birthday else None,
+        "saved_address": customer.saved_address,
+        "custom_avatar_url": customer.custom_avatar_url,
+        "locale": customer.locale or "ru",
+    }
+
+
+@router.patch("/{tenant_id}/my-profile")
+async def update_buyer_profile(
+    tenant_id: str,
+    body: dict,
+    x_telegram_init_data: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upsert the buyer's profile for this tenant."""
+    if not x_telegram_init_data:
+        raise HTTPException(status_code=401, detail="Auth required")
+    tg_user = _validate_init_data(x_telegram_init_data)
+    if tg_user is None:
+        raise HTTPException(status_code=401, detail="Invalid auth")
+    tg_id = tg_user.get("id")
+
+    result = await db.execute(
+        select(Customer).where(
+            Customer.tenant_id == tenant_id,
+            Customer.telegram_id == tg_id,
+        )
+    )
+    customer = result.scalar_one_or_none()
+    if not customer:
+        customer = Customer(
+            tenant_id=tenant_id,
+            telegram_id=tg_id,
+            first_name=tg_user.get("first_name"),
+            last_name=tg_user.get("last_name"),
+            username=tg_user.get("username"),
+            locale=tg_user.get("language_code", "ru"),
+        )
+        db.add(customer)
+
+    allowed = {"first_name", "last_name", "phone", "email", "birthday", "saved_address", "custom_avatar_url", "locale"}
+    for key, val in body.items():
+        if key in allowed:
+            if key == "birthday" and val:
+                from datetime import date
+                try:
+                    setattr(customer, key, date.fromisoformat(val))
+                except ValueError:
+                    pass
+            else:
+                setattr(customer, key, val or None)
+
+    await db.commit()
+    return {"ok": True}
+
+
+@router.post("/{tenant_id}/orders/{order_id}/cancel")
+async def cancel_buyer_order(
+    tenant_id: str,
+    order_id: str,
+    x_telegram_init_data: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Allow buyer to cancel their own order (only if status is new/created)."""
+    if not x_telegram_init_data:
+        raise HTTPException(status_code=401, detail="Auth required")
+    tg_user = _validate_init_data(x_telegram_init_data)
+    if tg_user is None:
+        raise HTTPException(status_code=401, detail="Invalid auth")
+
+    result = await db.execute(
+        select(Order).where(Order.id == order_id, Order.tenant_id == tenant_id)
+    )
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    if order.status not in ("new", "created"):
+        raise HTTPException(status_code=400, detail="Order cannot be cancelled at this stage")
+
+    order.status = "cancelled"
+    await db.commit()
+    return {"ok": True, "status": "cancelled"}
+
+
 @router.post("/{tenant_id}/wishlist/toggle")
 async def toggle_wishlist(
     tenant_id: str,

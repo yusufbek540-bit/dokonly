@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
@@ -76,7 +76,23 @@ function statusToStep(status: string): number {
 
 // ─── OrderDetail ──────────────────────────────────────────────────────────────
 
-function OrderDetail({ order, currency, onBack }: { order: any; currency: string; onBack: () => void }) {
+function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: { order: any; currency: string; tenantId: string; onBack: () => void; shop?: any }) {
+  const [order, setOrder] = useState(initialOrder)
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelDone, setCancelDone] = useState(false)
+
+  const qc = useQueryClient()
+
+  const { mutate: cancelOrder, isPending: isCancelling } = useMutation({
+    mutationFn: () => api.cancelOrder(tenantId, order.id),
+    onSuccess: () => {
+      setOrder({ ...order, status: 'cancelled' })
+      setCancelling(false)
+      setCancelDone(true)
+      qc.invalidateQueries({ queryKey: ['my-orders', tenantId] })
+    },
+  })
+
   const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user
   const firstName = tgUser?.first_name ?? ''
   const lastName = tgUser?.last_name ?? ''
@@ -290,6 +306,83 @@ function OrderDetail({ order, currency, onBack }: { order: any; currency: string
             </span>
           </div>
         )}
+
+        {/* Buyer actions */}
+        <div style={{ padding: '16px 16px 32px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Contact seller */}
+          {shop?.contact_info?.telegram && (
+            <button
+              onClick={() => {
+                const handle = (shop.contact_info.telegram ?? '').replace('@', '')
+                const url = `https://t.me/${handle}`;
+                (window as any).Telegram?.WebApp?.openTelegramLink?.(url) ?? window.open(url, '_blank')
+              }}
+              style={{
+                height: 46, borderRadius: 12,
+                background: 'var(--card)', border: '1px solid var(--border)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                fontSize: 14, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
+              }}
+            >
+              <span>💬</span> Написать продавцу
+            </button>
+          )}
+
+          {/* Cancel order */}
+          {['new', 'created'].includes(order.status) && !cancelDone && (
+            cancelling ? (
+              <div style={{ borderRadius: 12, background: 'var(--card)', border: '1.5px solid var(--danger)', padding: '14px 16px' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--danger)', marginBottom: 12, textAlign: 'center' }}>
+                  Отменить заказ?
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => setCancelling(false)}
+                    style={{
+                      flex: 1, height: 40, borderRadius: 10,
+                      background: 'var(--subtle)', border: '1px solid var(--border)',
+                      fontSize: 14, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
+                    }}
+                  >
+                    Нет
+                  </button>
+                  <button
+                    onClick={() => cancelOrder()}
+                    disabled={isCancelling}
+                    style={{
+                      flex: 1, height: 40, borderRadius: 10,
+                      background: 'var(--danger)', border: 'none',
+                      fontSize: 14, fontWeight: 600, color: 'white', cursor: 'pointer',
+                    }}
+                  >
+                    {isCancelling ? '...' : 'Да, отменить'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setCancelling(true)}
+                style={{
+                  height: 46, borderRadius: 12,
+                  background: 'transparent', border: '1.5px solid var(--danger)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  fontSize: 14, fontWeight: 600, color: 'var(--danger)', cursor: 'pointer',
+                }}
+              >
+                <span>✕</span> Отменить заказ
+              </button>
+            )
+          )}
+          {cancelDone && (
+            <div style={{
+              padding: '12px 16px', borderRadius: 12,
+              background: '#FEF2F2', border: '1px solid #FECACA',
+              textAlign: 'center', fontSize: 14, color: '#DC2626', fontWeight: 600,
+            }}>
+              Заказ отменён
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -453,6 +546,280 @@ function AboutStore({ shop, currency, onBack }: { shop: any; currency: string; o
   )
 }
 
+// ─── EditProfile ─────────────────────────────────────────────────────────────
+
+function EditProfile({ tenantId, onBack }: { tenantId: string; onBack: () => void }) {
+  const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user
+  const qc = useQueryClient()
+
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['my-profile', tenantId],
+    queryFn: () => api.getMyProfile(tenantId),
+  })
+
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [phoneVerified, setPhoneVerified] = useState(false)
+  const [email, setEmail] = useState('')
+  const [birthday, setBirthday] = useState('')
+  const [savedAddress, setSavedAddress] = useState('')
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    if (profile) {
+      setFirstName(profile.first_name || tgUser?.first_name || '')
+      setLastName(profile.last_name || tgUser?.last_name || '')
+      setPhone(profile.phone || '')
+      setPhoneVerified(!!profile.phone)
+      setEmail(profile.email || '')
+      setBirthday(profile.birthday || '')
+      setSavedAddress(profile.saved_address || '')
+    }
+  }, [profile])
+
+  const { mutate: saveProfile, isPending } = useMutation({
+    mutationFn: () => api.updateMyProfile(tenantId, {
+      first_name: firstName,
+      last_name: lastName,
+      phone: phone || null,
+      email: email || null,
+      birthday: birthday || null,
+      saved_address: savedAddress || null,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-profile', tenantId] })
+      setSaved(true)
+      setTimeout(() => { setSaved(false); onBack() }, 1200)
+    },
+  })
+
+  const requestPhone = () => {
+    if ((window as any).Telegram?.WebApp?.requestContact) {
+      (window as any).Telegram.WebApp.requestContact((ok: boolean, contact: any) => {
+        if (ok && contact?.phone_number) {
+          setPhone(contact.phone_number)
+          setPhoneVerified(true)
+        }
+      })
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+      {/* Header */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 20,
+        background: 'var(--bg)', borderBottom: '1px solid var(--border)',
+        padding: '10px 16px',
+        display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <button
+          onClick={onBack}
+          style={{ width: 34, height: 34, borderRadius: 999, background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Icon name="arrowLeft" size={18} color="var(--ink)" />
+        </button>
+        <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', flex: 1 }}>
+          Редактировать профиль
+        </span>
+      </div>
+
+      {isLoading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 48 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 999, border: '2.5px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }}/>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      ) : (
+        <>
+          <div className="screen-scroll" style={{ flex: 1, paddingBottom: 100 }}>
+            {/* Avatar placeholder */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 16px 8px' }}>
+              {tgUser?.photo_url ? (
+                <img src={tgUser.photo_url} alt="" style={{ width: 72, height: 72, borderRadius: 999, objectFit: 'cover' }} />
+              ) : (
+                <div style={{
+                  width: 72, height: 72, borderRadius: 999, background: 'var(--accent)', color: 'white',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Sora', fontWeight: 700, fontSize: 26,
+                }}>
+                  {(firstName[0] || tgUser?.first_name?.[0] || 'П').toUpperCase()}
+                </div>
+              )}
+              {tgUser?.username && (
+                <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 8 }}>@{tgUser.username}</div>
+              )}
+            </div>
+
+            {/* Fields */}
+            <div style={{ padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+              {/* Name row */}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>Имя</label>
+                  <input
+                    value={firstName}
+                    onChange={e => setFirstName(e.target.value)}
+                    placeholder="Имя"
+                    style={{
+                      width: '100%', height: 46, padding: '0 12px',
+                      borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)',
+                      outline: 'none', fontSize: 14, color: 'var(--ink)',
+                    }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>Фамилия</label>
+                  <input
+                    value={lastName}
+                    onChange={e => setLastName(e.target.value)}
+                    placeholder="Фамилия"
+                    style={{
+                      width: '100%', height: 46, padding: '0 12px',
+                      borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)',
+                      outline: 'none', fontSize: 14, color: 'var(--ink)',
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>📞 Телефон</label>
+                {phoneVerified && phone ? (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    height: 46, padding: '0 12px',
+                    borderRadius: 12, background: 'var(--card)', border: '1.5px solid var(--accent)',
+                  }}>
+                    <span style={{ flex: 1, fontSize: 14, color: 'var(--ink)' }}>{phone}</span>
+                    <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700 }}>✓</span>
+                    <button
+                      onClick={() => { setPhone(''); setPhoneVerified(false) }}
+                      style={{ fontSize: 12, color: 'var(--muted)', background: 'none', cursor: 'pointer' }}
+                    >
+                      изм.
+                    </button>
+                  </div>
+                ) : (window as any).Telegram?.WebApp?.requestContact ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <button
+                      onClick={requestPhone}
+                      style={{
+                        height: 46, borderRadius: 12,
+                        background: 'var(--accent-soft)', border: '1.5px solid var(--accent)',
+                        color: 'var(--accent)', fontWeight: 600, fontSize: 14,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      📱 Поделиться через Telegram
+                    </button>
+                    <input
+                      value={phone}
+                      onChange={e => setPhone(e.target.value)}
+                      placeholder="+998 90 123 45 67"
+                      type="tel"
+                      style={{
+                        width: '100%', height: 46, padding: '0 12px',
+                        borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)',
+                        outline: 'none', fontSize: 14, color: 'var(--ink)',
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <input
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    placeholder="+998 90 123 45 67"
+                    type="tel"
+                    style={{
+                      width: '100%', height: 46, padding: '0 12px',
+                      borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)',
+                      outline: 'none', fontSize: 14, color: 'var(--ink)',
+                    }}
+                  />
+                )}
+              </div>
+
+              {/* Email */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>✉ Email (необязательно)</label>
+                <input
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="email@example.com"
+                  type="email"
+                  style={{
+                    width: '100%', height: 46, padding: '0 12px',
+                    borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)',
+                    outline: 'none', fontSize: 14, color: 'var(--ink)',
+                  }}
+                />
+              </div>
+
+              {/* Birthday */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>🎂 День рождения (необязательно)</label>
+                <input
+                  value={birthday}
+                  onChange={e => setBirthday(e.target.value)}
+                  type="date"
+                  style={{
+                    width: '100%', height: 46, padding: '0 12px',
+                    borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)',
+                    outline: 'none', fontSize: 14, color: birthday ? 'var(--ink)' : 'var(--muted)',
+                  }}
+                />
+              </div>
+
+              {/* Address */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>🏠 Адрес доставки (необязательно)</label>
+                <input
+                  value={savedAddress}
+                  onChange={e => setSavedAddress(e.target.value)}
+                  placeholder="Ташкент, ул. Амира Темура 108"
+                  style={{
+                    width: '100%', height: 46, padding: '0 12px',
+                    borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)',
+                    outline: 'none', fontSize: 14, color: 'var(--ink)',
+                  }}
+                />
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
+                  Сохраним для быстрого оформления заказа
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Save button */}
+          <div style={{
+            position: 'sticky', bottom: 0,
+            padding: '10px 16px calc(10px + env(safe-area-inset-bottom))',
+            background: 'var(--bg)', borderTop: '1px solid var(--border)', zIndex: 30,
+          }}>
+            <button
+              onClick={() => saveProfile()}
+              disabled={isPending || saved}
+              style={{
+                width: '100%', height: 52, borderRadius: 14,
+                background: saved ? '#10B981' : 'var(--accent)', color: 'white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                fontWeight: 700, fontSize: 15, transition: 'background 0.2s',
+              }}
+            >
+              {isPending ? (
+                <><div style={{ width: 18, height: 18, borderRadius: 999, border: '2px solid white', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }}/> Сохранение...</>
+              ) : saved ? '✓ Сохранено' : 'Сохранить'}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ─── ProfileTab ───────────────────────────────────────────────────────────────
 
 type OrderTabId = 'active' | 'all' | 'completed' | 'cancelled'
@@ -467,6 +834,7 @@ export function ProfileTab({ tenantId, currency, shop }: Props) {
   const [selectedOrder, setSelectedOrder] = useState<any>(null)
   const [showWishlist, setShowWishlist] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
+  const [showEditProfile, setShowEditProfile] = useState(false)
   const [orderTab, setOrderTab] = useState<OrderTabId>('active')
 
   const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user
@@ -516,11 +884,17 @@ export function ProfileTab({ tenantId, currency, shop }: Props) {
 
   const wishlistProducts = (allProducts as any[]).filter(p => wishlistIds.includes(p.id))
 
+  if (showEditProfile) {
+    return <EditProfile tenantId={tenantId} onBack={() => setShowEditProfile(false)} />
+  }
+
   if (selectedOrder) {
     return (
       <OrderDetail
         order={selectedOrder}
         currency={currency}
+        tenantId={tenantId}
+        shop={shop}
         onBack={() => setSelectedOrder(null)}
       />
     )
@@ -637,7 +1011,7 @@ export function ProfileTab({ tenantId, currency, shop }: Props) {
                 {avatarLetter}
               </div>
             )}
-            <div>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)' }}>
                 {displayName}
               </div>
@@ -647,6 +1021,16 @@ export function ProfileTab({ tenantId, currency, shop }: Props) {
                 </div>
               )}
             </div>
+            <button
+              onClick={() => setShowEditProfile(true)}
+              style={{
+                flexShrink: 0, height: 32, padding: '0 12px', borderRadius: 8,
+                background: 'var(--subtle)', border: '1px solid var(--border)',
+                fontSize: 13, fontWeight: 600, color: 'var(--muted)', cursor: 'pointer',
+              }}
+            >
+              Изм.
+            </button>
           </div>
         </div>
 

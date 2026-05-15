@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
@@ -230,12 +230,58 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
 function OrderCard({ order, currency, onAdvance, onTap }: { order: any; currency: string; onAdvance: () => void; onTap: () => void }) {
   const statusDef = STATUSES.find(s => s.id === order.status)
   const canAdvance = !!statusDef?.next
+  const touchStartX = useRef<number | null>(null)
+  const [swipeX, setSwipeX] = useState(0)
+  const [swiped, setSwiped] = useState(false)
+
+  const THRESHOLD = 80
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || !canAdvance) return
+    const dx = e.touches[0].clientX - touchStartX.current
+    if (dx > 0) setSwipeX(Math.min(dx, THRESHOLD + 20))
+  }
+
+  const handleTouchEnd = () => {
+    if (swipeX >= THRESHOLD && canAdvance && !swiped) {
+      setSwiped(true)
+      onAdvance()
+      setTimeout(() => setSwiped(false), 500)
+    }
+    setSwipeX(0)
+    touchStartX.current = null
+  }
 
   return (
+    <div
+      style={{ position: 'relative', marginBottom: 8, borderRadius: 14, overflow: 'hidden' }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Swipe reveal layer */}
+      {canAdvance && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'var(--accent)',
+          display: 'flex', alignItems: 'center', paddingLeft: 16,
+          borderRadius: 14,
+        }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>
+            → {NEXT_LABEL[order.status]}
+          </span>
+        </div>
+      )}
     <div onClick={onTap} style={{
       padding: '14px', borderRadius: 14,
       background: 'var(--card)', border: '1px solid var(--border)',
-      marginBottom: 8, cursor: 'pointer',
+      cursor: 'pointer',
+      transform: `translateX(${swipeX}px)`,
+      transition: swipeX === 0 ? 'transform 0.3s ease' : 'none',
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
         <div>
@@ -288,6 +334,7 @@ function OrderCard({ order, currency, onAdvance, onTap }: { order: any; currency
           <span style={{ fontSize: 12, color: 'var(--muted)' }}>{order.delivery_address}</span>
         </div>
       )}
+    </div>
     </div>
   )
 }

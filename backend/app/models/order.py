@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import BigInteger, Column, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Column, Date, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from app.models.base import Base, TimestampMixin
@@ -20,6 +20,11 @@ class Customer(Base, TimestampMixin):
     last_name = Column(String(100))
     username = Column(String(100))
     locale = Column(String(5), default="ru")
+    phone = Column(String(50))
+    email = Column(String(200))
+    birthday = Column(Date)
+    saved_address = Column(Text)
+    custom_avatar_url = Column(Text)
     # Denormalized counters — must be updated by the order service when orders are created/cancelled.
     total_orders = Column(Integer, nullable=False, default=0)
     total_spent = Column(Numeric(14, 2), nullable=False, default=0)
