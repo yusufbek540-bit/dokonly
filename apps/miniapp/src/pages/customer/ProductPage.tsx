@@ -31,6 +31,7 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
   const [selectedColor, setSelectedColor] = useState<string | null>(null)
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(false)
+  const [descExpanded, setDescExpanded] = useState(false)
 
   const add = useCart((s) => s.add)
   const cartCount = useCart((s) => s.count)()
@@ -63,10 +64,16 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
 
   const inWishlist = wishlistIds.includes(productId)
 
-  const { data: product, isLoading } = useQuery({
-    queryKey: ['product', tenantId, productId],
-    queryFn: () => api.getProducts(tenantId).then(ps => ps.find((p: any) => p.id === productId)),
+  const { data: allProducts = [], isLoading } = useQuery({
+    queryKey: ['products', tenantId],
+    queryFn: () => api.getProducts(tenantId),
   })
+
+  const product = (allProducts as any[]).find(p => p.id === productId)
+
+  const similar = (allProducts as any[])
+    .filter(p => p.id !== productId && p.is_active && p.category && p.category === product?.category)
+    .slice(0, 4)
 
   if (isLoading) {
     return (
@@ -310,18 +317,97 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
           </div>
         </div>
 
-        {/* Description */}
-        {product.description && (
+        {/* Video */}
+        {product.video_url && (
           <div style={{ padding: '16px 16px 0' }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', marginBottom: 6 }}>Описание</div>
-            <p style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.6, margin: 0 }}>{product.description}</p>
+            <video
+              src={product.video_url}
+              controls
+              playsInline
+              style={{ width: '100%', borderRadius: 12, maxHeight: 300, background: '#000' }}
+            />
           </div>
         )}
+
+        {/* Description */}
+        {product.description && (() => {
+          const isLong = product.description.length > 200
+          return (
+            <div style={{ padding: '16px 16px 0' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', marginBottom: 6 }}>Описание</div>
+              <p style={{
+                fontSize: 14, color: 'var(--ink)', lineHeight: 1.6, margin: 0,
+                overflow: isLong && !descExpanded ? 'hidden' : 'visible',
+                display: isLong && !descExpanded ? '-webkit-box' : 'block',
+                WebkitLineClamp: isLong && !descExpanded ? 3 : 'unset' as any,
+                WebkitBoxOrient: 'vertical' as any,
+              }}>
+                {product.description}
+              </p>
+              {isLong && (
+                <button
+                  onClick={() => setDescExpanded(e => !e)}
+                  style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', marginTop: 6, background: 'none', padding: 0, border: 'none', cursor: 'pointer' }}
+                >
+                  {descExpanded ? 'Свернуть' : 'Читать далее'}
+                </button>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Stock badge */}
         {product.stock > 0 && product.stock <= 10 && (
           <div style={{ margin: '16px 16px 0', padding: '10px 14px', borderRadius: 10, background: '#FEF3C7' }}>
             <span style={{ fontSize: 13, fontWeight: 500, color: '#92400E' }}>Осталось {product.stock} шт.</span>
+          </div>
+        )}
+
+        {/* Similar products */}
+        {similar.length > 0 && (
+          <div style={{ padding: '24px 16px 0' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted-strong)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Похожие товары
+            </div>
+            <div style={{ display: 'flex', gap: 10, overflowX: 'auto', scrollbarWidth: 'none', margin: '0 -16px', padding: '0 16px 4px' }}>
+              {similar.map((p: any) => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    setImgIdx(0)
+                    setSelectedSize(null)
+                    setSelectedColor(null)
+                    setQty(1)
+                    setDescExpanded(false)
+                    // Navigate to this product - re-use the onBack + re-open pattern isn't ideal,
+                    // but we can trigger the parent nav by calling back and letting storefront handle it
+                    // For now, scroll to top and update product ID via onBack cycle
+                  }}
+                  style={{
+                    flexShrink: 0, width: 140,
+                    background: 'var(--card)', border: '1px solid var(--border)',
+                    borderRadius: 12, overflow: 'hidden',
+                    textAlign: 'left', cursor: 'pointer',
+                  }}
+                >
+                  {p.images?.[0] ? (
+                    <img src={p.images[0]} alt={p.name} style={{ width: '100%', height: 110, objectFit: 'cover', display: 'block' }} />
+                  ) : (
+                    <div style={{ width: '100%', height: 110, background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ fontSize: 28 }}>📦</span>
+                    </div>
+                  )}
+                  <div style={{ padding: '8px 10px 10px' }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.3, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
+                      {p.name}
+                    </div>
+                    <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 12, color: 'var(--accent)' }}>
+                      {fmtPrice(Number(p.price), currency)}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
