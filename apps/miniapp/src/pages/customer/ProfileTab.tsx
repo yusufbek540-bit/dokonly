@@ -1107,6 +1107,30 @@ export function ProfileTab({ tenantId, currency, shop }: Props) {
             </button>
           )}
 
+          {/* Returns link */}
+          {orders.length > 0 && (
+            <button
+              onClick={() => setOrderTab('completed')}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px', borderRadius: 14,
+                background: 'var(--card)', border: '1px solid var(--border)',
+                marginBottom: 8, cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: 18 }}>🔄</span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>
+                Мои заказы
+              </span>
+              {orders.filter((o: any) => ['new', 'created', 'confirmed', 'shipping'].includes(o.status)).length > 0 && (
+                <span style={{ minWidth: 22, height: 22, borderRadius: 999, background: 'var(--accent)', color: 'white', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 6px' }}>
+                  {orders.filter((o: any) => ['new', 'created', 'confirmed', 'shipping'].includes(o.status)).length}
+                </span>
+              )}
+              <Icon name="chevronRight" size={16} color="var(--muted)" />
+            </button>
+          )}
+
           {shop && (
             <button
               onClick={() => setShowAbout(true)}

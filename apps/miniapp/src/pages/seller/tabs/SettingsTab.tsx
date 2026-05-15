@@ -545,6 +545,12 @@ export function SettingsTab({ tenant }: Props) {
   const [paymentMethods, setPaymentMethods] = useState<string[]>(
     tenant.settings?.payment_methods ?? ['cash'],
   )
+  const [transferCardNumber, setTransferCardNumber] = useState<string>(
+    tenant.settings?.transfer_card_number ?? '',
+  )
+  const [transferCardHolder, setTransferCardHolder] = useState<string>(
+    tenant.settings?.transfer_card_holder ?? '',
+  )
 
   // Profile form
   const [profileName, setProfileName] = useState<string>(tenant.name ?? '')
@@ -593,6 +599,14 @@ export function SettingsTab({ tenant }: Props) {
       setEditPayment(false)
     },
   })
+
+  const savePaymentSettings = () => {
+    paymentMutation.mutate({
+      payment_methods: paymentMethods,
+      transfer_card_number: transferCardNumber.trim() || null,
+      transfer_card_holder: transferCardHolder.trim() || null,
+    })
+  }
 
   const [pickedColor, setPickedColor] = useState<string>(
     tenant.accent_color ?? tenant.settings?.accent_color ?? 'emerald'
@@ -1497,8 +1511,49 @@ export function SettingsTab({ tenant }: Props) {
               })}
             </div>
 
+            {/* Bank card transfer details */}
+            {paymentMethods.includes('card') && (
+              <div style={{ marginBottom: 20, padding: '16px', borderRadius: 14, background: 'var(--subtle)', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>
+                  💳 Реквизиты для перевода
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Номер карты</label>
+                    <input
+                      value={transferCardNumber}
+                      onChange={e => setTransferCardNumber(e.target.value)}
+                      placeholder="8600 0000 0000 0000"
+                      maxLength={19}
+                      style={{
+                        width: '100%', height: 44, padding: '0 12px',
+                        borderRadius: 10, background: 'var(--card)', border: '1px solid var(--border)',
+                        outline: 'none', fontSize: 14, fontFamily: 'JetBrains Mono', color: 'var(--ink)',
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Владелец карты</label>
+                    <input
+                      value={transferCardHolder}
+                      onChange={e => setTransferCardHolder(e.target.value)}
+                      placeholder="Имя Фамилия"
+                      style={{
+                        width: '100%', height: 44, padding: '0 12px',
+                        borderRadius: 10, background: 'var(--card)', border: '1px solid var(--border)',
+                        outline: 'none', fontSize: 14, color: 'var(--ink)',
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                    Покупатели увидят эти реквизиты после оформления заказа
+                  </div>
+                </div>
+              </div>
+            )}
+
             <button
-              onClick={() => paymentMutation.mutate({ payment_methods: paymentMethods })}
+              onClick={savePaymentSettings}
               disabled={paymentMutation.isPending}
               style={{
                 width: '100%', height: 50, borderRadius: 14,

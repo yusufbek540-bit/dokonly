@@ -79,6 +79,7 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
   const [orderItemsSnapshot, setOrderItemsSnapshot] = useState<typeof items>([])
   const [orderTotalSnapshot, setOrderTotalSnapshot] = useState(0)
   const [orderDeliverySnapshot, setOrderDeliverySnapshot] = useState('')
+  const [paymentMethodSnapshot, setPaymentMethodSnapshot] = useState('')
 
   const deliveryCost = deliveryOptions.find(d => d.id === delivery)?.price ?? 0
   const discount = couponApplied?.discountAmount ?? 0
@@ -110,6 +111,7 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
       setOrderItemsSnapshot([...items])
       setOrderTotalSnapshot(grandTotal)
       setOrderDeliverySnapshot(deliveryOptions.find(d => d.id === delivery)?.label ?? 'Доставка')
+      setPaymentMethodSnapshot(payment)
       setOrderId(data.id?.slice(0, 8).toUpperCase() ?? 'НОВЫЙ')
       clear()
     },
@@ -215,6 +217,57 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
             </span>
           </div>
         </div>
+
+        {/* Manual transfer instructions */}
+        {paymentMethodSnapshot === 'card' && (shopSettings?.transfer_card_number || shopSettings?.transfer_card_holder) && (
+          <div style={{
+            width: '100%', maxWidth: 320, borderRadius: 16, marginBottom: 20,
+            border: '1.5px solid var(--accent)', background: 'var(--accent-soft)',
+            padding: '16px',
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', marginBottom: 12 }}>
+              💳 Перевод на карту
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {shopSettings.transfer_card_number && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Номер карты</div>
+                    <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 16, color: 'var(--ink)', letterSpacing: '0.05em' }}>
+                      {shopSettings.transfer_card_number}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => navigator.clipboard?.writeText(shopSettings.transfer_card_number)}
+                    style={{
+                      padding: '6px 12px', borderRadius: 8,
+                      background: 'white', border: '1px solid var(--border)',
+                      fontSize: 12, fontWeight: 600, color: 'var(--accent)', cursor: 'pointer',
+                      flexShrink: 0,
+                    }}
+                  >
+                    Копировать
+                  </button>
+                </div>
+              )}
+              {shopSettings.transfer_card_holder && (
+                <div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Получатель</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{shopSettings.transfer_card_holder}</div>
+                </div>
+              )}
+              <div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Сумма перевода</div>
+                <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 16, color: 'var(--accent)' }}>
+                  {fmtPrice(orderTotalSnapshot, currency)}
+                </div>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+                После оплаты отправьте скриншот продавцу в Telegram
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Buttons */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 320 }}>
