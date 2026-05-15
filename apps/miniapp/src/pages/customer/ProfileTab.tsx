@@ -151,19 +151,25 @@ function OrderDetail({ order, currency, onBack }: { order: any; currency: string
               <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
                 Состав заказа
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {order.items.map((item: any, idx: number) => {
                   const qty = item.quantity ?? item.qty ?? 1
                   const price = item.price ?? 0
                   const subtotal = qty * price
                   return (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      {item.image_url ? (
+                        <img src={item.image_url} alt={item.product_name} style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--subtle)', flexShrink: 0 }} />
+                      )}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3 }}>
                           {item.product_name ?? item.name ?? 'Товар'}
                         </div>
                         <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                          {qty} × {fmtPrice(price, currency)}
+                          {item.size && <span>{item.size} · </span>}
+                          {qty} шт · {fmtPrice(price, currency)}
                         </div>
                       </div>
                       <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 13, color: 'var(--ink)', flexShrink: 0 }}>
@@ -449,10 +455,19 @@ function AboutStore({ shop, currency, onBack }: { shop: any; currency: string; o
 
 // ─── ProfileTab ───────────────────────────────────────────────────────────────
 
+type OrderTabId = 'active' | 'all' | 'completed' | 'cancelled'
+const ORDER_TABS: { id: OrderTabId; label: string; statuses: string[] | null }[] = [
+  { id: 'active',    label: 'Активные',    statuses: ['new', 'created', 'confirmed', 'shipping'] },
+  { id: 'all',       label: 'Все',         statuses: null },
+  { id: 'completed', label: 'Завершённые', statuses: ['delivered', 'completed'] },
+  { id: 'cancelled', label: 'Отменённые',  statuses: ['cancelled'] },
+]
+
 export function ProfileTab({ tenantId, currency, shop }: Props) {
   const [selectedOrder, setSelectedOrder] = useState<any>(null)
   const [showWishlist, setShowWishlist] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
+  const [orderTab, setOrderTab] = useState<OrderTabId>('active')
 
   const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user
 
@@ -635,6 +650,30 @@ export function ProfileTab({ tenantId, currency, shop }: Props) {
           </div>
         </div>
 
+        {/* Quick stats */}
+        {orders.length > 0 && (
+          <div style={{ padding: '0 16px 16px' }}>
+            <div style={{
+              display: 'grid', gridTemplateColumns: '1fr 1fr',
+              gap: 10, padding: '14px 16px',
+              borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)',
+            }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 20, color: 'var(--accent)' }}>
+                  {orders.length}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>заказов</div>
+              </div>
+              <div style={{ textAlign: 'center', borderLeft: '1px solid var(--border)' }}>
+                <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>
+                  {fmtPrice(orders.reduce((s: number, o: any) => s + Number(o.total ?? 0), 0), currency)}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>потрачено</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Quick menu */}
         <div style={{ padding: '0 16px 16px' }}>
           <button
@@ -662,6 +701,28 @@ export function ProfileTab({ tenantId, currency, shop }: Props) {
             <Icon name="chevronRight" size={16} color="var(--muted)" />
           </button>
 
+          {shop?.contact_info?.telegram && (
+            <button
+              onClick={() => {
+                const handle = (shop.contact_info.telegram ?? '').replace('@', '')
+                const url = `https://t.me/${handle}`;
+                (window as any).Telegram?.WebApp?.openTelegramLink?.(url) ?? window.open(url, '_blank')
+              }}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px', borderRadius: 14,
+                background: 'var(--card)', border: '1px solid var(--border)',
+                marginBottom: 8, cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: 18 }}>💬</span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>
+                Написать продавцу
+              </span>
+              <Icon name="chevronRight" size={16} color="var(--muted)" />
+            </button>
+          )}
+
           {shop && (
             <button
               onClick={() => setShowAbout(true)}
@@ -687,6 +748,35 @@ export function ProfileTab({ tenantId, currency, shop }: Props) {
             Мои заказы
           </h3>
 
+          {/* Filter tabs */}
+          {orders.length > 0 && (
+            <div style={{
+              display: 'flex', gap: 6, marginBottom: 12,
+              overflowX: 'auto', scrollbarWidth: 'none',
+            }}>
+              {ORDER_TABS.map(t => {
+                const count = t.statuses
+                  ? (orders as any[]).filter(o => t.statuses!.includes(o.status)).length
+                  : (orders as any[]).length
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setOrderTab(t.id)}
+                    style={{
+                      flexShrink: 0, padding: '6px 12px', borderRadius: 999,
+                      background: orderTab === t.id ? 'var(--accent)' : 'var(--card)',
+                      border: `1px solid ${orderTab === t.id ? 'var(--accent)' : 'var(--border)'}`,
+                      color: orderTab === t.id ? 'white' : 'var(--ink)',
+                      fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {t.label}{count > 0 ? ` (${count})` : ''}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
           {isLoading ? (
             <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 32 }}>
               <div style={{
@@ -696,63 +786,94 @@ export function ProfileTab({ tenantId, currency, shop }: Props) {
               }}/>
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
-          ) : orders.length === 0 ? (
-            <div style={{
-              textAlign: 'center', padding: '40px 0', color: 'var(--muted)',
-            }}>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>📦</div>
-              <p style={{ fontSize: 14 }}>Ваши заказы будут здесь</p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {orders.map((order: any) => {
-                const statusKey = order.status ?? 'new'
-                const statusLabel = STATUS_LABEL[statusKey] ?? statusKey
-                const statusStyle = STATUS_COLOR[statusKey] ?? { bg: 'var(--subtle)', color: 'var(--muted)' }
-                const orderId = (order.id ?? '').slice(0, 8).toUpperCase()
-                const total = order.total_amount ?? order.total ?? 0
-                const date = order.created_at ?? order.date ?? ''
+          ) : (() => {
+            const tab = ORDER_TABS.find(t => t.id === orderTab)!
+            const filtered = tab.statuses
+              ? (orders as any[]).filter(o => tab.statuses!.includes(o.status))
+              : (orders as any[])
 
-                return (
-                  <div
-                    key={order.id}
-                    onClick={() => setSelectedOrder(order)}
-                    style={{
-                      padding: '14px 16px', borderRadius: 14,
-                      background: 'var(--card)', border: '1px solid var(--border)',
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
-                          #{orderId}
-                        </span>
-                        <span style={{
-                          padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600,
-                          background: statusStyle.bg, color: statusStyle.color,
+            if (filtered.length === 0) {
+              const emptyMsg = orderTab === 'active' ? 'Нет активных заказов'
+                : orderTab === 'completed' ? 'Завершённых заказов нет'
+                : orderTab === 'cancelled' ? 'Отменённых заказов нет'
+                : 'Заказов пока нет'
+              return (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)' }}>
+                  <div style={{ fontSize: 36, marginBottom: 12 }}>📦</div>
+                  <p style={{ fontSize: 14 }}>{emptyMsg}</p>
+                </div>
+              )
+            }
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {filtered.map((order: any) => {
+                  const statusKey = order.status ?? 'new'
+                  const statusLabel = STATUS_LABEL[statusKey] ?? statusKey
+                  const statusStyle = STATUS_COLOR[statusKey] ?? { bg: 'var(--subtle)', color: 'var(--muted)' }
+                  const orderId = (order.id ?? '').slice(0, 8).toUpperCase()
+                  const total = order.total_amount ?? order.total ?? 0
+                  const date = order.created_at ?? order.date ?? ''
+                  const items: any[] = order.items ?? []
+                  const firstImage = items.find(i => i.image_url)?.image_url ?? null
+
+                  return (
+                    <div
+                      key={order.id}
+                      onClick={() => setSelectedOrder(order)}
+                      style={{
+                        padding: '12px 14px', borderRadius: 14,
+                        background: 'var(--card)', border: '1px solid var(--border)',
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {/* Thumbnail */}
+                      {firstImage ? (
+                        <img src={firstImage} alt="" style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                      ) : (
+                        <div style={{
+                          width: 48, height: 48, borderRadius: 10, flexShrink: 0,
+                          background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                         }}>
-                          {statusLabel}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>
-                          {fmtPrice(Number(total), currency)}
-                        </span>
-                        {date && (
-                          <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-                            {fmtDate(date)}
+                          <span style={{ fontSize: 20 }}>📦</span>
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                          <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
+                            #{orderId}
                           </span>
+                          <span style={{
+                            padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600,
+                            background: statusStyle.bg, color: statusStyle.color,
+                          }}>
+                            {statusLabel}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>
+                            {fmtPrice(Number(total), currency)}
+                          </span>
+                          {date && (
+                            <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                              {fmtDate(date)}
+                            </span>
+                          )}
+                        </div>
+                        {items.length > 0 && (
+                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                            {items.length} {items.length === 1 ? 'товар' : items.length < 5 ? 'товара' : 'товаров'}
+                          </div>
                         )}
                       </div>
+                      <Icon name="chevronRight" size={16} color="var(--muted)" />
                     </div>
-                    <Icon name="chevronRight" size={16} color="var(--muted)" />
-                  </div>
-                )
-              })}
-            </div>
-          )}
+                  )
+                })}
+              </div>
+            )
+          })()}
         </div>
       </div>
     </div>

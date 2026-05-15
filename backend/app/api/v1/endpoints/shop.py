@@ -368,6 +368,16 @@ async def get_my_orders(
     )
     all_items = items_result.scalars().all()
 
+    # Batch-fetch product images for all product IDs
+    product_ids = [oi.product_id for oi in all_items if oi.product_id]
+    images_by_product: dict = {}
+    if product_ids:
+        prods_result = await db.execute(
+            select(Product.id, Product.images).where(Product.id.in_(product_ids))
+        )
+        for row in prods_result.all():
+            images_by_product[str(row[0])] = row[1] or []
+
     # Group items by order_id
     items_by_order: dict = {}
     for item in all_items:
@@ -388,9 +398,13 @@ async def get_my_orders(
                 "created_at": order.created_at.isoformat() if order.created_at else None,
                 "items": [
                     {
+                        "product_id": str(oi.product_id) if oi.product_id else None,
                         "product_name": oi.product_name,
                         "quantity": oi.quantity,
                         "price": float(oi.price),
+                        "size": oi.size,
+                        "color": oi.color,
+                        "image_url": (images_by_product.get(str(oi.product_id), []) or [None])[0] if oi.product_id else None,
                     }
                     for oi in order_items
                 ],

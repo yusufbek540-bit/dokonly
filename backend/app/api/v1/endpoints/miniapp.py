@@ -545,6 +545,23 @@ async def seller_analytics_summary(
     )
     product_count = products_q.scalar() or 0
 
+    # Inventory insights
+    active_products_q = await db.execute(
+        select(Product).where(Product.tenant_id == tenant.id, Product.is_active == True)
+    )
+    active_products = active_products_q.scalars().all()
+    low_stock_count = sum(1 for p in active_products if p.stock is not None and 0 < p.stock <= 5)
+    out_of_stock_count = sum(1 for p in active_products if p.stock is not None and p.stock == 0)
+    no_images_count = sum(1 for p in active_products if not p.images or len(p.images) == 0)
+    no_description_count = sum(1 for p in active_products if not p.description or not p.description.strip())
+
+    # Orders pending too long (status='new' for 2+ days)
+    two_days_ago = now - timedelta(days=2)
+    pending_too_long_count = sum(
+        1 for o in all_orders
+        if o.status == "new" and o.created_at and o.created_at.replace(tzinfo=timezone.utc) <= two_days_ago
+    )
+
     # Top products by revenue from order items
     items_q = await db.execute(
         select(OrderItem)
@@ -597,6 +614,11 @@ async def seller_analytics_summary(
         "top_products": top_products,
         "customer_count": customer_count,
         "new_customers_week": new_customers_week,
+        "low_stock_count": low_stock_count,
+        "out_of_stock_count": out_of_stock_count,
+        "no_images_count": no_images_count,
+        "no_description_count": no_description_count,
+        "pending_too_long_count": pending_too_long_count,
     }
 
 
