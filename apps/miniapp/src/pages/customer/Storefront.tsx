@@ -34,6 +34,17 @@ export function CatalogContent({ shop, onProduct }: Props) {
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortOption>('newest')
   const [showSort, setShowSort] = useState(false)
+  const [showFilter, setShowFilter] = useState(false)
+  const [filterMinPrice, setFilterMinPrice] = useState('')
+  const [filterMaxPrice, setFilterMaxPrice] = useState('')
+  const [filterInStock, setFilterInStock] = useState(false)
+  const [filterHasDiscount, setFilterHasDiscount] = useState(false)
+  const [activeMinPrice, setActiveMinPrice] = useState('')
+  const [activeMaxPrice, setActiveMaxPrice] = useState('')
+  const [activeInStock, setActiveInStock] = useState(false)
+  const [activeHasDiscount, setActiveHasDiscount] = useState(false)
+
+  const hasActiveFilters = !!(activeMinPrice || activeMaxPrice || activeInStock || activeHasDiscount)
   const qc = useQueryClient()
 
   const { data: products = [], isLoading } = useQuery({
@@ -91,7 +102,12 @@ export function CatalogContent({ shop, onProduct }: Props) {
   const visible = activeProducts
     .filter((p: any) => {
       if (cat !== 'Все' && p.category !== cat) return false
-      if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false
+      if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !(p.description ?? '').toLowerCase().includes(search.toLowerCase())) return false
+      const price = Number(p.price)
+      if (activeMinPrice && price < Number(activeMinPrice)) return false
+      if (activeMaxPrice && price > Number(activeMaxPrice)) return false
+      if (activeInStock && (p.stock === null || p.stock === undefined || p.stock === 0)) return false
+      if (activeHasDiscount && !(p.compare_at_price && Number(p.compare_at_price) > price)) return false
       return true
     })
     .sort((a: any, b: any) => {
@@ -113,7 +129,7 @@ export function CatalogContent({ shop, onProduct }: Props) {
         background: 'var(--bg)',
         borderBottom: '1px solid var(--border)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px' }}>
           <div style={{ flex: 1, fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>
             Каталог
           </div>
@@ -130,6 +146,34 @@ export function CatalogContent({ shop, onProduct }: Props) {
           >
             {SORT_LABELS[sort]}
             <Icon name="chevronRight" size={12} color={sort !== 'newest' ? 'var(--accent)' : 'var(--muted)'}/>
+          </button>
+          {/* Filter button */}
+          <button
+            onClick={() => {
+              setFilterMinPrice(activeMinPrice)
+              setFilterMaxPrice(activeMaxPrice)
+              setFilterInStock(activeInStock)
+              setFilterHasDiscount(activeHasDiscount)
+              setShowFilter(true)
+            }}
+            style={{
+              position: 'relative',
+              width: 36, height: 36, borderRadius: 10,
+              background: hasActiveFilters ? 'var(--accent-soft)' : 'var(--subtle)',
+              border: `1px solid ${hasActiveFilters ? 'var(--accent)' : 'var(--border)'}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={hasActiveFilters ? 'var(--accent)' : 'var(--ink)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+            </svg>
+            {hasActiveFilters && (
+              <div style={{
+                position: 'absolute', top: -3, right: -3,
+                width: 10, height: 10, borderRadius: 999,
+                background: 'var(--accent)', border: '1.5px solid var(--bg)',
+              }}/>
+            )}
           </button>
         </div>
       </div>
@@ -173,6 +217,109 @@ export function CatalogContent({ shop, onProduct }: Props) {
         </div>
       )}
 
+      {/* Filter bottom sheet */}
+      {showFilter && (
+        <div
+          onClick={() => setShowFilter(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px 32px' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)' }}>Фильтры</div>
+              <button
+                onClick={() => {
+                  setFilterMinPrice(''); setFilterMaxPrice('')
+                  setFilterInStock(false); setFilterHasDiscount(false)
+                }}
+                style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+              >
+                Сбросить
+              </button>
+            </div>
+
+            {/* Price range */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted-strong)', marginBottom: 10 }}>Цена</div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>От</div>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={filterMinPrice}
+                    onChange={e => setFilterMinPrice(e.target.value)}
+                    style={{
+                      width: '100%', height: 44, borderRadius: 10,
+                      background: 'var(--card)', border: '1px solid var(--border)',
+                      paddingLeft: 12, fontSize: 15, color: 'var(--ink)', outline: 'none',
+                    }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>До</div>
+                  <input
+                    type="number"
+                    placeholder="∞"
+                    value={filterMaxPrice}
+                    onChange={e => setFilterMaxPrice(e.target.value)}
+                    style={{
+                      width: '100%', height: 44, borderRadius: 10,
+                      background: 'var(--card)', border: '1px solid var(--border)',
+                      paddingLeft: 12, fontSize: 15, color: 'var(--ink)', outline: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Toggles */}
+            {[
+              { label: 'Только в наличии', value: filterInStock, set: setFilterInStock },
+              { label: 'Со скидкой', value: filterHasDiscount, set: setFilterHasDiscount },
+            ].map(({ label, value, set }) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>{label}</span>
+                <button
+                  onClick={() => set(!value)}
+                  style={{
+                    width: 48, height: 28, borderRadius: 999,
+                    background: value ? 'var(--accent)' : 'var(--border)',
+                    position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute', top: 3, width: 22, height: 22,
+                    borderRadius: 999, background: 'white',
+                    left: value ? 23 : 3, transition: 'left 0.2s',
+                  }}/>
+                </button>
+              </div>
+            ))}
+
+            {/* Apply */}
+            <button
+              onClick={() => {
+                setActiveMinPrice(filterMinPrice)
+                setActiveMaxPrice(filterMaxPrice)
+                setActiveInStock(filterInStock)
+                setActiveHasDiscount(filterHasDiscount)
+                setShowFilter(false)
+              }}
+              style={{
+                width: '100%', height: 50, borderRadius: 14,
+                background: 'var(--accent)', color: 'white',
+                fontWeight: 700, fontSize: 15, marginTop: 8,
+              }}
+            >
+              Применить
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="screen-scroll" style={{ flex: 1, paddingBottom: 24 }}>
         {/* Search */}
         <div style={{ padding: '12px 16px' }}>
@@ -191,6 +338,36 @@ export function CatalogContent({ shop, onProduct }: Props) {
             />
           </div>
         </div>
+
+        {/* Active filter chips */}
+        {hasActiveFilters && (
+          <div style={{ display: 'flex', gap: 6, padding: '0 16px 10px', flexWrap: 'wrap' }}>
+            {activeMinPrice && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}>
+                от {activeMinPrice}
+                <button onClick={() => setActiveMinPrice('')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontWeight: 700, fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
+              </span>
+            )}
+            {activeMaxPrice && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}>
+                до {activeMaxPrice}
+                <button onClick={() => setActiveMaxPrice('')} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontWeight: 700, fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
+              </span>
+            )}
+            {activeInStock && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}>
+                В наличии
+                <button onClick={() => setActiveInStock(false)} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontWeight: 700, fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
+              </span>
+            )}
+            {activeHasDiscount && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}>
+                Со скидкой
+                <button onClick={() => setActiveHasDiscount(false)} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontWeight: 700, fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Categories */}
         {categories.length > 1 && (
