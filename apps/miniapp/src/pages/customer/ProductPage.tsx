@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useCart } from '@/store/cart'
 import { Icon } from '@/components/Icon'
+import { useTelegramMainButton } from '@/hooks/useTelegram'
 
 interface Props {
   tenantId: string
@@ -82,6 +83,32 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
   })
 
   const product = (allProducts as any[]).find(p => p.id === productId)
+  const isAvailable = !!product && product.stock > 0
+  const totalPrice = product ? Number(product.price) * qty : 0
+  const t = product ? tone(product.name) : 0
+
+  const handleAddToCart = () => {
+    if (!product) return
+    add({
+      productId: product.id,
+      name: product.name,
+      price: Number(product.price),
+      qty,
+      size: selectedSize ?? undefined,
+      color: selectedColor ?? undefined,
+      tone: t,
+      imageUrl: product.images?.[0] ?? undefined,
+    })
+    setAdded(true)
+    setTimeout(() => setAdded(false), 3000)
+  }
+
+  useTelegramMainButton({
+    text: added ? 'Добавлено ✓  В корзину' : `В корзину · ${fmtPrice(totalPrice, currency)}`,
+    onClick: added ? onCheckout : handleAddToCart,
+    isVisible: isAvailable,
+    color: added ? '#059669' : null,
+  })
 
   const similar = (allProducts as any[])
     .filter(p => p.id !== productId && p.is_active && p.category && p.category === product?.category)
@@ -101,7 +128,6 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
   const images: string[] = product.images ?? []
   const sizes: string[] = product.sizes ?? []
   const colors: string[] = product.colors ?? []
-  const t = tone(product.name)
 
   const productUrl = botUsername
     ? `https://t.me/${botUsername}/store?startapp=p_${productId}`
@@ -134,21 +160,6 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
       tg.shareToStory(product.images?.[0] ?? '', { widget_link: { url: productUrl, name: product.name } })
     }
     setShowShare(false)
-  }
-
-  const handleAddToCart = () => {
-    add({
-      productId: product.id,
-      name: product.name,
-      price: Number(product.price),
-      qty,
-      size: selectedSize ?? undefined,
-      color: selectedColor ?? undefined,
-      tone: t,
-      imageUrl: product.images?.[0] ?? undefined,
-    })
-    setAdded(true)
-    setTimeout(() => setAdded(false), 1800)
   }
 
   return (
@@ -202,7 +213,7 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
         )}
       </div>
 
-      <div className="screen-scroll" style={{ flex: 1, paddingBottom: 96 }}>
+      <div className="screen-scroll" style={{ flex: 1, paddingBottom: 80 }}>
         {/* Image gallery */}
         <div
           style={{ position: 'relative', background: 'var(--subtle)' }}
@@ -497,35 +508,6 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
             </div>
           </div>
         )}
-      </div>
-
-      {/* Add to cart bar */}
-      <div style={{
-        position: 'sticky', bottom: 0,
-        padding: '10px 16px calc(10px + env(safe-area-inset-bottom))',
-        background: 'var(--bg)', borderTop: '1px solid var(--border)',
-        zIndex: 30,
-      }}>
-        <button
-          onClick={handleAddToCart}
-          disabled={product.stock === 0}
-          style={{
-            width: '100%', height: 52, borderRadius: 14,
-            background: added ? '#059669' : product.stock === 0 ? 'var(--subtle)' : 'var(--accent)',
-            color: product.stock === 0 ? 'var(--muted)' : 'white',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            fontWeight: 700, fontSize: 15,
-            transition: 'background 0.2s',
-          }}
-        >
-          {added ? (
-            <><Icon name="check" size={18}/> Добавлено</>
-          ) : product.stock === 0 ? (
-            'Нет в наличии'
-          ) : (
-            <>В корзину · {fmtPrice(Number(product.price) * qty, currency)}</>
-          )}
-        </button>
       </div>
 
       {/* Share bottom sheet */}

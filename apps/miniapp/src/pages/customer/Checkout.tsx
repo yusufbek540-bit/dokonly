@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useCart } from '@/store/cart'
 import { Icon } from '@/components/Icon'
+import { useTelegramMainButton } from '@/hooks/useTelegram'
 
 interface Props {
   tenantId: string
@@ -158,6 +159,13 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
       setOrderIdFull(data.id ?? null)
       clear()
     },
+  })
+
+  useTelegramMainButton({
+    text: isPending ? 'Оформление...' : `Оформить заказ · ${fmtPrice(grandTotal, currency)}`,
+    onClick: () => placeOrder(),
+    isVisible: true,
+    disabled: fieldMissing || isPending,
   })
 
   const deliveryText = deliveryOptions.find(d => d.id === delivery)?.label ?? 'Доставка'
@@ -801,41 +809,14 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
         </div>
       </div>
 
-      {/* Place order */}
-      <div style={{
-        position: 'sticky', bottom: 0,
-        padding: '10px 16px calc(10px + env(safe-area-inset-bottom))',
-        background: 'var(--bg)', borderTop: '1px solid var(--border)',
-        zIndex: 30,
-      }}>
-        {belowMinOrder && (
-          <div style={{
-            fontSize: 13, color: 'var(--danger)', textAlign: 'center',
-            marginBottom: 8, fontWeight: 500,
-          }}>
-            Минимальная сумма заказа: {fmtPrice(minOrderAmount, currency)}
-          </div>
-        )}
-        <button
-          onClick={() => placeOrder()}
-          disabled={isPending || fieldMissing}
-          style={{
-            width: '100%', height: 52, borderRadius: 14,
-            background: isPending || fieldMissing ? 'var(--subtle)' : 'var(--accent)',
-            color: isPending || fieldMissing ? 'var(--muted)' : 'white',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            fontWeight: 700, fontSize: 15,
-            transition: 'background 0.2s',
-          }}
-        >
-          {isPending ? (
-            <><div style={{ width: 18, height: 18, borderRadius: 999, border: '2px solid white', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }}/> Оформление...</>
-          ) : (
-            <>Оформить заказ · {fmtPrice(grandTotal, currency)}</>
-          )}
-        </button>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
+      {belowMinOrder && (
+        <div style={{
+          padding: '10px 16px',
+          fontSize: 13, color: 'var(--danger)', textAlign: 'center', fontWeight: 500,
+        }}>
+          Минимальная сумма заказа: {fmtPrice(minOrderAmount, currency)}
+        </div>
+      )}
     </div>
   )
 }

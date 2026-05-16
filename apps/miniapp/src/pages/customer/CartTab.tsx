@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useCart } from '@/store/cart'
 import { Icon } from '@/components/Icon'
 import { api } from '@/lib/api'
+import { useTelegramMainButton } from '@/hooks/useTelegram'
 
 interface Props {
   currency: string
@@ -36,6 +37,12 @@ export function CartTab({ currency, tenantId, shopSettings, onCheckout, onShowCa
   const finalTotal = Math.max(0, cartTotal - couponDiscount)
   const belowMin = minOrderAmount > 0 && cartTotal < minOrderAmount
   const remaining = minOrderAmount - cartTotal
+
+  useTelegramMainButton({
+    text: `Оформить заказ · ${fmtPrice(finalTotal, currency)}`,
+    onClick: onCheckout,
+    isVisible: items.length > 0 && !belowMin,
+  })
 
   async function handleApplyCoupon() {
     const code = couponInput.trim().toUpperCase()
@@ -345,30 +352,6 @@ export function CartTab({ currency, tenantId, shopSettings, onCheckout, onShowCa
             )}
           </div>
 
-          {/* Checkout button */}
-          <div style={{
-            position: 'sticky', bottom: 0,
-            padding: '10px 16px calc(10px + env(safe-area-inset-bottom))',
-            background: 'var(--bg)', borderTop: '1px solid var(--border)',
-            zIndex: 30,
-          }}>
-            <button
-              onClick={onCheckout}
-              disabled={belowMin}
-              style={{
-                width: '100%', height: 52, borderRadius: 14,
-                background: belowMin ? 'var(--border)' : 'var(--accent)',
-                color: belowMin ? 'var(--muted)' : 'white',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                fontWeight: 700, fontSize: 15,
-                cursor: belowMin ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {belowMin
-                ? `Ещё ${fmtPrice(remaining, currency)} до минимума`
-                : `Оформить заказ · ${fmtPrice(finalTotal, currency)}`}
-            </button>
-          </div>
         </>
       )}
     </div>
