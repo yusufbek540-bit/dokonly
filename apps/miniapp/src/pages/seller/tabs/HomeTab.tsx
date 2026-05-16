@@ -1011,8 +1011,10 @@ export function HomeTab({ tenant, onTabChange }: Props) {
         </div>
         <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 16 }}>
           <MenuRow emoji="📨" label="Рассылки" onPress={() => setShowMailings(true)} />
+          <MenuRow emoji="🎬" label="Stories" value="Скоро" />
           <MenuRow emoji="🎁" label="Программа лояльности" value="Скоро" />
-          <MenuRow emoji="👥" label="Реферальная программа" value="Скоро" last />
+          <MenuRow emoji="👥" label="Реферальная программа" value="Скоро" />
+          <MenuRow emoji="📢" label="Кросспостинг в канал" value="Скоро" last />
         </div>
 
         {/* Group 3: Настройки */}
@@ -1107,8 +1109,11 @@ export function HomeTab({ tenant, onTabChange }: Props) {
         </div>
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--muted)', marginTop: 8, paddingBottom: 4 }}>
-          Dokonly v1.0
+        <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--muted)', marginTop: 8, paddingBottom: 4 }}>
+          {tenant.tier === 'business' || tenant.tier === 'premium'
+            ? <span style={{ opacity: 0.5 }}>v1.0</span>
+            : <span>Powered by <span style={{ fontWeight: 600 }}>Dokonly</span> · v1.0</span>
+          }
         </div>
 
       </div>

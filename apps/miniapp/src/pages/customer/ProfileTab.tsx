@@ -168,6 +168,8 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
   const [cancelDone, setCancelDone] = useState(false)
   const [showReview, setShowReview] = useState(false)
   const [reviewDone, setReviewDone] = useState(false)
+  const [screenshotUploading, setScreenshotUploading] = useState(false)
+  const [screenshotDone, setScreenshotDone] = useState(false)
 
   const qc = useQueryClient()
 
@@ -328,6 +330,61 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
             </div>
           )}
         </div>
+
+        {/* Payment screenshot upload (card transfer, pending) */}
+        {order.payment_method === 'card' && order.payment_status !== 'paid' && (
+          <div style={{ padding: '12px 16px 0' }}>
+            <div style={{ padding: '14px 16px', borderRadius: 14, background: 'var(--card)', border: '1.5px solid var(--accent)' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', marginBottom: 10 }}>
+                💳 Перевод на карту — прикрепите скриншот
+              </div>
+              {order.meta?.payment_screenshot ? (
+                <div>
+                  <a href={order.meta.payment_screenshot} target="_blank" rel="noopener noreferrer">
+                    <img src={order.meta.payment_screenshot} alt="Скриншот оплаты" style={{ width: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 8, display: 'block', marginBottom: 8 }} />
+                  </a>
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>Скриншот загружен, ожидаем подтверждения продавца</div>
+                </div>
+              ) : screenshotDone ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>
+                  <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 8-8" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  Скриншот загружен
+                </div>
+              ) : (
+                <label style={{ cursor: 'pointer', display: 'block' }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0]
+                      if (!file) return
+                      setScreenshotUploading(true)
+                      try {
+                        await api.uploadPaymentScreenshot(tenantId, order.id, file)
+                        setScreenshotDone(true)
+                        setOrder({ ...order, meta: { ...(order.meta || {}), payment_screenshot: 'uploaded' } })
+                      } catch {
+                        // silently ignore
+                      } finally {
+                        setScreenshotUploading(false)
+                      }
+                    }}
+                  />
+                  <div style={{
+                    height: 42, borderRadius: 10,
+                    background: 'var(--accent)', color: 'white',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    fontWeight: 600, fontSize: 14,
+                    opacity: screenshotUploading ? 0.7 : 1,
+                  }}>
+                    {screenshotUploading ? 'Загружаем...' : '📸 Прикрепить скриншот оплаты'}
+                  </div>
+                </label>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Status timeline */}
         <div style={{ padding: '12px 16px 0' }}>

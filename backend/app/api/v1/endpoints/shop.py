@@ -442,6 +442,7 @@ async def get_my_orders(
                 "total": float(order.total),
                 "currency": order.currency,
                 "payment_method": order.payment_method,
+                "payment_status": order.payment_status,
                 "delivery_type": order.delivery_type,
                 "created_at": order.created_at.isoformat() if order.created_at else None,
                 "meta": order.meta or {},
