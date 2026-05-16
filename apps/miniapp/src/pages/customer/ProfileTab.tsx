@@ -691,6 +691,23 @@ function AboutStore({ shop, currency, tenantId, onBack }: { shop: any; currency:
           </div>
         )}
 
+        {/* Working hours */}
+        {contact.working_hours && (
+          <div style={{ padding: '12px 16px 0' }}>
+            <div style={{
+              padding: '14px 16px', borderRadius: 14,
+              background: 'var(--card)', border: '1px solid var(--border)',
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                🕐 Часы работы
+              </div>
+              <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.7, whiteSpace: 'pre-line' }}>
+                {contact.working_hours}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Delivery */}
         {enabledDeliveries.length > 0 && (
           <div style={{ padding: '12px 16px 0' }}>
@@ -710,6 +727,23 @@ function AboutStore({ shop, currency, tenantId, onBack }: { shop: any; currency:
                     </span>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Return policy */}
+        {settings.return_policy && (
+          <div style={{ padding: '12px 16px 0' }}>
+            <div style={{
+              padding: '14px 16px', borderRadius: 14,
+              background: 'var(--card)', border: '1px solid var(--border)',
+            }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                🔄 Политика возврата
+              </div>
+              <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                {settings.return_policy}
               </div>
             </div>
           </div>
@@ -1274,65 +1308,18 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
 
         {/* Quick menu */}
         <div style={{ padding: '0 16px 16px' }}>
-          <button
-            onClick={() => setShowWishlist(true)}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-              padding: '14px 16px', borderRadius: 14,
-              background: 'var(--card)', border: '1px solid var(--border)',
-              marginBottom: 8, cursor: 'pointer',
-            }}
-          >
-            <span style={{ fontSize: 18 }}>❤</span>
-            <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>
-              Избранное
-            </span>
-            {wishlistIds.length > 0 && (
-              <span style={{
-                minWidth: 22, height: 22, borderRadius: 999,
-                background: 'var(--accent)', color: 'white',
-                fontSize: 11, fontWeight: 700,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: '0 6px',
-              }}>{wishlistIds.length}</span>
-            )}
-            <Icon name="chevronRight" size={16} color="var(--muted)" />
-          </button>
-
-          {shop?.contact_info?.telegram && (
+          {/* Group 1: Shopping */}
+          <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 8 }}>
+            {/* My Orders */}
             <button
-              onClick={() => {
-                const handle = (shop.contact_info.telegram ?? '').replace('@', '')
-                const url = `https://t.me/${handle}`;
-                (window as any).Telegram?.WebApp?.openTelegramLink?.(url) ?? window.open(url, '_blank')
-              }}
+              onClick={() => setOrderTab('active')}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-                padding: '14px 16px', borderRadius: 14,
-                background: 'var(--card)', border: '1px solid var(--border)',
-                marginBottom: 8, cursor: 'pointer',
+                padding: '14px 16px', background: 'var(--card)',
+                borderBottom: '1px solid var(--border)', cursor: 'pointer',
               }}
             >
-              <span style={{ fontSize: 18 }}>💬</span>
-              <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>
-                Написать продавцу
-              </span>
-              <Icon name="chevronRight" size={16} color="var(--muted)" />
-            </button>
-          )}
-
-          {/* Returns link */}
-          {orders.length > 0 && (
-            <button
-              onClick={() => setOrderTab('completed')}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-                padding: '14px 16px', borderRadius: 14,
-                background: 'var(--card)', border: '1px solid var(--border)',
-                marginBottom: 8, cursor: 'pointer',
-              }}
-            >
-              <span style={{ fontSize: 18 }}>🔄</span>
+              <span style={{ fontSize: 18 }}>📦</span>
               <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>
                 Мои заказы
               </span>
@@ -1343,25 +1330,117 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
               )}
               <Icon name="chevronRight" size={16} color="var(--muted)" />
             </button>
-          )}
-
-          {shop && (
+            {/* Wishlist */}
             <button
-              onClick={() => setShowAbout(true)}
+              onClick={() => setShowWishlist(true)}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-                padding: '14px 16px', borderRadius: 14,
-                background: 'var(--card)', border: '1px solid var(--border)',
-                cursor: 'pointer',
+                padding: '14px 16px', background: 'var(--card)',
+                borderBottom: '1px solid var(--border)', cursor: 'pointer',
               }}
             >
-              <span style={{ fontSize: 18 }}>🏪</span>
+              <span style={{ fontSize: 18 }}>❤</span>
               <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>
-                О магазине
+                Избранное
+              </span>
+              {wishlistIds.length > 0 && (
+                <span style={{
+                  minWidth: 22, height: 22, borderRadius: 999,
+                  background: 'var(--subtle)', color: 'var(--muted)',
+                  fontSize: 11, fontWeight: 700,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '0 6px',
+                }}>{wishlistIds.length}</span>
+              )}
+              <Icon name="chevronRight" size={16} color="var(--muted)" />
+            </button>
+            {/* Returns — links to completed orders where return can be requested */}
+            <button
+              onClick={() => setOrderTab('completed')}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px', background: 'var(--card)', cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: 18 }}>🔄</span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>
+                Возвраты
               </span>
               <Icon name="chevronRight" size={16} color="var(--muted)" />
             </button>
-          )}
+          </div>
+
+          {/* Group 2: Store info & support */}
+          <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 8 }}>
+            {shop && (
+              <button
+                onClick={() => setShowAbout(true)}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '14px 16px', background: 'var(--card)',
+                  borderBottom: '1px solid var(--border)', cursor: 'pointer',
+                }}
+              >
+                <span style={{ fontSize: 18 }}>🏪</span>
+                <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>
+                  О магазине
+                </span>
+                <Icon name="chevronRight" size={16} color="var(--muted)" />
+              </button>
+            )}
+            {shop?.contact_info?.telegram && (
+              <button
+                onClick={() => {
+                  const handle = (shop.contact_info.telegram ?? '').replace('@', '')
+                  const url = `https://t.me/${handle}`;
+                  (window as any).Telegram?.WebApp?.openTelegramLink?.(url) ?? window.open(url, '_blank')
+                }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '14px 16px', background: 'var(--card)', cursor: 'pointer',
+                }}
+              >
+                <span style={{ fontSize: 18 }}>💬</span>
+                <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>
+                  Связаться с продавцом
+                </span>
+                <Icon name="chevronRight" size={16} color="var(--muted)" />
+              </button>
+            )}
+          </div>
+
+          {/* Group 3: Settings & legal */}
+          <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)' }}>
+            <button
+              onClick={() => {
+                const tg = (window as any).Telegram?.WebApp
+                tg?.openTelegramLink?.('https://t.me/dokonly_support') ?? window.open('https://t.me/dokonly_support', '_blank')
+              }}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px', background: 'var(--card)',
+                borderBottom: '1px solid var(--border)', cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: 18 }}>❓</span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>
+                Помощь и FAQ
+              </span>
+              <Icon name="chevronRight" size={16} color="var(--muted)" />
+            </button>
+            <button
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px', background: 'var(--card)', cursor: 'default',
+              }}
+            >
+              <span style={{ fontSize: 18 }}>🔒</span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>
+                Приватность
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>Скоро</span>
+            </button>
+          </div>
         </div>
 
         {/* Orders section */}

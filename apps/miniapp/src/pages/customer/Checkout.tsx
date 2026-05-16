@@ -350,6 +350,41 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
           </div>
         )}
 
+        {/* Share with friends */}
+        <div style={{
+          width: '100%', maxWidth: 320, borderRadius: 16,
+          border: '1px solid var(--border)', background: 'var(--card)',
+          padding: '16px', marginBottom: 24, textAlign: 'left',
+        }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
+            💚 Расскажите друзьям
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12, lineHeight: 1.5 }}>
+            Поделитесь магазином — пусть друзья тоже оценят!
+          </div>
+          <button
+            onClick={() => {
+              const tg = (window as any).Telegram?.WebApp
+              const shopUrl = window.location.href.split('?')[0]
+              const msg = `Заказал(а) здесь, советую: ${shopUrl}`
+              if (tg?.shareUrl) {
+                tg.shareUrl(shopUrl, msg)
+              } else if (tg?.openTelegramLink) {
+                tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shopUrl)}&text=${encodeURIComponent(msg)}`)
+              } else {
+                window.open(`https://t.me/share/url?url=${encodeURIComponent(shopUrl)}&text=${encodeURIComponent(msg)}`, '_blank')
+              }
+            }}
+            style={{
+              width: '100%', height: 42, borderRadius: 10,
+              background: 'var(--accent)', color: 'white',
+              fontWeight: 600, fontSize: 13,
+            }}
+          >
+            Поделиться в Telegram ↗
+          </button>
+        </div>
+
         {/* Buttons */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 320 }}>
           {onTrackOrder && (

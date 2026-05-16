@@ -931,6 +931,33 @@ export function HomeTab({ tenant, onTabChange }: Props) {
           Каталог и операции
         </div>
         <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 16 }}>
+          <MenuRow emoji="📦" label="Товары" onPress={() => onTabChange?.('catalog')} />
+          {(() => {
+            const pendingCount = (orders as any[]).filter((o: any) => o.status === 'new' || o.status === 'created').length
+            return (
+              <button
+                onClick={() => onTabChange?.('orders')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                  padding: '13px 16px', background: 'var(--card)', textAlign: 'left',
+                  borderBottom: '1px solid var(--border)', cursor: 'pointer',
+                }}
+              >
+                <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>🛍</span>
+                <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Заказы</span>
+                {pendingCount > 0 && (
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, color: 'white',
+                    background: '#EF4444', borderRadius: 999,
+                    padding: '2px 7px', minWidth: 20, textAlign: 'center',
+                  }}>
+                    {pendingCount}
+                  </span>
+                )}
+                <Icon name="chevronRight" size={15} color="var(--muted)" />
+              </button>
+            )
+          })()}
           <MenuRow emoji="📋" label="Категории" onPress={() => onTabChange?.('catalog')} />
           <MenuRow emoji="🚚" label="Способы доставки" onPress={() => onTabChange?.('more')} />
           <MenuRow emoji="🎟" label="Купоны и скидки" onPress={() => setShowCoupons(true)} />
@@ -962,6 +989,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
         </div>
         <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 16 }}>
           <MenuRow emoji="💳" label="Способы оплаты" onPress={() => onTabChange?.('more')} />
+          <MenuRow emoji="📦" label="Настройки заказов" onPress={() => onTabChange?.('more')} />
           <MenuRow emoji="🎨" label="Оформление магазина" onPress={() => onTabChange?.('more')} />
           {/* Bot row — custom value rendering */}
           <button
@@ -1024,9 +1052,23 @@ export function HomeTab({ tenant, onTabChange }: Props) {
             <div style={{
               display: 'flex', alignItems: 'center', gap: 12,
               padding: '13px 16px', background: 'var(--card)',
+              borderBottom: '1px solid var(--border)',
             }}>
               <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>📰</span>
               <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Новости Dokonly</span>
+              <Icon name="chevronRight" size={15} color="var(--muted)" />
+            </div>
+          </button>
+          <button
+            onClick={() => (window.Telegram?.WebApp as any)?.openTelegramLink('https://t.me/dokonly_support')}
+            style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
+          >
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '13px 16px', background: 'var(--card)',
+            }}>
+              <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>❓</span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>FAQ и помощь</span>
               <Icon name="chevronRight" size={15} color="var(--muted)" />
             </div>
           </button>

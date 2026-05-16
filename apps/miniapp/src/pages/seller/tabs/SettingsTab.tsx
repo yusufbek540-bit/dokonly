@@ -669,6 +669,8 @@ export function SettingsTab({ tenant }: Props) {
   const [profileTelegram, setProfileTelegram] = useState<string>(tenant.contact_info?.telegram ?? '')
   const [profileInstagram, setProfileInstagram] = useState<string>(tenant.contact_info?.instagram ?? '')
   const [profileAddress, setProfileAddress] = useState<string>(tenant.contact_info?.address ?? '')
+  const [profileWorkingHours, setProfileWorkingHours] = useState<string>(tenant.contact_info?.working_hours ?? '')
+  const [profileReturnPolicy, setProfileReturnPolicy] = useState<string>(tenant.settings?.return_policy ?? '')
   const [profileError, setProfileError] = useState('')
 
   // Bot form
@@ -816,7 +818,9 @@ export function SettingsTab({ tenant }: Props) {
         telegram: profileTelegram.trim(),
         instagram: profileInstagram.trim(),
         address: profileAddress.trim(),
+        working_hours: profileWorkingHours.trim(),
       },
+      return_policy: profileReturnPolicy.trim(),
     })
   }
 
@@ -836,6 +840,8 @@ export function SettingsTab({ tenant }: Props) {
     setProfileTelegram(tenant.contact_info?.telegram ?? '')
     setProfileInstagram(tenant.contact_info?.instagram ?? '')
     setProfileAddress(tenant.contact_info?.address ?? '')
+    setProfileWorkingHours(tenant.contact_info?.working_hours ?? '')
+    setProfileReturnPolicy(tenant.settings?.return_policy ?? '')
     setProfileError('')
     setLogoUrl(tenant.logo_url ?? '')
     setCoverUrl(tenant.cover_url ?? '')
@@ -1547,7 +1553,45 @@ export function SettingsTab({ tenant }: Props) {
               </label>
             ))}
 
-            <div style={{ marginBottom: 16 }} />
+            {/* Working hours */}
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', marginBottom: 8, marginTop: 8 }}>
+              Часы работы
+            </div>
+            <label style={{ display: 'block', marginBottom: 10 }}>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>🕐 Расписание</div>
+              <textarea
+                value={profileWorkingHours}
+                onChange={e => setProfileWorkingHours(e.target.value)}
+                placeholder={'Пн-Пт: 9:00–19:00\nСб: 10:00–17:00\nВс: выходной'}
+                rows={3}
+                style={{
+                  width: '100%', borderRadius: 10,
+                  border: '1.5px solid var(--border)', background: 'var(--card)',
+                  padding: '10px 12px', fontSize: 14, color: 'var(--ink)',
+                  boxSizing: 'border-box', resize: 'none', lineHeight: 1.5,
+                }}
+              />
+            </label>
+
+            {/* Return policy */}
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', marginBottom: 8, marginTop: 8 }}>
+              Политика возврата
+            </div>
+            <label style={{ display: 'block', marginBottom: 16 }}>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>🔄 Условия возврата</div>
+              <textarea
+                value={profileReturnPolicy}
+                onChange={e => setProfileReturnPolicy(e.target.value)}
+                placeholder="Возврат в течение 14 дней с момента получения при сохранении товарного вида"
+                rows={3}
+                style={{
+                  width: '100%', borderRadius: 10,
+                  border: '1.5px solid var(--border)', background: 'var(--card)',
+                  padding: '10px 12px', fontSize: 14, color: 'var(--ink)',
+                  boxSizing: 'border-box', resize: 'none', lineHeight: 1.5,
+                }}
+              />
+            </label>
 
             {/* Error */}
             {profileError && (
