@@ -281,12 +281,14 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
   )
 }
 
-function OrderCard({ order, currency, onAdvance, onTap }: { order: any; currency: string; onAdvance: () => void; onTap: () => void }) {
+function OrderCard({ order, currency, onAdvance, onCancel, onTap }: { order: any; currency: string; onAdvance: () => void; onCancel: () => void; onTap: () => void }) {
   const statusDef = STATUSES.find(s => s.id === order.status)
   const canAdvance = !!statusDef?.next
+  const canCancel = order.status !== 'cancelled' && order.status !== 'completed' && order.status !== 'delivered'
   const touchStartX = useRef<number | null>(null)
   const [swipeX, setSwipeX] = useState(0)
   const [swiped, setSwiped] = useState(false)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
   const THRESHOLD = 80
 
@@ -295,9 +297,10 @@ function OrderCard({ order, currency, onAdvance, onTap }: { order: any; currency
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (touchStartX.current === null || !canAdvance) return
+    if (touchStartX.current === null) return
     const dx = e.touches[0].clientX - touchStartX.current
-    if (dx > 0) setSwipeX(Math.min(dx, THRESHOLD + 20))
+    if (dx > 0 && canAdvance) setSwipeX(Math.min(dx, THRESHOLD + 20))
+    else if (dx < 0 && canCancel) setSwipeX(Math.max(dx, -(THRESHOLD + 20)))
   }
 
   const handleTouchEnd = () => {
@@ -305,19 +308,22 @@ function OrderCard({ order, currency, onAdvance, onTap }: { order: any; currency
       setSwiped(true)
       onAdvance()
       setTimeout(() => setSwiped(false), 500)
+    } else if (swipeX <= -THRESHOLD && canCancel) {
+      setShowCancelConfirm(true)
     }
     setSwipeX(0)
     touchStartX.current = null
   }
 
   return (
+    <>
     <div
       style={{ position: 'relative', marginBottom: 8, borderRadius: 14, overflow: 'hidden' }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Swipe reveal layer */}
+      {/* Swipe-right reveal: advance status */}
       {canAdvance && (
         <div style={{
           position: 'absolute', inset: 0,
@@ -328,6 +334,17 @@ function OrderCard({ order, currency, onAdvance, onTap }: { order: any; currency
           <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>
             → {NEXT_LABEL[order.status]}
           </span>
+        </div>
+      )}
+      {/* Swipe-left reveal: cancel */}
+      {canCancel && (
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: '#EF4444',
+          display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 20,
+          borderRadius: 14,
+        }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'white' }}>Отменить ✕</span>
         </div>
       )}
     <div onClick={onTap} style={{
@@ -390,6 +407,41 @@ function OrderCard({ order, currency, onAdvance, onTap }: { order: any; currency
       )}
     </div>
     </div>
+
+    {/* Cancel confirmation */}
+    {showCancelConfirm && (
+      <div
+        onClick={() => setShowCancelConfirm(false)}
+        style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'flex-end' }}
+      >
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px 32px' }}
+        >
+          <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 8 }}>
+            Отменить заказ?
+          </div>
+          <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 20 }}>
+            Заказ #{order.id.slice(0, 8).toUpperCase()} будет отменён. Это действие нельзя отменить.
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={() => setShowCancelConfirm(false)}
+              style={{ flex: 1, height: 48, borderRadius: 14, background: 'var(--subtle)', fontWeight: 600, fontSize: 15 }}
+            >
+              Назад
+            </button>
+            <button
+              onClick={() => { setShowCancelConfirm(false); onCancel() }}
+              style={{ flex: 1, height: 48, borderRadius: 14, background: '#EF4444', color: 'white', fontWeight: 700, fontSize: 15 }}
+            >
+              Отменить заказ
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
 
@@ -406,6 +458,11 @@ export function OrdersTab({ tenant }: Props) {
   const advanceMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       api.seller.updateOrderStatus(id, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['seller-orders'] }),
+  })
+
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) => api.seller.updateOrderStatus(id, 'cancelled'),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['seller-orders'] }),
   })
 
@@ -476,6 +533,7 @@ export function OrdersTab({ tenant }: Props) {
                 order={o}
                 currency={tenant.currency}
                 onAdvance={() => statusDef?.next && advanceMutation.mutate({ id: o.id, status: statusDef.next })}
+                onCancel={() => cancelMutation.mutate(o.id)}
                 onTap={() => setSelectedOrder(o)}
               />
             )

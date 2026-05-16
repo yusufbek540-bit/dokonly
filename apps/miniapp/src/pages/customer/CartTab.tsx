@@ -3,6 +3,7 @@ import { Icon } from '@/components/Icon'
 
 interface Props {
   currency: string
+  shopSettings?: any
   onCheckout: () => void
   onShowCatalog: () => void
 }
@@ -12,11 +13,15 @@ function fmtPrice(n: number, currency: string) {
   return n.toLocaleString() + ' ' + currency
 }
 
-export function CartTab({ currency, onCheckout, onShowCatalog }: Props) {
+export function CartTab({ currency, shopSettings, onCheckout, onShowCatalog }: Props) {
   const items = useCart((s) => s.items)
   const setQty = useCart((s) => s.setQty)
   const remove = useCart((s) => s.remove)
   const cartTotal = useCart((s) => s.total)()
+
+  const minOrderAmount = shopSettings?.min_order_amount ? Number(shopSettings.min_order_amount) : 0
+  const belowMin = minOrderAmount > 0 && cartTotal < minOrderAmount
+  const remaining = minOrderAmount - cartTotal
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -157,6 +162,25 @@ export function CartTab({ currency, onCheckout, onShowCatalog }: Props) {
                 </span>
               </div>
             </div>
+
+            {/* Min order amount warning */}
+            {belowMin && (
+              <div style={{
+                margin: '12px 16px 0', padding: '12px 14px', borderRadius: 12,
+                background: '#FFF7ED', border: '1px solid #FDE68A',
+                display: 'flex', gap: 10, alignItems: 'flex-start',
+              }}>
+                <span style={{ fontSize: 18, flexShrink: 0 }}>⚠️</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#92400E', marginBottom: 2 }}>
+                    Минимальная сумма заказа: {fmtPrice(minOrderAmount, currency)}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#B45309' }}>
+                    Добавьте ещё на {fmtPrice(remaining, currency)}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Checkout button */}
@@ -168,14 +192,19 @@ export function CartTab({ currency, onCheckout, onShowCatalog }: Props) {
           }}>
             <button
               onClick={onCheckout}
+              disabled={belowMin}
               style={{
                 width: '100%', height: 52, borderRadius: 14,
-                background: 'var(--accent)', color: 'white',
+                background: belowMin ? 'var(--border)' : 'var(--accent)',
+                color: belowMin ? 'var(--muted)' : 'white',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
                 fontWeight: 700, fontSize: 15,
+                cursor: belowMin ? 'not-allowed' : 'pointer',
               }}
             >
-              Оформить заказ · {fmtPrice(cartTotal, currency)}
+              {belowMin
+                ? `Ещё ${fmtPrice(remaining, currency)} до минимума`
+                : `Оформить заказ · ${fmtPrice(cartTotal, currency)}`}
             </button>
           </div>
         </>

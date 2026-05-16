@@ -369,6 +369,7 @@ function ShopApp() {
         {tab === 'cart' && (
           <CartTab
             currency={shop.currency}
+            shopSettings={shop.settings}
             onCheckout={() => setShowCheckout(true)}
             onShowCatalog={() => handleTabChange('catalog')}
           />

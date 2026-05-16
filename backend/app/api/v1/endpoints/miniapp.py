@@ -230,6 +230,8 @@ async def update_tenant_settings(
         "layout", "channel_username", "channel_subscription_gate",
         "delivery_methods", "payment_methods", "notify_group_chat_id",
         "owner_tg_id",
+        "transfer_card_number", "transfer_card_holder",
+        "min_order_amount", "required_checkout_fields", "order_confirmation_message",
     ]
     settings_update = {k: body[k] for k in settings_keys if k in body}
     if settings_update:

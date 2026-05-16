@@ -516,6 +516,7 @@ export function SettingsTab({ tenant }: Props) {
   const [editAppearance, setEditAppearance] = useState(false)
   const [showCoupons, setShowCoupons]   = useState(false)
   const [showMailings, setShowMailings] = useState(false)
+  const [editOrderSettings, setEditOrderSettings] = useState(false)
   const [channelGate, setChannelGate]   = useState(
     tenant.settings?.channel_subscription_gate ?? false,
   )
@@ -550,6 +551,17 @@ export function SettingsTab({ tenant }: Props) {
   )
   const [transferCardHolder, setTransferCardHolder] = useState<string>(
     tenant.settings?.transfer_card_holder ?? '',
+  )
+
+  // Order settings state
+  const [minOrderAmount, setMinOrderAmount] = useState<string>(
+    tenant.settings?.min_order_amount ? String(tenant.settings.min_order_amount) : '',
+  )
+  const [requiredFields, setRequiredFields] = useState<string[]>(
+    tenant.settings?.required_checkout_fields ?? ['name', 'phone'],
+  )
+  const [orderConfirmationMsg, setOrderConfirmationMsg] = useState<string>(
+    tenant.settings?.order_confirmation_message ?? '',
   )
 
   // Profile form
@@ -605,6 +617,22 @@ export function SettingsTab({ tenant }: Props) {
       payment_methods: paymentMethods,
       transfer_card_number: transferCardNumber.trim() || null,
       transfer_card_holder: transferCardHolder.trim() || null,
+    })
+  }
+
+  const orderSettingsMutation = useMutation({
+    mutationFn: (body: object) => api.seller.updateSettings(body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['seller-me'] })
+      setEditOrderSettings(false)
+    },
+  })
+
+  const saveOrderSettings = () => {
+    orderSettingsMutation.mutate({
+      min_order_amount: minOrderAmount ? Number(minOrderAmount) : null,
+      required_checkout_fields: requiredFields,
+      order_confirmation_message: orderConfirmationMsg.trim() || null,
     })
   }
 
@@ -819,6 +847,17 @@ export function SettingsTab({ tenant }: Props) {
           label="Способы оплаты"
           value={`${paymentMethods.length + 1} метода`}
           onPress={() => setEditPayment(true)}
+        />
+        <Row
+          icon="box"
+          label="Настройки заказов"
+          value={tenant.settings?.min_order_amount ? `Мин. ${tenant.settings.min_order_amount}` : undefined}
+          onPress={() => {
+            setMinOrderAmount(tenant.settings?.min_order_amount ? String(tenant.settings.min_order_amount) : '')
+            setRequiredFields(tenant.settings?.required_checkout_fields ?? ['name', 'phone'])
+            setOrderConfirmationMsg(tenant.settings?.order_confirmation_message ?? '')
+            setEditOrderSettings(true)
+          }}
           noBorder
         />
       </Section>
@@ -1070,6 +1109,104 @@ export function SettingsTab({ tenant }: Props) {
               }}
             >
               {typographyMutation.isPending ? 'Сохранение...' : 'Сохранить'}
+            </button>
+          </div>
+        </BottomSheet>
+      )}
+
+      {/* ── Order settings modal ─────────────────────────────────────────────── */}
+      {editOrderSettings && (
+        <BottomSheet onClose={() => setEditOrderSettings(false)}>
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)' }} />
+          </div>
+          <div style={{ padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>
+              Настройки заказов
+            </div>
+
+            {/* Min order amount */}
+            <label style={{ display: 'block' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', marginBottom: 6 }}>
+                Минимальная сумма заказа
+              </div>
+              <input
+                type="number"
+                placeholder="0 — без ограничений"
+                value={minOrderAmount}
+                onChange={e => setMinOrderAmount(e.target.value)}
+                style={{ width: '100%', height: 46, padding: '0 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)', boxSizing: 'border-box' }}
+              />
+            </label>
+
+            {/* Required checkout fields */}
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', marginBottom: 10 }}>
+                Обязательные поля при оформлении
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                {[
+                  { id: 'name', label: 'Имя покупателя' },
+                  { id: 'phone', label: 'Номер телефона' },
+                  { id: 'address', label: 'Адрес доставки' },
+                  { id: 'note', label: 'Примечание к заказу' },
+                ].map((field, idx, arr) => {
+                  const checked = requiredFields.includes(field.id)
+                  return (
+                    <div
+                      key={field.id}
+                      onClick={() => setRequiredFields(prev => checked ? prev.filter(f => f !== field.id) : [...prev, field.id])}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '13px 16px', background: 'var(--card)',
+                        borderBottom: idx < arr.length - 1 ? '1px solid var(--border)' : 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{
+                        width: 22, height: 22, borderRadius: 6, flexShrink: 0,
+                        border: `2px solid ${checked ? 'var(--accent)' : 'var(--border)'}`,
+                        background: checked ? 'var(--accent)' : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {checked && (
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+                      <span style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 500 }}>{field.label}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Confirmation message */}
+            <label style={{ display: 'block' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', marginBottom: 6 }}>
+                Сообщение после оформления заказа
+              </div>
+              <textarea
+                placeholder="Спасибо! Мы свяжемся с вами в течение часа."
+                value={orderConfirmationMsg}
+                onChange={e => setOrderConfirmationMsg(e.target.value)}
+                rows={3}
+                style={{ width: '100%', padding: '12px 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+              />
+            </label>
+
+            <button
+              onClick={saveOrderSettings}
+              disabled={orderSettingsMutation.isPending}
+              style={{
+                height: 50, borderRadius: 14,
+                background: 'var(--accent)', color: 'white',
+                fontWeight: 700, fontSize: 15,
+                opacity: orderSettingsMutation.isPending ? 0.7 : 1,
+              }}
+            >
+              {orderSettingsMutation.isPending ? 'Сохранение...' : 'Сохранить'}
             </button>
           </div>
         </BottomSheet>

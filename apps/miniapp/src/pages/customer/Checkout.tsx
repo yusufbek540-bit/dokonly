@@ -189,10 +189,20 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
         <h2 style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 22, color: 'var(--ink)', marginBottom: 6 }}>
           Заказ оформлен!
         </h2>
-        <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 24 }}>
+        <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: shopSettings?.order_confirmation_message ? 12 : 24 }}>
           <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, color: 'var(--ink)' }}>#{orderId}</span>
           {' '}· Продавец скоро свяжется с вами
         </p>
+        {shopSettings?.order_confirmation_message && (
+          <div style={{
+            fontSize: 14, color: 'var(--ink)', lineHeight: 1.6,
+            padding: '12px 16px', borderRadius: 12,
+            background: 'var(--accent-soft)', marginBottom: 24,
+            maxWidth: 320, textAlign: 'center',
+          }}>
+            {shopSettings.order_confirmation_message}
+          </div>
+        )}
 
         {/* Order summary card */}
         <div style={{
