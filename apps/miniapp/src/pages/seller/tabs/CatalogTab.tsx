@@ -570,6 +570,43 @@ export function CatalogTab({ tenant }: Props) {
         )}
       </div>
 
+      {/* Plan limit indicator */}
+      {view === 'products' && products.length > 0 && (() => {
+        const tier = tenant.tier ?? 'start'
+        const limit = tier === 'start' || tier === 'trial' ? 250 : null
+        if (!limit) return null
+        const pct = Math.min(100, (products.length / limit) * 100)
+        const nearLimit = products.length >= limit * 0.9
+        return (
+          <div style={{
+            padding: '8px 16px',
+            borderTop: '1px solid var(--border)',
+            background: 'var(--bg)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <span style={{ fontSize: 11, color: nearLimit ? 'var(--danger)' : 'var(--muted)' }}>
+                {products.length} / {limit} товаров на тарифе Старт
+              </span>
+              {nearLimit && (
+                <button
+                  onClick={() => {/* TODO: open plan picker */}}
+                  style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', background: 'none', padding: 0 }}
+                >
+                  Upgrade →
+                </button>
+              )}
+            </div>
+            <div style={{ height: 3, borderRadius: 999, background: 'var(--subtle)', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%', width: `${pct}%`, borderRadius: 999,
+                background: nearLimit ? 'var(--danger)' : 'var(--accent)',
+                transition: 'width 0.3s',
+              }}/>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* FAB — only show on products view */}
       {view === 'products' && (
         <button onClick={() => setForm({ type: 'new' })} style={{
