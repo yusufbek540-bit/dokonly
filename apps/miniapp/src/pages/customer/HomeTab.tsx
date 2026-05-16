@@ -444,6 +444,13 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
                         <path d="M8 13.5S1.5 9.5 1.5 5.5A3.5 3.5 0 0 1 8 3.8a3.5 3.5 0 0 1 6.5 1.7C14.5 9.5 8 13.5 8 13.5z" strokeLinecap="round" strokeLinejoin="round"/>
                       </svg>
                     </button>
+                    {p.video_url && (
+                      <div style={{
+                        position: 'absolute', top: 6, left: 6,
+                        background: 'rgba(0,0,0,0.55)', borderRadius: 6,
+                        padding: '2px 6px', fontSize: 12,
+                      }}>🎬</div>
+                    )}
                   </div>
                   <div style={{ padding: '8px 2px 0', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.3, marginBottom: 4, height: 34, overflow: 'hidden' }}>
