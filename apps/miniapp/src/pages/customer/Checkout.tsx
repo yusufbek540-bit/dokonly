@@ -72,6 +72,7 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
   const [phone, setPhone] = useState('')
   const [phoneVerified, setPhoneVerified] = useState(false)
   const [address, setAddress] = useState('')
+  const [customerNote, setCustomerNote] = useState('')
   const [profileLoaded, setProfileLoaded] = useState(false)
 
   const { data: profile } = useQuery({
@@ -100,6 +101,15 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
   const discount = couponApplied?.discountAmount ?? 0
   const grandTotal = Math.max(cartTotal - discount, 0) + deliveryCost
 
+  const requiredFields: string[] = shopSettings?.required_checkout_fields ?? ['name', 'phone']
+  const isRequired = (field: string) => requiredFields.includes(field)
+
+  const fieldMissing =
+    (isRequired('name') && !name.trim()) ||
+    (isRequired('phone') && !phone.trim()) ||
+    (isRequired('address') && delivery !== 'pickup' && !address.trim()) ||
+    (isRequired('note') && !customerNote.trim())
+
   const { mutate: applyCoupon, isPending: applyingCoupon } = useMutation({
     mutationFn: () => api.validateCoupon(tenantId, coupon, cartTotal),
     onSuccess: (data) => {
@@ -121,6 +131,7 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
       delivery_type: delivery,
       payment_method: payment,
       coupon_code: couponApplied?.code || null,
+      customer_note: customerNote.trim() || null,
     }),
     onSuccess: (data: any) => {
       setOrderItemsSnapshot([...items])
@@ -539,14 +550,14 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
           <div style={{ fontFamily: 'Sora', fontWeight: 600, fontSize: 14, color: 'var(--ink)', marginBottom: 10 }}>Контакты</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <input
-              placeholder="Ваше имя"
+              placeholder={isRequired('name') ? 'Ваше имя *' : 'Ваше имя'}
               value={name}
               onChange={e => setName(e.target.value)}
               style={{
                 width: '100%', height: 48, padding: '0 14px',
                 borderRadius: 12, background: 'var(--card)',
-                border: '1px solid var(--border)', outline: 'none',
-                fontSize: 14, color: 'var(--ink)',
+                border: isRequired('name') && !name.trim() ? '1px solid var(--border)' : '1px solid var(--border)',
+                outline: 'none', fontSize: 14, color: 'var(--ink)',
               }}
             />
             {phoneVerified ? (
@@ -614,6 +625,22 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
           </div>
         </div>
 
+        {/* Customer note */}
+        <div style={{ padding: '12px 16px 0' }}>
+          <textarea
+            placeholder={isRequired('note') ? 'Примечание к заказу *' : 'Примечание к заказу (необязательно)'}
+            value={customerNote}
+            onChange={e => setCustomerNote(e.target.value)}
+            rows={2}
+            style={{
+              width: '100%', padding: '12px 14px', borderRadius: 12,
+              background: 'var(--card)', border: '1px solid var(--border)',
+              outline: 'none', fontSize: 14, color: 'var(--ink)',
+              resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+            }}
+          />
+        </div>
+
         {/* Order summary */}
         <div style={{ margin: '20px 16px 0', padding: 16, borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)' }}>
           <div style={{ fontFamily: 'Sora', fontWeight: 600, fontSize: 14, color: 'var(--ink)', marginBottom: 12 }}>Итог</div>
@@ -650,11 +677,11 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
       }}>
         <button
           onClick={() => placeOrder()}
-          disabled={isPending || !name || !phone}
+          disabled={isPending || fieldMissing}
           style={{
             width: '100%', height: 52, borderRadius: 14,
-            background: isPending || !name || !phone ? 'var(--subtle)' : 'var(--accent)',
-            color: isPending || !name || !phone ? 'var(--muted)' : 'white',
+            background: isPending || fieldMissing ? 'var(--subtle)' : 'var(--accent)',
+            color: isPending || fieldMissing ? 'var(--muted)' : 'white',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             fontWeight: 700, fontSize: 15,
             transition: 'background 0.2s',

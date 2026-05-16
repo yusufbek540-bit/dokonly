@@ -487,6 +487,17 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
                           -{Math.round((1 - Number(p.price) / Number(p.compare_at_price)) * 100)}%
                         </div>
                       )}
+                      {/* Low stock badge */}
+                      {p.stock !== null && p.stock !== undefined && p.stock > 0 && p.stock <= 5 && p.stock !== 0 && (
+                        <div style={{
+                          position: 'absolute', top: 6, right: 6,
+                          background: 'rgba(217,119,6,0.9)', color: 'white',
+                          borderRadius: 6, fontSize: 10, fontWeight: 700,
+                          padding: '2px 6px',
+                        }}>
+                          ⚡ Мало
+                        </div>
+                      )}
                       {/* Video badge */}
                       {p.video_url && !p.compare_at_price && (
                         <div style={{
