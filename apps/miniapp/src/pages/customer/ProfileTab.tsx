@@ -1225,6 +1225,9 @@ export function ProfileTab({ tenantId, currency, shop }: Props) {
                   const items: any[] = order.items ?? []
                   const firstImage = items.find(i => i.image_url)?.image_url ?? null
 
+                  const step = statusToStep(statusKey)
+                  const isCancelled = statusKey === 'cancelled'
+
                   return (
                     <div
                       key={order.id}
@@ -1248,32 +1251,47 @@ export function ProfileTab({ tenantId, currency, shop }: Props) {
                         </div>
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                           <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
                             #{orderId}
                           </span>
-                          <span style={{
-                            padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600,
-                            background: statusStyle.bg, color: statusStyle.color,
-                          }}>
-                            {statusLabel}
-                          </span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>
-                            {fmtPrice(Number(total), currency)}
-                          </span>
                           {date && (
-                            <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                            <span style={{ fontSize: 11, color: 'var(--muted)' }}>
                               {fmtDate(date)}
                             </span>
                           )}
                         </div>
-                        {items.length > 0 && (
-                          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                            {items.length} {items.length === 1 ? 'товар' : items.length < 5 ? 'товара' : 'товаров'}
+                        {/* Progress dots or cancelled badge */}
+                        {isCancelled ? (
+                          <div style={{ marginBottom: 5 }}>
+                            <span style={{ padding: '2px 8px', borderRadius: 999, fontSize: 11, fontWeight: 600, background: statusStyle.bg, color: statusStyle.color }}>
+                              {statusLabel}
+                            </span>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 5 }}>
+                            {[0, 1, 2, 3].map(i => (
+                              <div key={i} style={{
+                                height: 5, flex: 1, borderRadius: 999,
+                                background: i <= step ? 'var(--accent)' : 'var(--border)',
+                                transition: 'background 0.2s',
+                              }}/>
+                            ))}
+                            <span style={{ fontSize: 11, fontWeight: 600, color: statusStyle.color, marginLeft: 4, whiteSpace: 'nowrap' }}>
+                              {statusLabel}
+                            </span>
                           </div>
                         )}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>
+                            {fmtPrice(Number(total), currency)}
+                          </span>
+                          {items.length > 0 && (
+                            <span style={{ fontSize: 11, color: 'var(--muted)' }}>
+                              {items.length} {items.length === 1 ? 'товар' : items.length < 5 ? 'товара' : 'товаров'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <Icon name="chevronRight" size={16} color="var(--muted)" />
                     </div>
