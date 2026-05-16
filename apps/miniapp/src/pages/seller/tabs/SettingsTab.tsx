@@ -382,6 +382,14 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['seller-promo-codes'] }),
   })
 
+  const canCreateCode = !!(code.trim() && discountValue.trim() && !creating)
+  useTelegramMainButton({
+    text: creating ? 'Создание...' : 'Создать купон',
+    onClick: () => { if (canCreateCode) createCode() },
+    isVisible: showForm,
+    disabled: !canCreateCode,
+  })
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div style={{
@@ -579,18 +587,6 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
                 </div>
               )}
               {error && <div style={{ fontSize: 13, color: 'var(--danger)' }}>{error}</div>}
-              <button
-                disabled={!code || !discountValue || creating}
-                onClick={() => createCode()}
-                style={{
-                  height: 50, borderRadius: 14,
-                  background: code && discountValue ? 'var(--accent)' : 'var(--subtle)',
-                  color: code && discountValue ? 'white' : 'var(--muted)',
-                  fontWeight: 700, fontSize: 15,
-                }}
-              >
-                {creating ? 'Создание...' : 'Создать купон'}
-              </button>
             </div>
           </div>
         </div>
@@ -881,6 +877,23 @@ export function SettingsTab({ tenant }: Props) {
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
+  const anySettingsSheet = editProfile || editDelivery || editPayment || editAppearance || editTypography || editOrderSettings
+  const anySettingsPending = updateSettingsMutation.isPending || deliveryMutation.isPending || paymentMutation.isPending || appearanceMutation.isPending || typographyMutation.isPending || orderSettingsMutation.isPending
+
+  useTelegramMainButton({
+    text: anySettingsPending ? 'Сохранение...' : 'Сохранить',
+    onClick: () => {
+      if (editProfile) handleSaveProfile()
+      else if (editDelivery) deliveryMutation.mutate({ delivery_methods: deliveryMethods })
+      else if (editPayment) savePaymentSettings()
+      else if (editAppearance) appearanceMutation.mutate(pickedColor)
+      else if (editTypography) typographyMutation.mutate(pickedTypo)
+      else if (editOrderSettings) saveOrderSettings()
+    },
+    isVisible: anySettingsSheet,
+    disabled: anySettingsPending,
+  })
+
   if (showCoupons) return <CouponsView onBack={() => setShowCoupons(false)} />
   if (showMailings) return <MailingsView onBack={() => setShowMailings(false)} />
 
@@ -1133,18 +1146,6 @@ export function SettingsTab({ tenant }: Props) {
                 </button>
               ))}
             </div>
-            <button
-              onClick={() => appearanceMutation.mutate(pickedColor)}
-              disabled={appearanceMutation.isPending}
-              style={{
-                width: '100%', height: 48, borderRadius: 12,
-                background: 'var(--accent)', color: 'white',
-                fontWeight: 700, fontSize: 15, marginBottom: 16,
-                opacity: appearanceMutation.isPending ? 0.7 : 1,
-              }}
-            >
-              {appearanceMutation.isPending ? 'Сохранение...' : 'Сохранить'}
-            </button>
           </div>
         </BottomSheet>
       )}
@@ -1199,18 +1200,6 @@ export function SettingsTab({ tenant }: Props) {
                 </button>
               ))}
             </div>
-            <button
-              onClick={() => typographyMutation.mutate(pickedTypo)}
-              disabled={typographyMutation.isPending}
-              style={{
-                width: '100%', height: 48, borderRadius: 12,
-                background: 'var(--accent)', color: 'white',
-                fontWeight: 700, fontSize: 15, marginBottom: 16,
-                opacity: typographyMutation.isPending ? 0.7 : 1,
-              }}
-            >
-              {typographyMutation.isPending ? 'Сохранение...' : 'Сохранить'}
-            </button>
           </div>
         </BottomSheet>
       )}
@@ -1298,18 +1287,6 @@ export function SettingsTab({ tenant }: Props) {
               />
             </label>
 
-            <button
-              onClick={saveOrderSettings}
-              disabled={orderSettingsMutation.isPending}
-              style={{
-                height: 50, borderRadius: 14,
-                background: 'var(--accent)', color: 'white',
-                fontWeight: 700, fontSize: 15,
-                opacity: orderSettingsMutation.isPending ? 0.7 : 1,
-              }}
-            >
-              {orderSettingsMutation.isPending ? 'Сохранение...' : 'Сохранить'}
-            </button>
           </div>
         </BottomSheet>
       )}
@@ -1630,30 +1607,6 @@ export function SettingsTab({ tenant }: Props) {
               </div>
             )}
 
-            {/* Save button */}
-            <button
-              onClick={handleSaveProfile}
-              disabled={updateSettingsMutation.isPending}
-              style={{
-                width: '100%', height: 50, borderRadius: 14,
-                background: 'var(--accent)', color: 'white',
-                fontWeight: 700, fontSize: 16,
-                opacity: updateSettingsMutation.isPending ? 0.7 : 1,
-              }}
-            >
-              {updateSettingsMutation.isPending ? 'Сохранение...' : 'Сохранить'}
-            </button>
-
-            {/* Cancel */}
-            <button
-              onClick={() => setEditProfile(false)}
-              style={{
-                width: '100%', marginTop: 12, fontSize: 14,
-                color: 'var(--muted)', background: 'none', fontWeight: 500,
-              }}
-            >
-              Отмена
-            </button>
           </div>
         </BottomSheet>
       )}
@@ -1724,28 +1677,6 @@ export function SettingsTab({ tenant }: Props) {
               ))}
             </div>
 
-            <button
-              onClick={() => deliveryMutation.mutate({ delivery_methods: deliveryMethods })}
-              disabled={deliveryMutation.isPending}
-              style={{
-                width: '100%', height: 50, borderRadius: 14,
-                background: 'var(--accent)', color: 'white',
-                fontWeight: 700, fontSize: 16,
-                opacity: deliveryMutation.isPending ? 0.7 : 1,
-              }}
-            >
-              {deliveryMutation.isPending ? 'Сохранение...' : 'Сохранить'}
-            </button>
-
-            <button
-              onClick={() => setEditDelivery(false)}
-              style={{
-                width: '100%', marginTop: 12, fontSize: 14,
-                color: 'var(--muted)', background: 'none', fontWeight: 500,
-              }}
-            >
-              Отмена
-            </button>
           </div>
         </BottomSheet>
       )}
@@ -1857,28 +1788,6 @@ export function SettingsTab({ tenant }: Props) {
               </div>
             )}
 
-            <button
-              onClick={savePaymentSettings}
-              disabled={paymentMutation.isPending}
-              style={{
-                width: '100%', height: 50, borderRadius: 14,
-                background: 'var(--accent)', color: 'white',
-                fontWeight: 700, fontSize: 16,
-                opacity: paymentMutation.isPending ? 0.7 : 1,
-              }}
-            >
-              {paymentMutation.isPending ? 'Сохранение...' : 'Сохранить'}
-            </button>
-
-            <button
-              onClick={() => setEditPayment(false)}
-              style={{
-                width: '100%', marginTop: 12, fontSize: 14,
-                color: 'var(--muted)', background: 'none', fontWeight: 500,
-              }}
-            >
-              Отмена
-            </button>
           </div>
         </BottomSheet>
       )}
