@@ -122,7 +122,7 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
     (isRequired('name') && !name.trim()) ||
     (isRequired('phone') && !phone.trim()) ||
     (isRequired('email') && !email.trim()) ||
-    (isRequired('address') && delivery !== 'pickup' && !address.trim()) ||
+    (isRequired('address') && delivery !== 'pickup' && delivery !== 'discuss' && !address.trim()) ||
     (isRequired('note') && !customerNote.trim())
 
   const { mutate: applyCoupon, isPending: applyingCoupon } = useMutation({
@@ -596,8 +596,8 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
           </div>
         </div>
 
-        {/* Address (for non-pickup) */}
-        {delivery !== 'pickup' && (
+        {/* Address (for courier delivery only, not pickup or discuss) */}
+        {delivery !== 'pickup' && delivery !== 'discuss' && (
           <div style={{ padding: '12px 16px 0' }}>
             <div style={{ position: 'relative' }}>
               <Icon name="pin" size={16} color="var(--muted)" style={{ position: 'absolute', left: 14, top: 16 }}/>

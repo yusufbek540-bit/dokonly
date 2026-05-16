@@ -637,6 +637,7 @@ export function SettingsTab({ tenant }: Props) {
     tenant.settings?.delivery_methods ?? [
       { id: 'pickup',   label: 'Самовывоз',          enabled: true,  price: 0 },
       { id: 'delivery', label: 'Доставка курьером',   enabled: false, price: 0 },
+      { id: 'discuss',  label: 'Обсудить с продавцом', enabled: false, price: 0 },
     ],
   )
 
