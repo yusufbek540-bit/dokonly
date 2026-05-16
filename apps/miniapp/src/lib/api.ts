@@ -42,6 +42,8 @@ export const api = {
     }),
   getMyOrders: (tenantId: string) =>
     request<any[]>(`/api/v1/shop/${tenantId}/my-orders`),
+  getShopStats: (tenantId: string) =>
+    request<{ avg_rating: number | null; review_count: number }>(`/api/v1/shop/${tenantId}/stats`),
   validateCoupon: (tenantId: string, code: string, subtotal: number) =>
     request<{ valid: boolean; discount_type: string; discount_value: number; discount_amount: number }>(
       `/api/v1/shop/${tenantId}/coupon?code=${encodeURIComponent(code)}&subtotal=${subtotal}`,

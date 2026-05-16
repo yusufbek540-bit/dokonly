@@ -66,6 +66,12 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
     setTimeout(() => setJustAdded(null), 1200)
   }
 
+  const { data: shopStats } = useQuery({
+    queryKey: ['shopStats', tenantId],
+    queryFn: () => api.getShopStats(tenantId),
+    staleTime: 5 * 60 * 1000,
+  })
+
   const { data: wishlistIds = [] } = useQuery<string[]>({
     queryKey: ['wishlist', tenantId],
     queryFn: () => api.getWishlist(tenantId),
@@ -141,13 +147,22 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
                 }}
               />
             )}
-            <div style={{
-              fontFamily: 'Sora', fontWeight: 700, fontSize: 22,
-              color: 'white',
-              textShadow: '0 1px 4px rgba(0,0,0,0.4)',
-              letterSpacing: '-0.02em',
-            }}>
-              {shop.name}
+            <div>
+              <div style={{
+                fontFamily: 'Sora', fontWeight: 700, fontSize: 22,
+                color: 'white',
+                textShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                letterSpacing: '-0.02em',
+              }}>
+                {shop.name}
+              </div>
+              {shopStats?.avg_rating != null && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
+                    ⭐ {shopStats.avg_rating} ({shopStats.review_count})
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
