@@ -381,6 +381,7 @@ function ShopApp() {
             tenantId={shop.id}
             currency={shop.currency}
             shop={shop}
+            onProduct={setProductId}
           />
         )}
       </div>

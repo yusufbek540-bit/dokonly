@@ -7,6 +7,7 @@ interface Props {
   tenantId: string
   currency: string
   shop?: any
+  onProduct?: (id: string) => void
 }
 
 function fmtPrice(n: number, currency: string) {
@@ -963,7 +964,7 @@ const ORDER_TABS: { id: OrderTabId; label: string; statuses: string[] | null }[]
   { id: 'cancelled', label: 'Отменённые',  statuses: ['cancelled'] },
 ]
 
-export function ProfileTab({ tenantId, currency, shop }: Props) {
+export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
   const [selectedOrder, setSelectedOrder] = useState<any>(null)
   const [showWishlist, setShowWishlist] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
@@ -1065,40 +1066,55 @@ export function ProfileTab({ tenantId, currency, shop }: Props) {
           {wishlistProducts.length === 0 ? (
             <div style={{ textAlign: 'center', paddingTop: 60, color: 'var(--muted)' }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>❤</div>
-              <p style={{ fontSize: 14 }}>Сохраняйте товары сердечком</p>
+              <p style={{ fontSize: 14 }}>Нажмите ❤ на товаре чтобы сохранить</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               {wishlistProducts.map((p: any) => (
-                <div key={p.id} style={{
-                  display: 'flex', gap: 12, padding: '12px',
-                  background: 'var(--card)', borderRadius: 14,
-                  border: '1px solid var(--border)',
-                  alignItems: 'center',
-                }}>
-                  {p.images?.[0]
-                    ? <img src={p.images[0]} alt={p.name} style={{ width: 56, height: 56, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }}/>
-                    : <div style={{ width: 56, height: 56, borderRadius: 10, background: 'var(--subtle)', flexShrink: 0 }}/>
-                  }
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.3, marginBottom: 4 }}>{p.name}</div>
-                    <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 13, color: 'var(--accent)' }}>
+                <button
+                  key={p.id}
+                  onClick={() => onProduct?.(p.id)}
+                  style={{ textAlign: 'left' }}
+                >
+                  <div style={{ position: 'relative' }}>
+                    {p.images?.[0]
+                      ? <img src={p.images[0]} alt={p.name} style={{ width: '100%', aspectRatio: '1/1', borderRadius: 12, objectFit: 'cover' }}/>
+                      : <div style={{ width: '100%', aspectRatio: '1/1', borderRadius: 12, background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: 11, color: 'var(--muted)' }}>{p.name.split(' ').slice(0,2).join(' ')}</span>
+                        </div>
+                    }
+                    {p.stock === 0 && (
+                      <div style={{
+                        position: 'absolute', inset: 0, borderRadius: 12,
+                        background: 'rgba(0,0,0,0.45)', color: 'white',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: 600, fontSize: 11,
+                      }}>Нет в наличии</div>
+                    )}
+                    <button
+                      onClick={e => { e.stopPropagation(); removeFromWishlist(p.id) }}
+                      style={{
+                        position: 'absolute', top: 6, right: 6,
+                        width: 30, height: 30, borderRadius: 999,
+                        background: 'rgba(255,255,255,0.92)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--accent)" stroke="var(--accent)" strokeWidth="1.5">
+                        <path d="M8 13.5S1.5 9.5 1.5 5.5A3.5 3.5 0 0 1 8 3.8a3.5 3.5 0 0 1 6.5 1.7C14.5 9.5 8 13.5 8 13.5z" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <div style={{ padding: '8px 2px 0' }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.3, marginBottom: 4, height: 34, overflow: 'hidden' }}>
+                      {p.name}
+                    </div>
+                    <div style={{ fontFamily: 'JetBrains Mono', fontSize: 13, fontWeight: 700, color: p.compare_at_price ? 'var(--accent)' : 'var(--ink)' }}>
                       {fmtPrice(Number(p.price), currency)}
                     </div>
                   </div>
-                  <button
-                    onClick={() => removeFromWishlist(p.id)}
-                    style={{
-                      width: 32, height: 32, borderRadius: 999,
-                      background: 'var(--subtle)', flexShrink: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--accent)" stroke="var(--accent)" strokeWidth="1.5">
-                      <path d="M8 13.5S1.5 9.5 1.5 5.5A3.5 3.5 0 0 1 8 3.8a3.5 3.5 0 0 1 6.5 1.7C14.5 9.5 8 13.5 8 13.5z" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </button>
-                </div>
+                </button>
               ))}
             </div>
           )}
