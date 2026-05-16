@@ -606,6 +606,134 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
   )
 }
 
+// ─── PrivacyView ─────────────────────────────────────────────────────────────
+
+function PrivacyView({ tenantId, onBack }: { tenantId: string; onBack: () => void }) {
+  const [confirm, setConfirm] = useState('')
+  const [deleting, setDeleting] = useState(false)
+  const [deleted, setDeleted] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+
+  async function handleDelete() {
+    if (confirm !== 'УДАЛИТЬ') return
+    setDeleting(true)
+    try {
+      await api.deleteMyProfile(tenantId)
+      setDeleted(true)
+    } catch {
+      // ignore
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  if (deleted) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
+        <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)', marginBottom: 8 }}>Профиль удалён</div>
+        <div style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 24 }}>
+          Ваши данные анонимизированы. Заказы сохранены без личной информации.
+        </div>
+        <button
+          onClick={() => (window as any).Telegram?.WebApp?.close?.()}
+          style={{ height: 48, padding: '0 24px', borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15 }}
+        >
+          Закрыть магазин
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 20,
+        background: 'var(--bg)', borderBottom: '1px solid var(--border)',
+        padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10,
+      }}>
+        <button onClick={onBack} style={{ width: 34, height: 34, borderRadius: 999, background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="arrowLeft" size={18} color="var(--ink)" />
+        </button>
+        <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', flex: 1 }}>Приватность и данные</span>
+      </div>
+
+      <div className="screen-scroll" style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 48 }}>
+        {/* What we store */}
+        <div style={{ padding: '16px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+            Что хранит магазин
+          </div>
+          {['Имя и контакты', 'История заказов', 'Список избранного', 'Сохранённый адрес доставки'].map((item, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <div style={{ width: 6, height: 6, borderRadius: 999, background: 'var(--accent)', flexShrink: 0 }} />
+              <span style={{ fontSize: 14, color: 'var(--ink)' }}>{item}</span>
+            </div>
+          ))}
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, lineHeight: 1.5 }}>
+            Все данные хранятся на защищённых серверах Dokonly и не передаются третьим лицам.
+          </div>
+        </div>
+
+        {/* Delete profile */}
+        <div style={{ padding: '16px', borderRadius: 14, background: '#FEF2F2', border: '1px solid #FEE2E2' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+            ⚠ Удалить профиль
+          </div>
+          <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.6, marginBottom: 14 }}>
+            Удалит ваши личные данные навсегда. Заказы останутся в системе с обезличенной информацией.
+          </div>
+
+          {!showConfirm ? (
+            <button
+              onClick={() => setShowConfirm(true)}
+              style={{ height: 42, padding: '0 18px', borderRadius: 10, background: '#DC2626', color: 'white', fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer' }}
+            >
+              Удалить профиль
+            </button>
+          ) : (
+            <div>
+              <div style={{ fontSize: 13, color: '#DC2626', fontWeight: 600, marginBottom: 8 }}>
+                Введите УДАЛИТЬ для подтверждения:
+              </div>
+              <input
+                value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+                placeholder="УДАЛИТЬ"
+                style={{
+                  width: '100%', height: 42, borderRadius: 10, border: '1.5px solid #FCA5A5',
+                  padding: '0 12px', fontSize: 14, color: 'var(--ink)', background: 'white',
+                  marginBottom: 10, boxSizing: 'border-box', outline: 'none',
+                }}
+              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => { setShowConfirm(false); setConfirm('') }}
+                  style={{ flex: 1, height: 42, borderRadius: 10, background: 'var(--subtle)', fontWeight: 600, fontSize: 14, border: '1px solid var(--border)' }}
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={confirm !== 'УДАЛИТЬ' || deleting}
+                  style={{
+                    flex: 1, height: 42, borderRadius: 10,
+                    background: confirm === 'УДАЛИТЬ' ? '#DC2626' : '#FCA5A5',
+                    color: 'white', fontWeight: 700, fontSize: 14, border: 'none',
+                    cursor: confirm === 'УДАЛИТЬ' && !deleting ? 'pointer' : 'default',
+                  }}
+                >
+                  {deleting ? 'Удаляем...' : 'Подтвердить'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── AboutStore ───────────────────────────────────────────────────────────────
 
 function AboutStore({ shop, currency, tenantId, onBack }: { shop: any; currency: string; tenantId: string; onBack: () => void }) {
@@ -1104,6 +1232,7 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
   const [showWishlist, setShowWishlist] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
   const [showEditProfile, setShowEditProfile] = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
   const [orderTab, setOrderTab] = useState<OrderTabId>('active')
 
   const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user
@@ -1176,6 +1305,10 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
         onBack={() => setSelectedOrder(null)}
       />
     )
+  }
+
+  if (showPrivacy) {
+    return <PrivacyView tenantId={tenantId} onBack={() => setShowPrivacy(false)} />
   }
 
   if (showAbout && shop) {
@@ -1486,17 +1619,18 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
               <Icon name="chevronRight" size={16} color="var(--muted)" />
             </button>
             <button
+              onClick={() => setShowPrivacy(true)}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 12,
                 padding: '14px 16px', background: 'var(--card)',
-                borderBottom: '1px solid var(--border)', cursor: 'default',
+                borderBottom: '1px solid var(--border)', cursor: 'pointer',
               }}
             >
               <span style={{ fontSize: 18 }}>🔒</span>
               <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>
-                Приватность
+                Приватность и данные
               </span>
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>Скоро</span>
+              <Icon name="chevronRight" size={16} color="var(--muted)" />
             </button>
             <button
               onClick={() => (window as any).Telegram?.WebApp?.close?.()}

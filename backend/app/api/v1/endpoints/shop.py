@@ -255,6 +255,7 @@ async def create_buyer_order(
                 select(Customer).where(
                     Customer.tenant_id == tenant.id,
                     Customer.telegram_id == tg_id,
+                    Customer.is_deleted == False,  # noqa: E712
                 )
             )
             customer = cust_result.scalar_one_or_none()
@@ -608,6 +609,7 @@ async def get_buyer_profile(
         select(Customer).where(
             Customer.tenant_id == tenant_id,
             Customer.telegram_id == tg_id,
+            Customer.is_deleted == False,  # noqa: E712
         )
     )
     customer = result.scalar_one_or_none()
@@ -680,6 +682,62 @@ async def update_buyer_profile(
                     pass
             else:
                 setattr(customer, key, val or None)
+
+    await db.commit()
+    return {"ok": True}
+
+
+@router.delete("/{tenant_id}/my-profile", status_code=200)
+async def delete_buyer_profile(
+    tenant_id: str,
+    x_telegram_init_data: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Anonymize and soft-delete the buyer's profile for this tenant."""
+    if not x_telegram_init_data:
+        raise HTTPException(status_code=401, detail="Auth required")
+    tg_user = _validate_init_data(x_telegram_init_data)
+    if tg_user is None:
+        raise HTTPException(status_code=401, detail="Invalid auth")
+    tg_id = tg_user.get("id")
+
+    result = await db.execute(
+        select(Customer).where(
+            Customer.tenant_id == tenant_id,
+            Customer.telegram_id == tg_id,
+            Customer.is_deleted == False,  # noqa: E712
+        )
+    )
+    customer = result.scalar_one_or_none()
+    if not customer:
+        return {"ok": True}
+
+    # Anonymize PII on all this customer's orders
+    orders_result = await db.execute(
+        select(Order).where(Order.customer_id == customer.id)
+    )
+    for order in orders_result.scalars().all():
+        order.customer_name = "Удалённый пользователь"
+        order.customer_phone = None
+
+    # Delete wishlist items
+    await db.execute(
+        WishlistItem.__table__.delete().where(
+            WishlistItem.tenant_id == tenant_id,
+            WishlistItem.customer_telegram_id == tg_id,
+        )
+    )
+
+    # Anonymize customer record and mark deleted
+    customer.first_name = "Удалённый"
+    customer.last_name = "пользователь"
+    customer.username = None
+    customer.phone = None
+    customer.email = None
+    customer.birthday = None
+    customer.saved_address = None
+    customer.custom_avatar_url = None
+    customer.is_deleted = True
 
     await db.commit()
     return {"ok": True}

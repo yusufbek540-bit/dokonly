@@ -68,6 +68,10 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(body),
     }),
+  deleteMyProfile: (tenantId: string) =>
+    request<{ ok: boolean }>(`/api/v1/shop/${tenantId}/my-profile`, {
+      method: 'DELETE',
+    }),
   cancelOrder: (tenantId: string, orderId: string) =>
     request<{ ok: boolean; status: string }>(`/api/v1/shop/${tenantId}/orders/${orderId}/cancel`, {
       method: 'POST',
