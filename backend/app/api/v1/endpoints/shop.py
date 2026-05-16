@@ -468,6 +468,7 @@ async def validate_coupon(
     tenant_id: str,
     code: str,
     subtotal: float = 0.0,
+    product_ids: str = "",  # comma-separated product UUIDs from cart
     db: AsyncSession = Depends(get_db),
 ):
     """Validate a coupon code and return the discount amount."""
@@ -496,6 +497,16 @@ async def validate_coupon(
             status_code=422,
             detail=f"Минимальная сумма заказа для этого купона: {int(promo.min_order_amount)}",
         )
+
+    # Check applicable products — if restricted, at least one cart product must match
+    if promo.applicable_product_ids:
+        cart_ids = set(pid.strip() for pid in product_ids.split(",") if pid.strip())
+        allowed_ids = set(str(pid) for pid in promo.applicable_product_ids)
+        if not cart_ids.intersection(allowed_ids):
+            raise HTTPException(
+                status_code=422,
+                detail="Купон не применим к товарам в корзине",
+            )
 
     if promo.discount_type == "percent":
         discount_amount = round(subtotal * float(promo.discount_value) / 100, 2)

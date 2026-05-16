@@ -1,8 +1,7 @@
 import uuid
-from datetime import datetime
 
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, Numeric, String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from app.models.base import Base, TimestampMixin
 
@@ -23,6 +22,7 @@ class PromoCode(Base, TimestampMixin):
     used_count = Column(Integer, nullable=False, default=0)
     min_order_amount = Column(Numeric(15, 2), nullable=True)
     expires_at = Column(DateTime(timezone=True), nullable=True)
+    applicable_product_ids = Column(JSONB, nullable=True)  # null = all products
     is_active = Column(Boolean, nullable=False, default=True)
 
     __table_args__ = (UniqueConstraint("tenant_id", "code", name="uq_promo_tenant_code"),)

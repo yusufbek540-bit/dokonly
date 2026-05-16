@@ -43,7 +43,8 @@ export function CartTab({ currency, tenantId, shopSettings, onCheckout, onShowCa
     setCouponLoading(true)
     setCouponError('')
     try {
-      const result = await api.validateCoupon(tenantId, code, cartTotal)
+      const productIds = items.map(i => i.productId)
+      const result = await api.validateCoupon(tenantId, code, cartTotal, productIds)
       if (result.valid || result.discount_amount > 0) {
         setCoupon(code, result.discount_amount)
         setCouponInput('')

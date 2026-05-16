@@ -809,6 +809,7 @@ async def list_promo_codes(
             "used_count": c.used_count,
             "min_order_amount": float(c.min_order_amount) if c.min_order_amount else None,
             "expires_at": c.expires_at.isoformat() if c.expires_at else None,
+            "applicable_product_ids": c.applicable_product_ids or [],
             "is_active": c.is_active,
         }
         for c in codes
@@ -834,6 +835,9 @@ async def create_promo_code(
             expires_dt = datetime.fromisoformat(expires_raw).replace(tzinfo=_tz.utc) if 'T' not in expires_raw else datetime.fromisoformat(expires_raw)
         except Exception:
             pass
+    applicable_ids = body.get("applicable_product_ids") or None
+    if applicable_ids and not isinstance(applicable_ids, list):
+        applicable_ids = None
     promo = PromoCode(
         tenant_id=tenant.id,
         code=code,
@@ -842,6 +846,7 @@ async def create_promo_code(
         max_uses=body.get("max_uses") or None,
         min_order_amount=float(body["min_order_amount"]) if body.get("min_order_amount") else None,
         expires_at=expires_dt,
+        applicable_product_ids=applicable_ids,
     )
     db.add(promo)
     try:

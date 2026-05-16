@@ -348,6 +348,8 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
   const [maxUses, setMaxUses] = useState('')
   const [minAmount, setMinAmount] = useState('')
   const [expiresAt, setExpiresAt] = useState('')
+  const [restrictProducts, setRestrictProducts] = useState(false)
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([])
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
 
@@ -356,16 +358,24 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
     queryFn: api.seller.promoCodes,
   })
 
+  const { data: products = [] } = useQuery({
+    queryKey: ['seller-products-for-coupon'],
+    queryFn: () => api.seller.products(),
+    enabled: showForm,
+  })
+
   const { mutate: createCode, isPending: creating } = useMutation({
     mutationFn: () => api.seller.createPromoCode({
       code, discount_type: discountType, discount_value: Number(discountValue),
       max_uses: maxUses ? Number(maxUses) : null,
       min_order_amount: minAmount ? Number(minAmount) : null,
       expires_at: expiresAt || null,
+      applicable_product_ids: restrictProducts && selectedProductIds.length > 0 ? selectedProductIds : null,
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['seller-promo-codes'] })
-      setCode(''); setDiscountValue(''); setMaxUses(''); setMinAmount(''); setExpiresAt(''); setShowForm(false); setError('')
+      setCode(''); setDiscountValue(''); setMaxUses(''); setMinAmount(''); setExpiresAt('')
+      setRestrictProducts(false); setSelectedProductIds([]); setShowForm(false); setError('')
     },
     onError: (e: any) => setError(e.message ?? 'Ошибка'),
   })
@@ -433,6 +443,7 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
                     Использований: {c.used_count}{c.max_uses ? `/${c.max_uses}` : ''}
                     {c.min_order_amount ? ` · мин. ${c.min_order_amount.toLocaleString()}` : ''}
                     {c.expires_at ? ` · до ${new Date(c.expires_at).toLocaleDateString('ru')}` : ''}
+                    {c.applicable_product_ids?.length > 0 ? ` · ${c.applicable_product_ids.length} тов.` : ''}
                   </div>
                 </div>
                 <button
@@ -505,6 +516,42 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
                   style={{ flex: 1, height: 46, padding: '0 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }}
                 />
               </div>
+              {/* Product restriction toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Ограничить товарами</span>
+                <button
+                  onClick={() => { setRestrictProducts(v => !v); setSelectedProductIds([]) }}
+                  style={{
+                    width: 44, height: 26, borderRadius: 999,
+                    background: restrictProducts ? 'var(--accent)' : 'var(--border)',
+                    position: 'relative', transition: 'background 0.2s',
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute', top: 2, width: 22, height: 22,
+                    borderRadius: 999, background: 'white',
+                    left: restrictProducts ? 20 : 2, transition: 'left 0.2s',
+                  }}/>
+                </button>
+              </div>
+              {restrictProducts && (
+                <div style={{ maxHeight: 160, overflowY: 'auto', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--card)' }}>
+                  {(products as any[]).filter((p: any) => p.is_active).map((p: any) => (
+                    <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid var(--border)' }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedProductIds.includes(p.id)}
+                        onChange={e => setSelectedProductIds(ids => e.target.checked ? [...ids, p.id] : ids.filter(id => id !== p.id))}
+                        style={{ width: 16, height: 16, accentColor: 'var(--accent)', flexShrink: 0 }}
+                      />
+                      <span style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.3 }}>{p.name}</span>
+                    </label>
+                  ))}
+                  {(products as any[]).filter((p: any) => p.is_active).length === 0 && (
+                    <div style={{ padding: '12px 14px', fontSize: 13, color: 'var(--muted)' }}>Нет активных товаров</div>
+                  )}
+                </div>
+              )}
               {error && <div style={{ fontSize: 13, color: 'var(--danger)' }}>{error}</div>}
               <button
                 disabled={!code || !discountValue || creating}
