@@ -22,6 +22,7 @@ function fmtDateFull(iso: string) {
 interface CustomerData {
   name: string
   phone: string
+  email?: string
   telegramId: number | null
   orderCount: number
   totalSpent: number
@@ -78,6 +79,22 @@ function CustomerDetail({ customer, currency, onBack }: { customer: CustomerData
             </div>
           ))}
         </div>
+
+        {/* Email display */}
+        {customer.email && (
+          <a
+            href={`mailto:${customer.email}`}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 14px', borderRadius: 12,
+              background: 'var(--card)', border: '1px solid var(--border)',
+              fontSize: 13, color: 'var(--ink)', textDecoration: 'none',
+            }}
+          >
+            <span>✉️</span>
+            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{customer.email}</span>
+          </a>
+        )}
 
         {/* Quick actions */}
         {(customer.phone || customer.telegramId) && (
@@ -177,11 +194,13 @@ export function CustomersTab({ tenant }: Props) {
         existing.orderCount++
         existing.totalSpent += Number(order.total ?? 0)
         if (order.created_at > existing.lastOrderAt) existing.lastOrderAt = order.created_at
+        if (order.customer_email && !existing.email) existing.email = order.customer_email
         existing.orders.push(order)
       } else {
         map.set(key, {
           name: order.customer_name ?? 'Покупатель',
           phone: order.customer_phone ?? '',
+          email: order.customer_email ?? undefined,
           telegramId: order.customer_telegram_id ?? null,
           orderCount: 1,
           totalSpent: Number(order.total ?? 0),

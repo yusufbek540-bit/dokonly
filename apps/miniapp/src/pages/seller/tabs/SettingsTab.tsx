@@ -1252,6 +1252,7 @@ export function SettingsTab({ tenant }: Props) {
                 {[
                   { id: 'name', label: 'Имя покупателя' },
                   { id: 'phone', label: 'Номер телефона' },
+                  { id: 'email', label: 'Email покупателя' },
                   { id: 'address', label: 'Адрес доставки' },
                   { id: 'note', label: 'Примечание к заказу' },
                 ].map((field, idx, arr) => {

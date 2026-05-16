@@ -74,6 +74,7 @@ async def _enrich_orders(orders: list, db: AsyncSession) -> list[dict]:
             "currency": o.currency,
             "customer_name": getattr(o, "customer_name", None),
             "customer_phone": getattr(o, "customer_phone", None),
+            "customer_email": getattr(o, "customer_email", None),
             "customer_telegram_id": customer.telegram_id if customer else None,
             "delivery_address": getattr(o, "delivery_address", None),
             "delivery_type": getattr(o, "delivery_type", None),

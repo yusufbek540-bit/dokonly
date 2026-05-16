@@ -298,6 +298,15 @@ async def create_buyer_order(
         qty = int(item.get("qty", 1))
         subtotal += price * qty
 
+    # Enforce shop-level minimum order amount
+    settings = tenant.settings or {}
+    min_order = settings.get("min_order_amount")
+    if min_order and subtotal < float(min_order):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Минимальная сумма заказа: {int(min_order)} {tenant.currency}",
+        )
+
     # Validate and apply promo code if provided
     discount = 0.0
     coupon_code = body.get("coupon_code")
@@ -328,6 +337,7 @@ async def create_buyer_order(
         customer_id=customer_id,
         customer_name=body.get("customer_name", ""),
         customer_phone=body.get("customer_phone", ""),
+        customer_email=body.get("customer_email") or None,
         delivery_address=body.get("delivery_address"),
         delivery_type=body.get("delivery_type", "pickup"),
         payment_method=body.get("payment_method", "cash"),

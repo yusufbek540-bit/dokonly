@@ -45,6 +45,7 @@ class Order(Base, TimestampMixin):
     )
     customer_name = Column(String(200))
     customer_phone = Column(String(50))
+    customer_email = Column(String(200))
     delivery_address = Column(Text)
     delivery_type = Column(String(50), default="pickup")
     coupon_code = Column(String(50))

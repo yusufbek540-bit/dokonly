@@ -73,6 +73,7 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
   })
   const [phone, setPhone] = useState('')
   const [phoneVerified, setPhoneVerified] = useState(false)
+  const [email, setEmail] = useState('')
   const [address, setAddress] = useState('')
   const [customerNote, setCustomerNote] = useState('')
   const [profileLoaded, setProfileLoaded] = useState(false)
@@ -86,10 +87,11 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
   useEffect(() => {
     if (profile && !profileLoaded) {
       if (profile.phone && !phone) setPhone(profile.phone)
+      if (profile.email && !email) setEmail(profile.email)
       if (profile.saved_address && !address) setAddress(profile.saved_address)
       setProfileLoaded(true)
     }
-  }, [profile, profileLoaded, phone, address])
+  }, [profile, profileLoaded, phone, email, address])
   const [coupon, setCoupon] = useState('')
   const [couponApplied, setCouponApplied] = useState<{ code: string; discountAmount: number; discountType: string; discountValue: number } | null>(
     cartCouponCode ? { code: cartCouponCode, discountAmount: cartCouponDiscount, discountType: 'fixed', discountValue: cartCouponDiscount } : null,
@@ -112,9 +114,14 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
   const requiredFields: string[] = shopSettings?.required_checkout_fields ?? ['name', 'phone']
   const isRequired = (field: string) => requiredFields.includes(field)
 
+  const minOrderAmount: number = shopSettings?.min_order_amount ? Number(shopSettings.min_order_amount) : 0
+  const belowMinOrder = minOrderAmount > 0 && cartTotal < minOrderAmount
+
   const fieldMissing =
+    belowMinOrder ||
     (isRequired('name') && !name.trim()) ||
     (isRequired('phone') && !phone.trim()) ||
+    (isRequired('email') && !email.trim()) ||
     (isRequired('address') && delivery !== 'pickup' && !address.trim()) ||
     (isRequired('note') && !customerNote.trim())
 
@@ -135,6 +142,7 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
       items: items.map(i => ({ product_id: i.productId, qty: i.qty, size: i.size, color: i.color })),
       customer_name: name,
       customer_phone: phone,
+      customer_email: email.trim() || null,
       delivery_address: address || null,
       delivery_type: delivery,
       payment_method: payment,
@@ -702,6 +710,20 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
                 }}
               />
             )}
+            {isRequired('email') && (
+              <input
+                placeholder="Email *"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                type="email"
+                style={{
+                  width: '100%', height: 48, padding: '0 14px',
+                  borderRadius: 12, background: 'var(--card)',
+                  border: '1px solid var(--border)', outline: 'none',
+                  fontSize: 14, color: 'var(--ink)',
+                }}
+              />
+            )}
           </div>
         </div>
 
@@ -786,6 +808,14 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
         background: 'var(--bg)', borderTop: '1px solid var(--border)',
         zIndex: 30,
       }}>
+        {belowMinOrder && (
+          <div style={{
+            fontSize: 13, color: 'var(--danger)', textAlign: 'center',
+            marginBottom: 8, fontWeight: 500,
+          }}>
+            Минимальная сумма заказа: {fmtPrice(minOrderAmount, currency)}
+          </div>
+        )}
         <button
           onClick={() => placeOrder()}
           disabled={isPending || fieldMissing}

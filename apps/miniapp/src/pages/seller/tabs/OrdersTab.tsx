@@ -114,7 +114,8 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
         <div style={{ margin: '16px 16px 0', padding: '14px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Покупатель</div>
           <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{order.customer_name || 'Не указано'}</div>
-          {order.customer_phone && <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10 }}>{order.customer_phone}</div>}
+          {order.customer_phone && <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: order.customer_email ? 2 : 10 }}>{order.customer_phone}</div>}
+          {order.customer_email && <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10 }}>{order.customer_email}</div>}
           {/* Quick action buttons */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {order.customer_phone && (
