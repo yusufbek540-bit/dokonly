@@ -97,7 +97,7 @@ export const api = {
       }),
     updateSettings: (body: object) =>
       request<any>('/api/v1/miniapp/settings', { method: 'PATCH', body: JSON.stringify(body) }),
-    analytics: () => request<any>('/api/v1/miniapp/analytics/summary'),
+    analytics: (period?: string) => request<any>(`/api/v1/miniapp/analytics/summary${period ? `?period=${period}` : ''}`),
     achievements: () => request<any>('/api/v1/miniapp/achievements'),
     categories: () => request<any[]>('/api/v1/miniapp/categories'),
     createCategory: (body: object) =>

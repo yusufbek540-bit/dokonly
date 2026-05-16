@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
@@ -9,10 +10,19 @@ function fmtPrice(n: number, currency: string) {
 
 interface Props { tenant: any }
 
+const PERIODS = [
+  { id: 'today', label: 'Сегодня' },
+  { id: 'week',  label: '7 дней' },
+  { id: 'month', label: '30 дней' },
+  { id: 'all',   label: 'Всё время' },
+]
+
 export function AnalyticsTab({ tenant }: Props) {
+  const [period, setPeriod] = useState('all')
+
   const { data: summary, isLoading } = useQuery({
-    queryKey: ['seller-analytics'],
-    queryFn: api.seller.analytics,
+    queryKey: ['seller-analytics', period],
+    queryFn: () => api.seller.analytics(period),
   })
   const { data: orders = [] } = useQuery({
     queryKey: ['seller-orders'],
@@ -35,6 +45,26 @@ export function AnalyticsTab({ tenant }: Props) {
 
   return (
     <div className="screen-scroll" style={{ flex: 1, padding: '16px 16px 100px' }}>
+      {/* Period selector */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto', scrollbarWidth: 'none' }}>
+        {PERIODS.map(p => (
+          <button
+            key={p.id}
+            onClick={() => setPeriod(p.id)}
+            style={{
+              flexShrink: 0, padding: '7px 14px', borderRadius: 999,
+              background: period === p.id ? 'var(--accent)' : 'var(--card)',
+              border: `1px solid ${period === p.id ? 'var(--accent)' : 'var(--border)'}`,
+              color: period === p.id ? 'white' : 'var(--ink)',
+              fontSize: 13, fontWeight: period === p.id ? 700 : 500, cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
       {isLoading ? (
         <div style={{ display:'flex', justifyContent:'center', padding:60 }}>
           <div style={{ width:24, height:24, borderRadius:999, border:'2px solid var(--accent)', borderTopColor:'transparent', animation:'spin 0.8s linear infinite' }}/>

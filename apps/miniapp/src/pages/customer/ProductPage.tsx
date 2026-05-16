@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useCart } from '@/store/cart'
@@ -27,6 +27,7 @@ function tone(name: string) {
 
 export function ProductPage({ tenantId, productId, currency, shopSlug, botUsername, onBack, onCheckout }: Props) {
   const [imgIdx, setImgIdx] = useState(0)
+  const galleryTouchStart = useRef<number | null>(null)
   const [selectedSize, setSelectedSize] = useState<string | null>(null)
   const [selectedColor, setSelectedColor] = useState<string | null>(null)
   const [qty, setQty] = useState(1)
@@ -177,7 +178,19 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
 
       <div className="screen-scroll" style={{ flex: 1, paddingBottom: 96 }}>
         {/* Image gallery */}
-        <div style={{ position: 'relative', background: 'var(--subtle)' }}>
+        <div
+          style={{ position: 'relative', background: 'var(--subtle)' }}
+          onTouchStart={e => { galleryTouchStart.current = e.touches[0].clientX }}
+          onTouchEnd={e => {
+            if (galleryTouchStart.current === null || images.length <= 1) return
+            const dx = e.changedTouches[0].clientX - galleryTouchStart.current
+            if (Math.abs(dx) > 40) {
+              if (dx < 0) setImgIdx(i => Math.min(i + 1, images.length - 1))
+              else setImgIdx(i => Math.max(i - 1, 0))
+            }
+            galleryTouchStart.current = null
+          }}
+        >
           {images.length > 0 ? (
             <img
               src={images[imgIdx]}

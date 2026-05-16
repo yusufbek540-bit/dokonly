@@ -59,7 +59,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
   const [showAchievements, setShowAchievements] = useState(false)
   const [showMailings, setShowMailings] = useState(false)
   const [showCoupons, setShowCoupons] = useState(false)
-  const { data: summary } = useQuery({ queryKey: ['seller-analytics'], queryFn: api.seller.analytics })
+  const { data: summary } = useQuery({ queryKey: ['seller-analytics', 'all'], queryFn: () => api.seller.analytics('all') })
   const { data: orders = [] } = useQuery({ queryKey: ['seller-orders'], queryFn: () => api.seller.orders() })
   const recentOrders = orders.slice(0, 3)
 

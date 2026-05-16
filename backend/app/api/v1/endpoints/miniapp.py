@@ -9,7 +9,7 @@ from uuid import UUID
 
 import boto3
 import httpx
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
@@ -517,16 +517,31 @@ async def seller_update_order_status(
 
 @router.get("/analytics/summary")
 async def seller_analytics_summary(
+    period: str = Query("all", description="Filter period: today, week, month, all"),
     user: dict = Depends(get_tg_user),
     db: AsyncSession = Depends(get_db),
 ):
     tenant = await _require_tenant(user, db)
     orders_q = await db.execute(select(Order).where(Order.tenant_id == tenant.id))
-    all_orders = orders_q.scalars().all()
+    all_orders_raw = orders_q.scalars().all()
 
     now = datetime.now(timezone.utc)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     yesterday_start = today_start - timedelta(days=1)
+
+    period_start = {
+        "today": today_start,
+        "week": now - timedelta(days=7),
+        "month": now - timedelta(days=30),
+    }.get(period)
+
+    if period_start:
+        all_orders = [
+            o for o in all_orders_raw
+            if o.created_at and o.created_at.replace(tzinfo=timezone.utc) >= period_start
+        ]
+    else:
+        all_orders = all_orders_raw
 
     total_revenue = sum(float(o.total or 0) for o in all_orders)
     total_orders = len(all_orders)
