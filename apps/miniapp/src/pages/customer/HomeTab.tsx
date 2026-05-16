@@ -156,11 +156,18 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
               }}>
                 {shop.name}
               </div>
-              {shopStats?.avg_rating != null && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
-                    ⭐ {shopStats.avg_rating} ({shopStats.review_count})
-                  </span>
+              {(shopStats?.avg_rating != null || (shopStats?.customer_count ?? 0) >= 10) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
+                  {shopStats?.avg_rating != null && (
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
+                      ⭐ {shopStats.avg_rating} ({shopStats.review_count})
+                    </span>
+                  )}
+                  {(shopStats?.customer_count ?? 0) >= 10 && (
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.9)', textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}>
+                      👥 {shopStats!.customer_count}+ покупателей
+                    </span>
+                  )}
                 </div>
               )}
             </div>

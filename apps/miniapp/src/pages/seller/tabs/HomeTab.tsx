@@ -931,7 +931,35 @@ export function HomeTab({ tenant, onTabChange }: Props) {
           Каталог и операции
         </div>
         <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 16 }}>
-          <MenuRow emoji="📦" label="Товары" onPress={() => onTabChange?.('catalog')} />
+          {/* Products row with attention badge */}
+          {(() => {
+            const s = summary as any
+            const needsAttention = s && (s.out_of_stock_count > 0 || s.no_images_count > 0)
+            const attentionCount = s ? (s.out_of_stock_count ?? 0) + (s.no_images_count ?? 0) : 0
+            return (
+              <button
+                onClick={() => onTabChange?.('catalog')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                  padding: '13px 16px', background: 'var(--card)', textAlign: 'left',
+                  borderBottom: '1px solid var(--border)', cursor: 'pointer',
+                }}
+              >
+                <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>📦</span>
+                <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Товары</span>
+                {needsAttention && (
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, color: 'white',
+                    background: '#EF4444', borderRadius: 999,
+                    padding: '2px 7px', minWidth: 20, textAlign: 'center',
+                  }}>
+                    {attentionCount}
+                  </span>
+                )}
+                <Icon name="chevronRight" size={15} color="var(--muted)" />
+              </button>
+            )
+          })()}
           {(() => {
             const pendingCount = (orders as any[]).filter((o: any) => o.status === 'new' || o.status === 'created').length
             return (

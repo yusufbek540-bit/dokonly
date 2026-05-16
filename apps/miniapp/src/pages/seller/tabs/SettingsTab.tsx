@@ -1361,6 +1361,34 @@ export function SettingsTab({ tenant }: Props) {
         />
       </Section>
 
+      {/* ── Section 7: Помощь ──────────────────────────────────────────────── */}
+      <Section title="Помощь">
+        <Row
+          icon="send"
+          label="Поддержка Dokonly"
+          onPress={() => {
+            const tg = (window as any).Telegram?.WebApp
+            tg?.openTelegramLink?.('https://t.me/dokonly_support') ?? window.open('https://t.me/dokonly_support', '_blank')
+          }}
+        />
+        <Row
+          icon="starFilled"
+          label="Новости Dokonly"
+          onPress={() => {
+            const tg = (window as any).Telegram?.WebApp
+            tg?.openTelegramLink?.('https://t.me/dokonly') ?? window.open('https://t.me/dokonly', '_blank')
+          }}
+        />
+        <Row
+          icon="info"
+          label="Закрыть приложение"
+          noBorder
+          onPress={() => {
+            (window as any).Telegram?.WebApp?.close?.()
+          }}
+        />
+      </Section>
+
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>
         Dokonly v1.0 · {tenant.slug}

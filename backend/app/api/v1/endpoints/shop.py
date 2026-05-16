@@ -216,16 +216,17 @@ async def get_product_reviews(tenant_id: str, product_id: str, db: AsyncSession 
 
 @router.get("/{tenant_id}/stats")
 async def get_shop_stats(tenant_id: str, db: AsyncSession = Depends(get_db)):
-    """Return public shop stats: avg rating and total review count."""
+    """Return public shop stats: avg rating, review count, and unique customer count."""
     result = await db.execute(
         select(Order).where(Order.tenant_id == tenant_id)
     )
     orders = result.scalars().all()
     ratings = [o.meta["review_rating"] for o in orders if (o.meta or {}).get("review_rating")]
+    customer_count = len(set(o.customer_id for o in orders if o.customer_id))
     if not ratings:
-        return {"avg_rating": None, "review_count": 0}
+        return {"avg_rating": None, "review_count": 0, "customer_count": customer_count}
     avg = round(sum(ratings) / len(ratings), 1)
-    return {"avg_rating": avg, "review_count": len(ratings)}
+    return {"avg_rating": avg, "review_count": len(ratings), "customer_count": customer_count}
 
 
 @router.post("/{tenant_id}/orders", status_code=201)
