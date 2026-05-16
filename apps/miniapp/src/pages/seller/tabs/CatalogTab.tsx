@@ -29,6 +29,7 @@ function ProductForm({ mode, currency, onSave, onClose }: {
   const [name, setName] = useState(p?.name ?? '')
   const [price, setPrice] = useState(p?.price ?? '')
   const [compareAtPrice, setCompareAtPrice] = useState(p?.compare_at_price?.toString() ?? '')
+  const [costPerItem, setCostPerItem] = useState(p?.cost_per_item?.toString() ?? '')
   const [stock, setStock] = useState(p?.stock?.toString() ?? '')
   const [description, setDescription] = useState(p?.description ?? '')
   const [categoryId, setCategoryId] = useState<string>(p?.category_id ?? '')
@@ -38,6 +39,9 @@ function ProductForm({ mode, currency, onSave, onClose }: {
   const [sizesStr, setSizesStr] = useState<string>((p?.sizes ?? []).join(', '))
   const [colorsStr, setColorsStr] = useState<string>((p?.colors ?? []).join(', '))
   const [videoUrl, setVideoUrl] = useState<string>(p?.video_url ?? '')
+  const [sku, setSku] = useState<string>(p?.sku ?? '')
+  const [seoTitle, setSeoTitle] = useState<string>(p?.seo_title ?? '')
+  const [seoDescription, setSeoDescription] = useState<string>(p?.seo_description ?? '')
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -55,12 +59,16 @@ function ProductForm({ mode, currency, onSave, onClose }: {
     onSave({
       name, price: Number(price),
       compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
+      cost_per_item: costPerItem ? Number(costPerItem) : null,
       stock: stock ? Number(stock) : null,
       description,
       category_id: categoryId || null,
       is_active: active, is_featured: featured, images,
       sizes, colors,
       video_url: videoUrl.trim() || null,
+      sku: sku.trim() || null,
+      seo_title: seoTitle.trim() || null,
+      seo_description: seoDescription.trim() || null,
     })
   }
 
@@ -110,7 +118,7 @@ function ProductForm({ mode, currency, onSave, onClose }: {
                   </button>
                 </div>
               ))}
-              {images.length < 5 && (
+              {images.length < 10 && (
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
@@ -207,15 +215,30 @@ function ProductForm({ mode, currency, onSave, onClose }: {
               />
             </div>
           </div>
-          <div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>Остаток</label>
-            <input
-              value={stock}
-              onChange={e => setStock(e.target.value)}
-              placeholder="∞"
-              type="number"
-              style={{ width: '100%', height: 46, padding: '0 12px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }}
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>Остаток</label>
+              <input
+                value={stock}
+                onChange={e => setStock(e.target.value)}
+                placeholder="∞"
+                type="number"
+                style={{ width: '100%', height: 46, padding: '0 12px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>
+                Себестоимость
+              </label>
+              <input
+                value={costPerItem}
+                onChange={e => setCostPerItem(e.target.value)}
+                placeholder="0"
+                type="number"
+                style={{ width: '100%', height: 46, padding: '0 12px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }}
+              />
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>Скрыто от покупателей</div>
+            </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
@@ -246,6 +269,42 @@ function ProductForm({ mode, currency, onSave, onClose }: {
               type="url"
               style={{ width: '100%', height: 46, padding: '0 12px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }}
             />
+          </div>
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>SKU / Артикул</label>
+            <input
+              value={sku}
+              onChange={e => setSku(e.target.value)}
+              placeholder="SKU-001"
+              style={{ width: '100%', height: 46, padding: '0 12px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)', fontFamily: 'JetBrains Mono' }}
+            />
+          </div>
+          {/* SEO section */}
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>SEO</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>Meta заголовок</label>
+                <input
+                  value={seoTitle}
+                  onChange={e => setSeoTitle(e.target.value)}
+                  placeholder={name || 'Заголовок для поисковиков'}
+                  style={{ width: '100%', height: 46, padding: '0 12px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }}
+                />
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>{seoTitle.length}/60</div>
+              </div>
+              <div>
+                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>Meta описание</label>
+                <textarea
+                  value={seoDescription}
+                  onChange={e => setSeoDescription(e.target.value)}
+                  placeholder="Краткое описание для поисковых систем"
+                  rows={2}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>{seoDescription.length}/160</div>
+              </div>
+            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
             <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Активен</span>
@@ -370,8 +429,11 @@ export function CatalogTab({ tenant }: Props) {
   const qc = useQueryClient()
   const [view, setView] = useState<'products' | 'categories'>('products')
   const [form, setForm] = useState<FormMode | null>(null)
+  const [showAddSheet, setShowAddSheet] = useState(false)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive' | 'out_of_stock' | 'featured'>('all')
+  const [bulkMode, setBulkMode] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['seller-products'],
@@ -392,6 +454,37 @@ export function CatalogTab({ tenant }: Props) {
     mutationFn: (id: string) => api.seller.deleteProduct(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['seller-products'] }),
   })
+
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ ids, body }: { ids: string[]; body: object }) => {
+      await Promise.all(ids.map(id => api.seller.updateProduct(id, body)))
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['seller-products'] })
+      setSelected(new Set())
+      setBulkMode(false)
+    },
+  })
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      await Promise.all(ids.map(id => api.seller.deleteProduct(id)))
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['seller-products'] })
+      setSelected(new Set())
+      setBulkMode(false)
+    },
+  })
+
+  function toggleSelect(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   const visible = products.filter((p: any) => {
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false
@@ -417,6 +510,22 @@ export function CatalogTab({ tenant }: Props) {
           <span style={{ fontSize: 12, color: 'var(--muted)' }}>
             {filter !== 'all' ? `${visible.length} / ` : ''}{products.length}
           </span>
+          {view === 'products' && !bulkMode && (
+            <button
+              onClick={() => { setBulkMode(true); setSelected(new Set()) }}
+              style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', background: 'none', padding: '4px 8px', borderRadius: 8 }}
+            >
+              Выбрать
+            </button>
+          )}
+          {view === 'products' && bulkMode && (
+            <button
+              onClick={() => { setBulkMode(false); setSelected(new Set()) }}
+              style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', background: 'none', padding: '4px 8px', borderRadius: 8 }}
+            >
+              Отмена
+            </button>
+          )}
         </div>
         {/* View toggle */}
         <div style={{ display:'flex', marginBottom:10, background:'var(--subtle)', borderRadius:10, padding:3 }}>
@@ -496,14 +605,69 @@ export function CatalogTab({ tenant }: Props) {
             )}
           </div>
         ) : (
+          <>
+          {/* Bulk action bar */}
+          {bulkMode && selected.size > 0 && (
+            <div style={{
+              position: 'sticky', top: 0, zIndex: 10, marginBottom: 10,
+              padding: '10px 12px', borderRadius: 14,
+              background: 'var(--accent)', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center',
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'white', flex: 1 }}>
+                {selected.size} выбрано
+              </span>
+              <button
+                onClick={() => bulkUpdateMutation.mutate({ ids: Array.from(selected), body: { is_active: true } })}
+                style={{ padding: '6px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.25)', color: 'white', fontSize: 12, fontWeight: 600 }}
+              >
+                ✓ Активировать
+              </button>
+              <button
+                onClick={() => bulkUpdateMutation.mutate({ ids: Array.from(selected), body: { is_active: false } })}
+                style={{ padding: '6px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.25)', color: 'white', fontSize: 12, fontWeight: 600 }}
+              >
+                👁 Скрыть
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm(`Удалить ${selected.size} товаров?`))
+                    bulkDeleteMutation.mutate(Array.from(selected))
+                }}
+                style={{ padding: '6px 12px', borderRadius: 8, background: 'rgba(239,68,68,0.4)', color: 'white', fontSize: 12, fontWeight: 600 }}
+              >
+                🗑 Удалить
+              </button>
+            </div>
+          )}
+          {bulkMode && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <button
+                onClick={() => setSelected(new Set(visible.map((p: any) => p.id)))}
+                style={{ fontSize: 13, color: 'var(--accent)', background: 'none', fontWeight: 600 }}
+              >
+                Выбрать все ({visible.length})
+              </button>
+              {selected.size > 0 && (
+                <button
+                  onClick={() => setSelected(new Set())}
+                  style={{ fontSize: 13, color: 'var(--muted)', background: 'none' }}
+                >
+                  Снять выбор
+                </button>
+              )}
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {visible.map((p: any) => (
               <div key={p.id} style={{
                 borderRadius: 16, overflow: 'hidden',
-                background: 'var(--card)', border: '1px solid var(--border)',
+                background: 'var(--card)', border: `1px solid ${bulkMode && selected.has(p.id) ? 'var(--accent)' : 'var(--border)'}`,
                 display: 'flex', flexDirection: 'column',
                 position: 'relative',
-              }}>
+                opacity: bulkMode && selected.size > 0 && !selected.has(p.id) ? 0.7 : 1,
+              }}
+              onClick={bulkMode ? () => toggleSelect(p.id) : undefined}
+              >
                 {/* Product image - square top section */}
                 <div style={{ position: 'relative', paddingBottom: '100%', overflow: 'hidden', background: 'var(--subtle)' }}>
                   {p.images?.[0]
@@ -525,8 +689,24 @@ export function CatalogTab({ tenant }: Props) {
                     </div>
                   )}
                   {/* Featured badge */}
-                  {p.is_featured && (
+                  {p.is_featured && !bulkMode && (
                     <div style={{ position: 'absolute', top: 8, right: 8, fontSize: 14, lineHeight: 1 }}>⭐</div>
+                  )}
+                  {/* Bulk select indicator */}
+                  {bulkMode && (
+                    <div style={{
+                      position: 'absolute', top: 8, right: 8,
+                      width: 24, height: 24, borderRadius: 999,
+                      background: selected.has(p.id) ? 'var(--accent)' : 'rgba(255,255,255,0.8)',
+                      border: `2px solid ${selected.has(p.id) ? 'var(--accent)' : 'rgba(0,0,0,0.2)'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {selected.has(p.id) && (
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                          <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -548,24 +728,27 @@ export function CatalogTab({ tenant }: Props) {
                       ⚠ Осталось {p.stock} шт
                     </div>
                   )}
-                  <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-                    <button
-                      onClick={() => setForm({ type: 'edit', product: p })}
-                      style={{ flex: 1, height: 30, borderRadius: 8, background: 'var(--subtle)', fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}
-                    >
-                      Изменить
-                    </button>
-                    <button
-                      onClick={() => confirm('Удалить товар?') && deleteMutation.mutate(p.id)}
-                      style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--danger-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    >
-                      <Icon name="x" size={13} color="var(--danger)"/>
-                    </button>
-                  </div>
+                  {!bulkMode && (
+                    <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                      <button
+                        onClick={() => setForm({ type: 'edit', product: p })}
+                        style={{ flex: 1, height: 30, borderRadius: 8, background: 'var(--subtle)', fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}
+                      >
+                        Изменить
+                      </button>
+                      <button
+                        onClick={() => confirm('Удалить товар?') && deleteMutation.mutate(p.id)}
+                        style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--danger-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <Icon name="x" size={13} color="var(--danger)"/>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
+          </>
         )}
       </div>
 
@@ -608,7 +791,7 @@ export function CatalogTab({ tenant }: Props) {
 
       {/* FAB — only show on products view */}
       {view === 'products' && (
-        <button onClick={() => setForm({ type: 'new' })} style={{
+        <button onClick={() => setShowAddSheet(true)} style={{
           position: 'fixed', right: 20, bottom: 80,
           width: 52, height: 52, borderRadius: 999,
           background: 'var(--accent)', color: 'white',
@@ -617,6 +800,56 @@ export function CatalogTab({ tenant }: Props) {
         }}>
           <Icon name="plus" size={22}/>
         </button>
+      )}
+
+      {/* Add product options sheet */}
+      {showAddSheet && (
+        <div
+          onClick={() => setShowAddSheet(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px calc(28px + env(safe-area-inset-bottom))' }}
+          >
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 20px' }}/>
+            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 16 }}>
+              Добавить товар
+            </div>
+            {[
+              { emoji: '✏️', label: 'Добавить вручную', desc: 'Заполните карточку товара', action: () => { setShowAddSheet(false); setForm({ type: 'new' }) } },
+              { emoji: '📸', label: 'AI из фото', desc: 'Загрузите фото — AI заполнит описание', action: null, soon: true },
+              { emoji: '🎙', label: 'AI голосом', desc: 'Опишите товар голосом', action: null, soon: true },
+              { emoji: '📢', label: 'Импорт из канала', desc: 'Загрузить посты из Telegram', action: null, soon: true },
+              { emoji: '📄', label: 'Импорт CSV', desc: 'Загрузить таблицу Excel/CSV', action: null, soon: true },
+            ].map(opt => (
+              <button
+                key={opt.label}
+                onClick={opt.action ?? undefined}
+                disabled={!opt.action}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '12px 16px', borderRadius: 14, marginBottom: 8,
+                  background: 'var(--card)', border: '1px solid var(--border)',
+                  cursor: opt.action ? 'pointer' : 'default',
+                  opacity: opt.action ? 1 : 0.6,
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{ fontSize: 22 }}>{opt.emoji}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{opt.label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>{opt.desc}</div>
+                </div>
+                {opt.soon && (
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-soft)', borderRadius: 999, padding: '2px 8px' }}>
+                    Скоро
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {form && (

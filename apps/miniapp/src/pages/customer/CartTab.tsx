@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useCart } from '@/store/cart'
 import { Icon } from '@/components/Icon'
 import { api } from '@/lib/api'
@@ -29,12 +30,22 @@ export function CartTab({ currency, tenantId, shopSettings, onCheckout, onShowCa
   const [couponInput, setCouponInput] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
   const [couponError, setCouponError] = useState('')
+  const [useLoyalty, setUseLoyalty] = useState(false)
+
+  const { data: profile } = useQuery({
+    queryKey: ['my-profile', tenantId],
+    queryFn: () => api.getMyProfile(tenantId),
+    retry: false,
+    staleTime: 60_000,
+  })
+  const loyaltyBalance: number = (profile as any)?.loyalty_points ?? 0
+  const loyaltyDiscount = useLoyalty ? Math.min(loyaltyBalance, Math.floor(cartTotal * 0.3)) : 0
 
   const swipeStartX = useRef<Record<string, number>>({})
   const [swipeOffset, setSwipeOffset] = useState<Record<string, number>>({})
 
   const minOrderAmount = shopSettings?.min_order_amount ? Number(shopSettings.min_order_amount) : 0
-  const finalTotal = Math.max(0, cartTotal - couponDiscount)
+  const finalTotal = Math.max(0, cartTotal - couponDiscount - loyaltyDiscount)
   const belowMin = minOrderAmount > 0 && cartTotal < minOrderAmount
   const remaining = minOrderAmount - cartTotal
 
@@ -294,6 +305,39 @@ export function CartTab({ currency, tenantId, shopSettings, onCheckout, onShowCa
               )}
             </div>
 
+            {/* Loyalty points */}
+            {loyaltyBalance > 0 && (
+              <div style={{ margin: '12px 16px 0', padding: '14px 16px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
+                      ⭐ Баллы лояльности
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                      Доступно: {loyaltyBalance} баллов
+                      {useLoyalty && ` · −${fmtPrice(loyaltyDiscount, currency)}`}
+                    </div>
+                  </div>
+                  <div
+                    onClick={() => setUseLoyalty(v => !v)}
+                    style={{
+                      width: 46, height: 26, borderRadius: 999, flexShrink: 0,
+                      background: useLoyalty ? 'var(--accent)' : 'var(--border)',
+                      position: 'relative', transition: 'background 0.2s', cursor: 'pointer',
+                    }}
+                  >
+                    <div style={{
+                      position: 'absolute', top: 3,
+                      left: useLoyalty ? 23 : 3,
+                      width: 20, height: 20, borderRadius: 999,
+                      background: 'white', transition: 'left 0.2s',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                    }} />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Order summary */}
             <div style={{ margin: '12px 16px 0', padding: 16, borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: couponDiscount > 0 ? 8 : 0 }}>
@@ -304,14 +348,24 @@ export function CartTab({ currency, tenantId, shopSettings, onCheckout, onShowCa
                   {fmtPrice(cartTotal, currency)}
                 </span>
               </div>
-              {couponDiscount > 0 && (
+              {(couponDiscount > 0 || loyaltyDiscount > 0) && (
                 <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontSize: 14, color: 'var(--accent)' }}>Скидка ({couponCode})</span>
-                    <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 600, fontSize: 14, color: 'var(--accent)' }}>
-                      -{fmtPrice(couponDiscount, currency)}
-                    </span>
-                  </div>
+                  {couponDiscount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <span style={{ fontSize: 14, color: 'var(--accent)' }}>Скидка ({couponCode})</span>
+                      <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 600, fontSize: 14, color: 'var(--accent)' }}>
+                        -{fmtPrice(couponDiscount, currency)}
+                      </span>
+                    </div>
+                  )}
+                  {loyaltyDiscount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <span style={{ fontSize: 14, color: 'var(--accent)' }}>⭐ Баллы</span>
+                      <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 600, fontSize: 14, color: 'var(--accent)' }}>
+                        -{fmtPrice(loyaltyDiscount, currency)}
+                      </span>
+                    </div>
+                  )}
                   <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Итого</span>
@@ -322,7 +376,7 @@ export function CartTab({ currency, tenantId, shopSettings, onCheckout, onShowCa
                   </div>
                 </>
               )}
-              {couponDiscount === 0 && (
+              {couponDiscount === 0 && loyaltyDiscount === 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Итого</span>
                   <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>

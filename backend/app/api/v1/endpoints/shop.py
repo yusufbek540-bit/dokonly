@@ -460,6 +460,7 @@ async def get_my_orders(
                 "payment_method": order.payment_method,
                 "payment_status": order.payment_status,
                 "delivery_type": order.delivery_type,
+                "delivery_address": order.delivery_address,
                 "created_at": order.created_at.isoformat() if order.created_at else None,
                 "meta": order.meta or {},
                 "customer_note": order.customer_note,
@@ -932,3 +933,151 @@ async def upload_payment_screenshot(
     await db.commit()
 
     return {"url": public_url}
+
+
+@router.post("/{tenant_id}/profile/avatar")
+async def upload_buyer_avatar(
+    tenant_id: str,
+    file: UploadFile = File(...),
+    x_telegram_init_data: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload a custom avatar for the buyer profile."""
+    if not x_telegram_init_data:
+        raise HTTPException(status_code=401, detail="Auth required")
+    tg_user = _validate_init_data(x_telegram_init_data)
+    if tg_user is None:
+        raise HTTPException(status_code=401, detail="Invalid auth")
+
+    tg_user_id = str(tg_user.get("id", ""))
+    result = await db.execute(
+        select(Customer).where(
+            Customer.tenant_id == tenant_id,
+            Customer.telegram_id == tg_user_id,
+        )
+    )
+    customer = result.scalar_one_or_none()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    contents = await file.read()
+    if len(contents) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large (max 5 MB)")
+
+    ext = "jpg"
+    if file.content_type == "image/png":
+        ext = "png"
+    elif file.content_type == "image/webp":
+        ext = "webp"
+    key = f"customers/{customer.id}/avatar.{ext}"
+
+    def _upload():
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=f"https://{settings.cloudflare_account_id}.r2.cloudflarestorage.com",
+            aws_access_key_id=settings.r2_access_key_id,
+            aws_secret_access_key=settings.r2_secret_access_key,
+        )
+        s3.put_object(
+            Bucket=settings.r2_bucket_name,
+            Key=key,
+            Body=contents,
+            ContentType=file.content_type or "image/jpeg",
+        )
+
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, _upload)
+
+    public_url = f"{settings.r2_public_url.rstrip('/')}/{key}"
+    customer.custom_avatar_url = public_url
+    await db.commit()
+
+    return {"url": public_url}
+
+
+@router.delete("/{tenant_id}/profile/avatar")
+async def reset_buyer_avatar(
+    tenant_id: str,
+    x_telegram_init_data: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Reset buyer avatar back to Telegram photo."""
+    if not x_telegram_init_data:
+        raise HTTPException(status_code=401, detail="Auth required")
+    tg_user = _validate_init_data(x_telegram_init_data)
+    if tg_user is None:
+        raise HTTPException(status_code=401, detail="Invalid auth")
+
+    tg_user_id = str(tg_user.get("id", ""))
+    result = await db.execute(
+        select(Customer).where(
+            Customer.tenant_id == tenant_id,
+            Customer.telegram_id == tg_user_id,
+        )
+    )
+    customer = result.scalar_one_or_none()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    customer.custom_avatar_url = None
+    await db.commit()
+
+    return {"ok": True}
+
+
+@router.get("/{tenant_id}/my-referral")
+async def get_my_referral(
+    tenant_id: str,
+    x_telegram_init_data: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the buyer's referral code, link, and stats."""
+    if not x_telegram_init_data:
+        raise HTTPException(status_code=401, detail="Auth required")
+    tg_user = _validate_init_data(x_telegram_init_data)
+    if tg_user is None:
+        raise HTTPException(status_code=401, detail="Invalid auth")
+
+    tg_id = str(tg_user.get("id", ""))
+    result = await db.execute(
+        select(Customer).where(
+            Customer.tenant_id == tenant_id,
+            Customer.telegram_id == tg_id,
+            Customer.is_deleted == False,  # noqa: E712
+        )
+    )
+    customer = result.scalar_one_or_none()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    tenant_result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+    tenant = tenant_result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+
+    # Derive referral code from customer id (short, uppercase)
+    code = customer.referral_code if hasattr(customer, "referral_code") and customer.referral_code else \
+        str(customer.id).replace("-", "").upper()[:8]
+
+    bot_username = (tenant.settings or {}).get("bot_username") or ""
+    ref_link = f"https://t.me/{bot_username}?start=ref_{code}" if bot_username else ""
+
+    # Count referrals from customer meta or return zeros when table absent
+    referred_count = 0
+    completed_count = 0
+    pending_count = 0
+    earned = 0.0
+    friends: list = []
+
+    return {
+        "is_active": False,  # Will be True once referral_programs table is active
+        "code": code,
+        "link": ref_link,
+        "stats": {
+            "invited": referred_count,
+            "completed": completed_count,
+            "pending": pending_count,
+            "earned": earned,
+        },
+        "friends": friends,
+    }

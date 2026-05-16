@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -243,6 +243,194 @@ function ChannelGateScreen({ channel, tenantId, onUnlock }: { channel: string; t
   )
 }
 
+// ─── AI Consultant ───────────────────────────────────────────────────────────
+
+type ChatMsg = { role: 'user' | 'assistant'; content: string }
+
+function AiConsultantView({ tenantId, onClose }: { tenantId: string; onClose: () => void }) {
+  const [messages, setMessages] = useState<ChatMsg[]>([])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const suggestions = ['Что новенького?', 'Хиты продаж', 'Гид по размерам']
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, loading])
+
+  async function sendMessage(text: string) {
+    const trimmed = text.trim()
+    if (!trimmed || loading) return
+    const userMsg: ChatMsg = { role: 'user', content: trimmed }
+    const next = [...messages, userMsg]
+    setMessages(next)
+    setInput('')
+    setLoading(true)
+    try {
+      const res = await api.aiChat(tenantId, next)
+      setMessages([...next, { role: 'assistant', content: res.reply }])
+    } catch {
+      setMessages([...next, { role: 'assistant', content: 'Извините, не удалось получить ответ. Попробуйте позже.' }])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 100,
+      background: 'var(--bg)', display: 'flex', flexDirection: 'column',
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 12,
+        padding: '12px 16px', borderBottom: '1px solid var(--border)',
+        background: 'var(--bg)', flexShrink: 0,
+      }}>
+        <button
+          onClick={onClose}
+          style={{
+            width: 36, height: 36, borderRadius: 999, border: 'none',
+            background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', flexShrink: 0,
+          }}
+        >
+          <Icon name="arrowLeft" size={18} color="var(--ink)" />
+        </button>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>
+            AI Консультант
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--muted)' }}>Онлайн · Отвечает мгновенно</div>
+        </div>
+        <div style={{
+          width: 36, height: 36, borderRadius: 999, background: 'var(--accent)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <span style={{ fontSize: 18 }}>🤖</span>
+        </div>
+      </div>
+
+      {/* Messages area */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Welcome message */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 999, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ fontSize: 16 }}>🤖</span>
+          </div>
+          <div style={{
+            maxWidth: '80%', padding: '10px 14px', borderRadius: '12px 12px 12px 4px',
+            background: 'var(--card)', border: '1px solid var(--border)',
+            fontSize: 14, color: 'var(--ink)', lineHeight: 1.5,
+          }}>
+            Привет! Я ваш AI-помощник. Спрашивайте о товарах!
+          </div>
+        </div>
+
+        {/* Suggestion chips (only when no messages sent yet) */}
+        {messages.length === 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingLeft: 40 }}>
+            {suggestions.map(s => (
+              <button
+                key={s}
+                onClick={() => sendMessage(s)}
+                style={{
+                  padding: '7px 14px', borderRadius: 999, fontSize: 13, fontWeight: 600,
+                  background: 'var(--accent-soft)', color: 'var(--accent)',
+                  border: '1px solid var(--accent)', cursor: 'pointer',
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Chat messages */}
+        {messages.map((m, i) => (
+          <div key={i} style={{
+            display: 'flex', gap: 8, alignItems: 'flex-start',
+            flexDirection: m.role === 'user' ? 'row-reverse' : 'row',
+          }}>
+            {m.role === 'assistant' && (
+              <div style={{ width: 32, height: 32, borderRadius: 999, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontSize: 16 }}>🤖</span>
+              </div>
+            )}
+            <div style={{
+              maxWidth: '80%', padding: '10px 14px', fontSize: 14, lineHeight: 1.5,
+              borderRadius: m.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px',
+              background: m.role === 'user' ? 'var(--accent)' : 'var(--card)',
+              color: m.role === 'user' ? 'white' : 'var(--ink)',
+              border: m.role === 'user' ? 'none' : '1px solid var(--border)',
+            }}>
+              {m.content}
+            </div>
+          </div>
+        ))}
+
+        {/* Loading indicator */}
+        {loading && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <div style={{ width: 32, height: 32, borderRadius: 999, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ fontSize: 16 }}>🤖</span>
+            </div>
+            <div style={{
+              padding: '12px 16px', borderRadius: '12px 12px 12px 4px',
+              background: 'var(--card)', border: '1px solid var(--border)',
+              display: 'flex', gap: 4, alignItems: 'center',
+            }}>
+              {[0, 1, 2].map(i => (
+                <div key={i} style={{
+                  width: 7, height: 7, borderRadius: 999, background: 'var(--muted)',
+                  animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
+                }} />
+              ))}
+              <style>{`@keyframes bounce { 0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)} }`}</style>
+            </div>
+          </div>
+        )}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input bar */}
+      <div style={{
+        padding: '12px 16px', borderTop: '1px solid var(--border)',
+        background: 'var(--bg)', display: 'flex', gap: 8, alignItems: 'flex-end',
+        flexShrink: 0, paddingBottom: `calc(12px + env(safe-area-inset-bottom))`,
+      }}>
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input) } }}
+          placeholder="Напишите вопрос..."
+          style={{
+            flex: 1, padding: '10px 14px', borderRadius: 12, fontSize: 14,
+            border: '1.5px solid var(--border)', background: 'var(--card)',
+            color: 'var(--ink)', outline: 'none', resize: 'none',
+          }}
+        />
+        <button
+          onClick={() => sendMessage(input)}
+          disabled={!input.trim() || loading}
+          style={{
+            width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+            background: input.trim() && !loading ? 'var(--accent)' : 'var(--subtle)',
+            border: 'none', cursor: input.trim() && !loading ? 'pointer' : 'default',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'background 0.15s',
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={input.trim() && !loading ? 'white' : 'var(--muted)'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ─── ShopApp ─────────────────────────────────────────────────────────────────
 
 /**
@@ -258,6 +446,7 @@ function ShopApp() {
   const [showCheckout, setShowCheckout] = useState(false)
   const [gateUnlocked, setGateUnlocked] = useState(false)
   const [catalogInitCat, setCatalogInitCat] = useState<string | undefined>(undefined)
+  const [showAiConsultant, setShowAiConsultant] = useState(false)
 
   const cartCount = useCart((s) => s.count)()
 
@@ -314,6 +503,11 @@ function ShopApp() {
     setCatalogInitCat(category)
     setProductId(null)
     setTab('catalog')
+  }
+
+  // AI Consultant overlay
+  if (showAiConsultant) {
+    return <AiConsultantView tenantId={shop.id} onClose={() => setShowAiConsultant(false)} />
   }
 
   // Checkout flow (full screen, no tabs)
@@ -385,6 +579,30 @@ function ShopApp() {
           />
         )}
       </div>
+
+      {/* AI Consultant floating button — Premium feature */}
+      {shop.settings?.ai_consultant_enabled && (
+        <button
+          onClick={() => setShowAiConsultant(true)}
+          style={{
+            position: 'fixed',
+            bottom: `calc(76px + env(safe-area-inset-bottom))`,
+            right: 16,
+            width: 52, height: 52,
+            borderRadius: 999,
+            background: 'var(--accent)',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 30,
+          }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </button>
+      )}
 
       <BottomNav tab={tab} onTab={handleTabChange} cartCount={cartCount} />
     </div>

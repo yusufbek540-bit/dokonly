@@ -23,7 +23,10 @@ const STATUSES = [
   { id: 'shipping', label: 'Доставка', next: 'delivered' },
   { id: 'delivered', label: 'Доставлено', next: 'completed' },
   { id: 'completed', label: 'Завершено', next: null },
+  { id: 'archive', label: 'Архив', next: null },
 ]
+
+const ARCHIVE_STATUSES = ['completed', 'cancelled']
 
 const STATUS_COLORS: Record<string, string> = {
   new: '#3B82F6', confirmed: '#8B5CF6', shipping: '#F59E0B',
@@ -65,6 +68,8 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
 }) {
   const [note, setNote] = useState<string>(order.seller_note ?? '')
   const [noteSaved, setNoteSaved] = useState(false)
+  const [showPicking, setShowPicking] = useState(false)
+  const [pickedItems, setPickedItems] = useState<Set<number>>(new Set())
 
   const advanceMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
@@ -145,6 +150,19 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
                 }}
               >
                 💬 Написать
+              </button>
+            )}
+            {(order.items ?? []).length > 0 && (
+              <button
+                onClick={() => setShowPicking(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '7px 12px', borderRadius: 999,
+                  background: 'var(--subtle)', border: '1px solid var(--border)',
+                  fontSize: 13, fontWeight: 500, color: 'var(--ink)',
+                }}
+              >
+                📋 Чеклист сборки
               </button>
             )}
           </div>
@@ -334,11 +352,97 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
           </button>
         </div>
       )}
+
+      {/* Picking checklist modal */}
+      {showPicking && (
+        <div
+          onClick={() => setShowPicking(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', maxHeight: '80vh', overflow: 'auto' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)' }} />
+            </div>
+            <div style={{ padding: '12px 20px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>
+                📋 Чеклист сборки
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+                Отмечайте товары по мере сборки заказа
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                {(order.items ?? []).map((item: any, idx: number, arr: any[]) => {
+                  const picked = pickedItems.has(idx)
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => setPickedItems(prev => {
+                        const next = new Set(prev)
+                        if (next.has(idx)) next.delete(idx)
+                        else next.add(idx)
+                        return next
+                      })}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '13px 16px', background: picked ? 'var(--accent-soft)' : 'var(--card)',
+                        borderBottom: idx < arr.length - 1 ? '1px solid var(--border)' : 'none',
+                        cursor: 'pointer', transition: 'background 0.15s',
+                      }}
+                    >
+                      <div style={{
+                        width: 24, height: 24, borderRadius: 6, flexShrink: 0,
+                        border: `2px solid ${picked ? 'var(--accent)' : 'var(--border)'}`,
+                        background: picked ? 'var(--accent)' : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {picked && (
+                          <svg width="13" height="13" viewBox="0 0 12 12" fill="none">
+                            <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{
+                          fontSize: 14, fontWeight: 500, color: 'var(--ink)',
+                          textDecoration: picked ? 'line-through' : 'none',
+                          opacity: picked ? 0.6 : 1,
+                        }}>
+                          {item.product_name}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
+                          {item.quantity} шт.{item.size ? ` · ${item.size}` : ''}{item.color ? ` · ${item.color}` : ''}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center' }}>
+                {pickedItems.size} из {(order.items ?? []).length} собрано
+              </div>
+              {pickedItems.size === (order.items ?? []).length && (order.items ?? []).length > 0 && (
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#10B981', textAlign: 'center' }}>
+                  ✓ Все товары собраны!
+                </div>
+              )}
+              <button
+                onClick={() => setShowPicking(false)}
+                style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15 }}
+              >
+                Готово
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function OrderCard({ order, currency, onAdvance, onCancel, onTap }: { order: any; currency: string; onAdvance: () => void; onCancel: () => void; onTap: () => void }) {
+function OrderCard({ order, currency, onAdvance, onCancel, onTap }: { order: any; currency: string; onAdvance: () => void; onCancel: (reason?: string) => void; onTap: () => void }) {
   const statusDef = STATUSES.find(s => s.id === order.status)
   const canAdvance = !!statusDef?.next
   const canCancel = order.status !== 'cancelled' && order.status !== 'completed' && order.status !== 'delivered'
@@ -346,6 +450,7 @@ function OrderCard({ order, currency, onAdvance, onCancel, onTap }: { order: any
   const [swipeX, setSwipeX] = useState(0)
   const [swiped, setSwiped] = useState(false)
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [cancelReason, setCancelReason] = useState('')
 
   const THRESHOLD = 80
 
@@ -478,18 +583,30 @@ function OrderCard({ order, currency, onAdvance, onCancel, onTap }: { order: any
           <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 8 }}>
             Отменить заказ?
           </div>
-          <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 20 }}>
+          <div style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 14 }}>
             Заказ #{order.id.slice(0, 8).toUpperCase()} будет отменён. Это действие нельзя отменить.
           </div>
+          <textarea
+            value={cancelReason}
+            onChange={e => setCancelReason(e.target.value)}
+            placeholder="Причина отмены (необязательно)"
+            rows={2}
+            style={{
+              width: '100%', borderRadius: 12, border: '1px solid var(--border)',
+              padding: '10px 12px', fontSize: 14, color: 'var(--ink)',
+              background: 'var(--card)', resize: 'none', outline: 'none',
+              marginBottom: 14, boxSizing: 'border-box',
+            }}
+          />
           <div style={{ display: 'flex', gap: 10 }}>
             <button
-              onClick={() => setShowCancelConfirm(false)}
+              onClick={() => { setShowCancelConfirm(false); setCancelReason('') }}
               style={{ flex: 1, height: 48, borderRadius: 14, background: 'var(--subtle)', fontWeight: 600, fontSize: 15 }}
             >
               Назад
             </button>
             <button
-              onClick={() => { setShowCancelConfirm(false); onCancel() }}
+              onClick={() => { setShowCancelConfirm(false); onCancel(cancelReason); setCancelReason('') }}
               style={{ flex: 1, height: 48, borderRadius: 14, background: '#EF4444', color: 'white', fontWeight: 700, fontSize: 15 }}
             >
               Отменить заказ
@@ -519,13 +636,26 @@ export function OrdersTab({ tenant }: Props) {
   })
 
   const cancelMutation = useMutation({
-    mutationFn: (id: string) => api.seller.updateOrderStatus(id, 'cancelled'),
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      api.seller.updateOrderStatus(id, 'cancelled').then(async r => {
+        if (reason?.trim()) await api.seller.updateOrderNote(id, reason.trim())
+        return r
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['seller-orders'] }),
   })
 
-  const filteredOrders = orders.filter((o: any) => o.status === activeStatus)
+  const filteredOrders = orders.filter((o: any) =>
+    activeStatus === 'archive'
+      ? ARCHIVE_STATUSES.includes(o.status)
+      : o.status === activeStatus
+  )
   const countsByStatus = Object.fromEntries(
-    STATUSES.map(s => [s.id, orders.filter((o: any) => o.status === s.id).length])
+    STATUSES.map(s => [
+      s.id,
+      s.id === 'archive'
+        ? orders.filter((o: any) => ARCHIVE_STATUSES.includes(o.status)).length
+        : orders.filter((o: any) => o.status === s.id).length,
+    ])
   )
 
   if (selectedOrder) {
@@ -590,7 +720,7 @@ export function OrdersTab({ tenant }: Props) {
                 order={o}
                 currency={tenant.currency}
                 onAdvance={() => statusDef?.next && advanceMutation.mutate({ id: o.id, status: statusDef.next })}
-                onCancel={() => cancelMutation.mutate(o.id)}
+                onCancel={(reason) => cancelMutation.mutate({ id: o.id, reason })}
                 onTap={() => setSelectedOrder(o)}
               />
             )

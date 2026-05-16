@@ -180,6 +180,20 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
   const [reviewDone, setReviewDone] = useState(false)
   const [screenshotUploading, setScreenshotUploading] = useState(false)
   const [screenshotDone, setScreenshotDone] = useState(false)
+  const [showReturnWizard, setShowReturnWizard] = useState(false)
+  const [returnReason, setReturnReason] = useState('')
+  const [returnDesc, setReturnDesc] = useState('')
+  const [returnSubmitted, setReturnSubmitted] = useState(false)
+  const qcReturn = useQueryClient()
+
+  const returnMutation = useMutation({
+    mutationFn: () => api.createReturn(tenantId, { order_id: order.id, reason: returnReason, description: returnDesc }),
+    onSuccess: () => {
+      setReturnSubmitted(true)
+      setShowReturnWizard(false)
+      qcReturn.invalidateQueries({ queryKey: ['my-returns', tenantId] })
+    },
+  })
 
   const qc = useQueryClient()
 
@@ -324,6 +338,11 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
                 {DELIVERY_LABELS[order.delivery_type] ?? order.delivery_type}
               </div>
+              {order.delivery_address && (
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3, lineHeight: 1.4 }}>
+                  {order.delivery_address}
+                </div>
+              )}
             </div>
           )}
           {order.payment_method && (
@@ -337,6 +356,12 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>
                 {PAYMENT_LABELS[order.payment_method] ?? order.payment_method}
               </div>
+              {order.payment_status === 'paid' && (
+                <div style={{ fontSize: 12, color: '#16a34a', marginTop: 3, fontWeight: 500 }}>✓ Оплачено</div>
+              )}
+              {order.payment_status === 'pending' && (
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>Ожидает оплаты</div>
+              )}
             </div>
           )}
         </div>
@@ -551,21 +576,12 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
           )}
 
           {/* Return request — only within 14-day window */}
-          {order.status === 'completed' && (() => {
+          {order.status === 'completed' && !returnSubmitted && (() => {
             const daysSince = (Date.now() - new Date(order.created_at).getTime()) / (1000 * 60 * 60 * 24)
             return daysSince <= 14
           })() && (
             <button
-              onClick={() => {
-                const tg = (window as any).Telegram?.WebApp
-                const handle = shop?.contact_info?.telegram?.replace('@', '')
-                const orderRef = '#' + (order.id ?? '').slice(0, 8).toUpperCase()
-                if (handle) {
-                  const msg = encodeURIComponent(`Хочу оформить возврат по заказу ${orderRef}`)
-                  const url = `https://t.me/${handle}?text=${msg}`
-                  tg?.openTelegramLink?.(url) ?? window.open(url, '_blank')
-                }
-              }}
+              onClick={() => { setReturnReason(''); setReturnDesc(''); setShowReturnWizard(true) }}
               style={{
                 height: 46, borderRadius: 12,
                 background: 'transparent', border: '1.5px solid var(--muted)',
@@ -575,6 +591,11 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
             >
               <span>🔄</span> Запросить возврат
             </button>
+          )}
+          {returnSubmitted && (
+            <div style={{ padding: '12px 16px', borderRadius: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent)', fontSize: 14, fontWeight: 600, color: 'var(--accent)', textAlign: 'center' }}>
+              ✓ Заявка на возврат отправлена
+            </div>
           )}
 
           {/* Rate order */}
@@ -603,6 +624,32 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
               {'⭐'.repeat(order.meta?.review_rating ?? 5)} Отзыв оставлен
             </div>
           )}
+
+          {/* Loyalty earned */}
+          {(order.meta?.loyalty_points_earned || order.meta?.cashback_earned) && (
+            <div style={{
+              padding: '12px 16px', borderRadius: 12,
+              background: 'var(--subtle)', border: '1px solid var(--border)',
+              display: 'flex', alignItems: 'center', gap: 10,
+              fontSize: 13,
+            }}>
+              <span style={{ fontSize: 20 }}>🎁</span>
+              <div>
+                <span style={{ fontWeight: 600, color: 'var(--ink)' }}>Начислено за заказ: </span>
+                {order.meta?.loyalty_points_earned && (
+                  <span style={{ color: 'var(--accent)', fontWeight: 700 }}>
+                    +{Number(order.meta.loyalty_points_earned).toLocaleString()} баллов
+                  </span>
+                )}
+                {order.meta?.loyalty_points_earned && order.meta?.cashback_earned && <span style={{ color: 'var(--muted)' }}> · </span>}
+                {order.meta?.cashback_earned && (
+                  <span style={{ color: '#10B981', fontWeight: 700 }}>
+                    +{fmtPrice(Number(order.meta.cashback_earned), currency)} кэшбэк
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -612,6 +659,174 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
           onClose={() => setShowReview(false)}
         />
       )}
+
+      {showReturnWizard && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'flex-end' }}>
+          <div style={{ width: '100%', background: 'var(--card)', borderRadius: '20px 20px 0 0', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>Запрос на возврат</span>
+              <button onClick={() => setShowReturnWizard(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
+            </div>
+            <div>
+              <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10 }}>Причина возврата</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {['Брак / дефект', 'Не соответствует описанию', 'Передумал(а)', 'Не подошёл размер', 'Пришло не то'].map(r => (
+                  <button
+                    key={r}
+                    onClick={() => setReturnReason(r)}
+                    style={{
+                      padding: '11px 14px', borderRadius: 12, textAlign: 'left',
+                      background: returnReason === r ? 'var(--accent-soft)' : 'var(--subtle)',
+                      border: `1.5px solid ${returnReason === r ? 'var(--accent)' : 'var(--border)'}`,
+                      color: returnReason === r ? 'var(--accent)' : 'var(--ink)',
+                      fontWeight: returnReason === r ? 600 : 400, fontSize: 14, cursor: 'pointer',
+                    }}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <textarea
+              placeholder="Опишите проблему подробнее (необязательно)..."
+              value={returnDesc}
+              onChange={e => setReturnDesc(e.target.value)}
+              rows={3}
+              style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--subtle)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)', resize: 'none', fontFamily: 'inherit' }}
+            />
+            {returnMutation.isError && (
+              <p style={{ fontSize: 13, color: 'var(--danger)' }}>Ошибка. Попробуйте ещё раз.</p>
+            )}
+            <button
+              onClick={() => returnMutation.mutate()}
+              disabled={!returnReason || returnMutation.isPending}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 16, border: 'none', cursor: 'pointer', opacity: (!returnReason || returnMutation.isPending) ? 0.6 : 1 }}
+            >
+              {returnMutation.isPending ? 'Отправляем...' : 'Отправить заявку'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── HelpFAQView ──────────────────────────────────────────────────────────────
+
+function HelpFAQView({ shop, tenantId, onBack }: { shop: any; tenantId: string; onBack: () => void }) {
+  const [search, setSearch] = useState('')
+  const [selected, setSelected] = useState<any>(null)
+
+  const { data: articles = [], isLoading } = useQuery({
+    queryKey: ['help-articles'],
+    queryFn: () => api.getHelpArticles(),
+    retry: false,
+  })
+
+  const filtered = (articles as any[]).filter(a =>
+    !search || a.title?.toLowerCase().includes(search.toLowerCase()) || a.content?.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const byCategory: Record<string, any[]> = {}
+  for (const a of filtered) {
+    const cat = a.category ?? 'Общее'
+    byCategory[cat] = byCategory[cat] ?? []
+    byCategory[cat].push(a)
+  }
+
+  if (selected) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '100vh', background: 'var(--bg)' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--bg)', borderBottom: '1px solid var(--border)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M13 4l-6 6 6 6" stroke="var(--ink)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </button>
+          <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 15, color: 'var(--ink)', flex: 1 }}>{selected.title}</span>
+        </div>
+        <div style={{ padding: '16px 16px 100px', flex: 1, fontSize: 14, color: 'var(--ink)', lineHeight: 1.7 }}>
+          <p style={{ whiteSpace: 'pre-wrap' }}>{selected.content}</p>
+          <div style={{ marginTop: 32, padding: '16px', borderRadius: 14, background: 'var(--subtle)', border: '1px solid var(--border)', textAlign: 'center' }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>Не нашли ответ?</div>
+            <button
+              onClick={() => {
+                const tg = (window as any).Telegram?.WebApp
+                if (shop?.contact_info?.telegram) {
+                  tg?.openTelegramLink?.(`https://t.me/${shop.contact_info.telegram.replace('@', '')}`)
+                } else if (shop?.bot_username) {
+                  tg?.openTelegramLink?.(`https://t.me/${shop.bot_username}`)
+                }
+              }}
+              style={{ padding: '10px 20px', borderRadius: 10, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer' }}
+            >
+              Написать продавцу
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '100vh', background: 'var(--bg)' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--bg)', borderBottom: '1px solid var(--border)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M13 4l-6 6 6 6" stroke="var(--ink)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </button>
+        <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', flex: 1 }}>Помощь и FAQ</span>
+      </div>
+      <div style={{ padding: '12px 16px 0' }}>
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Поиск по статьям..."
+          style={{ width: '100%', padding: '10px 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)', boxSizing: 'border-box' }}
+        />
+      </div>
+      <div style={{ flex: 1, padding: '12px 16px 100px' }}>
+        {isLoading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
+            <div style={{ width: 24, height: 24, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+          </div>
+        ) : filtered.length === 0 ? (
+          <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--muted)', padding: '40px 0' }}>Статьи не найдены</p>
+        ) : (
+          Object.entries(byCategory).map(([cat, items]) => (
+            <div key={cat} style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>{cat}</div>
+              <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                {items.map((article: any, i: number, arr: any[]) => (
+                  <button
+                    key={article.id}
+                    onClick={() => setSelected(article)}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', background: 'var(--card)', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', textAlign: 'left' }}
+                  >
+                    <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{article.title}</span>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="var(--muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+
+        <div style={{ marginTop: 24, padding: '16px', borderRadius: 14, background: 'var(--subtle)', border: '1px solid var(--border)', textAlign: 'center' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>Не нашли ответ?</div>
+          <button
+            onClick={() => {
+              const tg = (window as any).Telegram?.WebApp
+              if (shop?.contact_info?.telegram) {
+                tg?.openTelegramLink?.(`https://t.me/${shop.contact_info.telegram.replace('@', '')}`)
+              } else if (shop?.bot_username) {
+                tg?.openTelegramLink?.(`https://t.me/${shop.bot_username}`)
+              }
+            }}
+            style={{ padding: '10px 20px', borderRadius: 10, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer' }}
+          >
+            Написать продавцу
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -683,6 +898,25 @@ function PrivacyView({ tenantId, onBack }: { tenantId: string; onBack: () => voi
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4, lineHeight: 1.5 }}>
             Все данные хранятся на защищённых серверах Dokonly и не передаются третьим лицам.
           </div>
+        </div>
+
+        {/* Legal links */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 20 }}>
+          {[
+            { label: 'Условия использования', url: 'https://dokonly.com/terms' },
+            { label: 'Политика конфиденциальности', url: 'https://dokonly.com/privacy' },
+          ].map(({ label, url }) => (
+            <button
+              key={url}
+              onClick={() => {
+                const tg = (window as any).Telegram?.WebApp
+                tg?.openLink?.(url) ?? window.open(url, '_blank')
+              }}
+              style={{ fontSize: 12, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Delete profile */}
@@ -944,10 +1178,12 @@ function AboutStore({ shop, currency, tenantId, onBack }: { shop: any; currency:
           </div>
         )}
 
-        {/* Powered by footer */}
-        <div style={{ textAlign: 'center', marginTop: 32, fontSize: 12, color: 'var(--muted)' }}>
-          Работает на <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Dokonly</span>
-        </div>
+        {/* Powered by footer — only for Старт plan */}
+        {shop.settings?.show_dokonly_branding && (
+          <div style={{ textAlign: 'center', marginTop: 32, fontSize: 12, color: 'var(--muted)' }}>
+            Работает на <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Dokonly</span>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -972,6 +1208,8 @@ function EditProfile({ tenantId, onBack }: { tenantId: string; onBack: () => voi
   const [birthday, setBirthday] = useState('')
   const [savedAddress, setSavedAddress] = useState('')
   const [saved, setSaved] = useState(false)
+  const [customAvatarUrl, setCustomAvatarUrl] = useState<string | null>(null)
+  const [avatarUploading, setAvatarUploading] = useState(false)
 
   useEffect(() => {
     if (profile) {
@@ -982,6 +1220,7 @@ function EditProfile({ tenantId, onBack }: { tenantId: string; onBack: () => voi
       setEmail(profile.email || '')
       setBirthday(profile.birthday || '')
       setSavedAddress(profile.saved_address || '')
+      setCustomAvatarUrl(profile.custom_avatar_url || null)
     }
   }, [profile])
 
@@ -1048,20 +1287,72 @@ function EditProfile({ tenantId, onBack }: { tenantId: string; onBack: () => voi
       ) : (
         <>
           <div className="screen-scroll" style={{ flex: 1, paddingBottom: 100 }}>
-            {/* Avatar placeholder */}
+            {/* Avatar with upload */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '24px 16px 8px' }}>
-              {tgUser?.photo_url ? (
-                <img src={tgUser.photo_url} alt="" style={{ width: 72, height: 72, borderRadius: 999, objectFit: 'cover' }} />
-              ) : (
+              <label style={{ position: 'relative', cursor: 'pointer', display: 'block' }}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setAvatarUploading(true)
+                    try {
+                      const result = await api.uploadBuyerAvatar(tenantId, file)
+                      setCustomAvatarUrl(result.url)
+                      qc.invalidateQueries({ queryKey: ['my-profile', tenantId] })
+                    } catch {
+                      // ignore upload errors
+                    } finally {
+                      setAvatarUploading(false)
+                    }
+                  }}
+                />
+                {customAvatarUrl ? (
+                  <img src={customAvatarUrl} alt="" style={{ width: 80, height: 80, borderRadius: 999, objectFit: 'cover' }} />
+                ) : tgUser?.photo_url ? (
+                  <img src={tgUser.photo_url} alt="" style={{ width: 80, height: 80, borderRadius: 999, objectFit: 'cover' }} />
+                ) : (
+                  <div style={{
+                    width: 80, height: 80, borderRadius: 999, background: 'var(--accent)', color: 'white',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Sora', fontWeight: 700, fontSize: 28,
+                  }}>
+                    {(firstName[0] || tgUser?.first_name?.[0] || 'П').toUpperCase()}
+                  </div>
+                )}
+                {/* Camera overlay */}
                 <div style={{
-                  width: 72, height: 72, borderRadius: 999, background: 'var(--accent)', color: 'white',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Sora', fontWeight: 700, fontSize: 26,
+                  position: 'absolute', bottom: 0, right: 0,
+                  width: 28, height: 28, borderRadius: 999,
+                  background: avatarUploading ? 'var(--border)' : 'var(--accent)',
+                  border: '2px solid var(--bg)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  {(firstName[0] || tgUser?.first_name?.[0] || 'П').toUpperCase()}
+                  {avatarUploading ? (
+                    <div style={{ width: 12, height: 12, borderRadius: 999, border: '2px solid white', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }}/>
+                  ) : (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                      <circle cx="12" cy="13" r="4"/>
+                    </svg>
+                  )}
                 </div>
-              )}
+              </label>
               {tgUser?.username && (
                 <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 8 }}>@{tgUser.username}</div>
+              )}
+              {customAvatarUrl && (
+                <button
+                  onClick={async () => {
+                    await api.resetBuyerAvatar(tenantId)
+                    setCustomAvatarUrl(null)
+                    qc.invalidateQueries({ queryKey: ['my-profile', tenantId] })
+                  }}
+                  style={{ marginTop: 6, fontSize: 12, color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                  Сбросить к Telegram
+                </button>
               )}
             </div>
 
@@ -1224,12 +1515,379 @@ const ORDER_TABS: { id: OrderTabId; label: string; statuses: string[] | null }[]
   { id: 'returns',   label: 'Возвраты',    statuses: [] },
 ]
 
+// ── LoyaltyPage ───────────────────────────────────────────────────────────────
+const TIERS = [
+  { id: 'bronze',   label: '🥉 Bronze',   icon: '🥉', minPts: 0,    maxPts: 1000, cashback: 1 },
+  { id: 'silver',   label: '🥈 Silver',   icon: '🥈', minPts: 1000, maxPts: 3000, cashback: 2 },
+  { id: 'gold',     label: '🥇 Gold',     icon: '🥇', minPts: 3000, maxPts: 7000, cashback: 3 },
+  { id: 'platinum', label: '💎 Platinum', icon: '💎', minPts: 7000, maxPts: Infinity, cashback: 5 },
+]
+
+function LoyaltyPage({ tenantId, currency, onBack }: { tenantId: string; currency: string; onBack: () => void }) {
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['my-profile', tenantId],
+    queryFn: () => api.getMyProfile(tenantId),
+    retry: false,
+  })
+
+  const points: number = (profile as any)?.loyalty_points ?? 0
+  const cashbackBalance: number = (profile as any)?.cashback_balance ?? 0
+
+  const currentTierIdx = TIERS.findIndex((t, i) =>
+    points >= t.minPts && (i === TIERS.length - 1 || points < TIERS[i + 1].minPts)
+  )
+  const tierIdx = Math.max(0, currentTierIdx)
+  const tier = TIERS[tierIdx]
+  const nextTier = TIERS[tierIdx + 1]
+  const pct = nextTier
+    ? Math.round(((points - tier.minPts) / (nextTier.minPts - tier.minPts)) * 100)
+    : 100
+
+  function fmtAmt(n: number) {
+    if (currency === 'UZS') return n.toLocaleString() + ' сум'
+    return n.toLocaleString() + ' ' + currency
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, background: 'var(--bg)' }}>
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 10,
+        background: 'var(--bg)', borderBottom: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+      }}>
+        <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 999, background: 'var(--subtle)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+          <Icon name="arrowLeft" size={18} color="var(--ink)" />
+        </button>
+        <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)' }}>
+          Программа лояльности
+        </span>
+      </div>
+
+      {isLoading && (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 28, height: 28, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+        </div>
+      )}
+
+      {!isLoading && (
+        <div className="screen-scroll" style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Tier card */}
+          <div style={{
+            borderRadius: 20, padding: '20px',
+            background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 70%, black) 100%)',
+            color: 'white',
+          }}>
+            <div style={{ fontSize: 30, marginBottom: 4 }}>{tier.icon}</div>
+            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 20, marginBottom: 2 }}>{tier.label}</div>
+            <div style={{ fontSize: 28, fontFamily: 'JetBrains Mono', fontWeight: 700, marginBottom: 4 }}>
+              {points.toLocaleString()} баллов
+            </div>
+            {cashbackBalance > 0 && (
+              <div style={{ fontSize: 14, opacity: 0.9, marginBottom: 10 }}>
+                {fmtAmt(cashbackBalance)} кэшбэк-баланс
+              </div>
+            )}
+            {nextTier && (
+              <>
+                <div style={{ height: 6, borderRadius: 999, background: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>
+                  <div style={{ height: '100%', width: `${pct}%`, borderRadius: 999, background: 'white', transition: 'width 0.4s' }} />
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.85 }}>
+                  Ещё {(nextTier.minPts - points).toLocaleString()} баллов до {nextTier.label}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Earning methods */}
+          <div style={{ borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)', padding: '16px' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+              Как заработать
+            </div>
+            {[
+              { icon: '🛍', text: '1 балл за каждые 100 сум покупок' },
+              { icon: '🎂', text: 'Бонус в день рождения' },
+              { icon: '🎁', text: 'Пригласите друга — получите баллы' },
+              { icon: '⭐', text: 'Оставьте отзыв после заказа' },
+            ].map((item, i) => (
+              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: i < 3 ? 10 : 0 }}>
+                <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
+                <span style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.4 }}>{item.text}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Tier benefits */}
+          <div style={{ borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)', padding: '16px' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+              Привилегии по уровням
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 0, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)' }}>
+              {TIERS.map((t, idx) => (
+                <div key={t.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '12px 14px',
+                  background: t.id === tier.id ? 'var(--accent-soft)' : 'var(--card)',
+                  borderBottom: idx < TIERS.length - 1 ? '1px solid var(--border)' : 'none',
+                }}>
+                  <span style={{ fontSize: 20, flexShrink: 0 }}>{t.icon}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: t.id === tier.id ? 'var(--accent)' : 'var(--ink)' }}>
+                      {t.label}
+                      {t.id === tier.id && <span style={{ fontSize: 11, marginLeft: 6, opacity: 0.7 }}>← вы здесь</span>}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
+                      {t.cashback}% кэшбэк{t.id === 'silver' ? ' + бесплатная доставка' : t.id === 'gold' ? ' + приоритетная поддержка' : t.id === 'platinum' ? ' + ранний доступ' : ''}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer info */}
+          <div style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--subtle)', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5, textAlign: 'center' }}>
+              ℹ Баллы действуют 12 месяцев с момента начисления.
+              Кэшбэк можно использовать при оформлении следующего заказа.
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── ReferralPage ──────────────────────────────────────────────────────────────
+function ReferralPage({ tenantId, currency, onBack }: { tenantId: string; currency: string; onBack: () => void }) {
+  const [codeCopied, setCodeCopied] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['my-referral', tenantId],
+    queryFn: () => api.getMyReferral(tenantId),
+    retry: false,
+  })
+
+  function fmtAmt(n: number) {
+    if (currency === 'UZS') return n.toLocaleString() + ' сум'
+    return n.toLocaleString() + ' ' + currency
+  }
+
+  function copyText(text: string, setCopied: (b: boolean) => void) {
+    navigator.clipboard.writeText(text).catch(() => {})
+    ;(window as any).Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('light')
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, background: 'var(--bg)' }}>
+      {/* Header */}
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 10,
+        background: 'var(--bg)', borderBottom: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+      }}>
+        <button onClick={onBack} style={{ width: 36, height: 36, borderRadius: 999, background: 'var(--subtle)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+          <Icon name="arrowLeft" size={18} color="var(--ink)" />
+        </button>
+        <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)' }}>
+          Пригласить друга
+        </span>
+      </div>
+
+      {isLoading && (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 28, height: 28, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+        </div>
+      )}
+
+      {!isLoading && data && (
+        <div className="screen-scroll" style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Hero banner */}
+          <div style={{ borderRadius: 20, background: 'var(--accent)', padding: '24px 20px', textAlign: 'center', color: 'white' }}>
+            <div style={{ fontSize: 36, marginBottom: 8 }}>🎁</div>
+            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 20, marginBottom: 6 }}>
+              Приглашайте друзей
+            </div>
+            <div style={{ fontSize: 14, opacity: 0.9, lineHeight: 1.5 }}>
+              Поделитесь своим кодом и получайте вознаграждение за каждого друга, совершившего первый заказ
+            </div>
+          </div>
+
+          {/* Referral code */}
+          <div style={{ borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)', padding: '16px' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+              Ваш реферальный код
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12, background: 'var(--subtle)', border: '1px solid var(--border)' }}>
+              <span style={{ flex: 1, fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 20, color: 'var(--ink)', letterSpacing: '0.1em' }}>
+                {data.code}
+              </span>
+              <button
+                onClick={() => copyText(data.code, setCodeCopied)}
+                style={{ padding: '8px 14px', borderRadius: 10, background: codeCopied ? '#10B981' : 'var(--accent)', color: 'white', fontSize: 13, fontWeight: 700 }}
+              >
+                {codeCopied ? '✓' : '📋 Скопировать'}
+              </button>
+            </div>
+          </div>
+
+          {/* Referral link */}
+          {data.link && (
+            <div style={{ borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)', padding: '16px' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+                Ваша ссылка
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ flex: 1, padding: '10px 12px', borderRadius: 10, background: 'var(--subtle)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--muted)', wordBreak: 'break-all' }}>
+                  {data.link}
+                </div>
+                <button
+                  onClick={() => copyText(data.link, setLinkCopied)}
+                  style={{ flexShrink: 0, padding: '8px 12px', borderRadius: 10, background: linkCopied ? '#10B981' : 'var(--subtle)', border: '1px solid var(--border)', color: linkCopied ? 'white' : 'var(--ink)', fontSize: 13, fontWeight: 700 }}
+                >
+                  {linkCopied ? '✓' : '📋'}
+                </button>
+              </div>
+              <button
+                onClick={() => {
+                  const tg = (window as any).Telegram?.WebApp
+                  const text = `Привет! Купи в этом магазине по моей ссылке: ${data.link}`
+                  if (tg?.switchInlineQuery) {
+                    tg.switchInlineQuery(text, ['users', 'groups'])
+                  } else {
+                    const url = `https://t.me/share/url?url=${encodeURIComponent(data.link)}&text=${encodeURIComponent('Привет! Купи в этом магазине по моей ссылке!')}`
+                    tg?.openLink?.(url) ?? window.open(url, '_blank')
+                  }
+                }}
+                style={{ width: '100%', marginTop: 12, height: 44, borderRadius: 12, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 14 }}
+              >
+                📤 Поделиться
+              </button>
+            </div>
+          )}
+
+          {/* Stats */}
+          <div style={{ borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)', padding: '16px' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
+              📊 Ваша статистика
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {[
+                { label: 'Приглашено', value: data.stats.invited },
+                { label: 'Совершили заказ', value: data.stats.completed },
+                { label: 'Ожидают', value: data.stats.pending },
+                { label: '💰 Заработано', value: fmtAmt(data.stats.earned), accent: true },
+              ].map(s => (
+                <div key={s.label} style={{ padding: '12px', borderRadius: 12, background: 'var(--subtle)', textAlign: 'center' }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: s.accent ? 'var(--accent)' : 'var(--ink)', fontFamily: 'JetBrains Mono' }}>
+                    {s.value}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Friends list */}
+          {data.friends.length > 0 && (
+            <div style={{ borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)', padding: '16px' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+                Приглашённые друзья
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {data.friends.map((f, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px', borderRadius: 10, background: 'var(--subtle)' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 999, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                      👤
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{f.name || 'Аноним'}</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>
+                        {f.status === 'completed' ? '✓ Заказал' : '⏳ Зарегистрирован'} · {f.date}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const LOCALE_LABELS: Record<string, string> = { ru: 'Русский', uz: "O'zbek", en: 'English' }
+
+function LanguageView({ tenantId, currentLocale, onBack }: { tenantId: string; currentLocale: string; onBack: () => void }) {
+  const [selected, setSelected] = useState(currentLocale || 'ru')
+  const [saving, setSaving] = useState(false)
+  const qc = useQueryClient()
+
+  async function handleSelect(locale: string) {
+    setSelected(locale)
+    setSaving(true)
+    try {
+      await api.updateMyProfile(tenantId, { locale })
+      qc.invalidateQueries({ queryKey: ['my-profile', tenantId] })
+    } catch { /* ignore */ } finally {
+      setSaving(false)
+    }
+    setTimeout(() => onBack(), 400)
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--bg)', borderBottom: '1px solid var(--border)', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <button onClick={onBack} style={{ width: 34, height: 34, borderRadius: 999, background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name="arrowLeft" size={18} color="var(--ink)" />
+        </button>
+        <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', flex: 1 }}>Язык</span>
+        {saving && <span style={{ fontSize: 12, color: 'var(--muted)' }}>Сохраняем...</span>}
+      </div>
+      <div className="screen-scroll" style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {(['ru', 'uz', 'en'] as const).map(locale => (
+          <button
+            key={locale}
+            onClick={() => handleSelect(locale)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+              padding: '16px', borderRadius: 14,
+              background: selected === locale ? 'var(--accent-soft)' : 'var(--card)',
+              border: `1.5px solid ${selected === locale ? 'var(--accent)' : 'var(--border)'}`,
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{ flex: 1, textAlign: 'left' }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: selected === locale ? 'var(--accent)' : 'var(--ink)' }}>
+                {LOCALE_LABELS[locale]}
+              </div>
+            </div>
+            {selected === locale && (
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                <path d="M4 10l5 5 8-8" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
   const [selectedOrder, setSelectedOrder] = useState<any>(null)
   const [showWishlist, setShowWishlist] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
   const [showEditProfile, setShowEditProfile] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
+  const [showLanguage, setShowLanguage] = useState(false)
+  const [showReferral, setShowReferral] = useState(false)
+  const [showLoyalty, setShowLoyalty] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
   const [orderTab, setOrderTab] = useState<OrderTabId>('active')
 
   const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user
@@ -1251,6 +1909,12 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['my-orders', tenantId],
     queryFn: () => api.getMyOrders(tenantId),
+    retry: false,
+  })
+
+  const { data: returns = [] } = useQuery({
+    queryKey: ['my-returns', tenantId],
+    queryFn: () => api.getMyReturns(tenantId),
     retry: false,
   })
 
@@ -1284,6 +1948,8 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
   })
 
   const [wishlistSort, setWishlistSort] = useState<'recent' | 'price_asc' | 'price_desc'>('recent')
+  const [wishlistShareProd, setWishlistShareProd] = useState<any>(null)
+  const [wishlistCopied, setWishlistCopied] = useState(false)
 
   const wishlistProducts = (allProducts as any[])
     .filter(p => wishlistIds.includes(p.id))
@@ -1310,8 +1976,24 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
     )
   }
 
+  if (showLoyalty) {
+    return <LoyaltyPage tenantId={tenantId} currency={currency} onBack={() => setShowLoyalty(false)} />
+  }
+
+  if (showReferral) {
+    return <ReferralPage tenantId={tenantId} currency={currency} onBack={() => setShowReferral(false)} />
+  }
+
   if (showPrivacy) {
     return <PrivacyView tenantId={tenantId} onBack={() => setShowPrivacy(false)} />
+  }
+
+  if (showHelp) {
+    return <HelpFAQView shop={shop} tenantId={tenantId} onBack={() => setShowHelp(false)} />
+  }
+
+  if (showLanguage) {
+    return <LanguageView tenantId={tenantId} currentLocale={(profile as any)?.locale || 'ru'} onBack={() => setShowLanguage(false)} />
   }
 
   if (showAbout && shop) {
@@ -1387,14 +2069,7 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
                     <button
                       onClick={e => {
                         e.stopPropagation()
-                        const tg = (window as any).Telegram?.WebApp
-                        const botUsername = shop?.settings?.bot_username
-                        if (botUsername && tg?.switchInlineQuery) {
-                          tg.switchInlineQuery(`${p.id}`, ['users', 'groups', 'channels'])
-                        } else {
-                          const url = `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(p.name)}`
-                          tg?.openLink?.(url) ?? window.open(url, '_blank')
-                        }
+                        setWishlistShareProd(p)
                       }}
                       style={{
                         position: 'absolute', top: 6, right: 42,
@@ -1439,6 +2114,115 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
             </div>
           )}
         </div>
+
+        {/* Wishlist share bottom sheet */}
+        {wishlistShareProd && (() => {
+          const botUsername = shop?.settings?.bot_username
+          const prodUrl = botUsername
+            ? `https://t.me/${botUsername}/store?startapp=p_${wishlistShareProd.id}`
+            : `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(wishlistShareProd.name)}`
+          const tg = (window as any).Telegram?.WebApp
+          return (
+            <div
+              onClick={() => { setWishlistShareProd(null); setWishlistCopied(false) }}
+              style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
+            >
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px calc(28px + env(safe-area-inset-bottom))' }}
+              >
+                <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 20px' }}/>
+                <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 6 }}>
+                  Поделиться
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {wishlistShareProd.name}
+                </div>
+                {/* Send via Telegram */}
+                <button
+                  onClick={() => {
+                    if (botUsername && tg?.switchInlineQuery) {
+                      tg.switchInlineQuery(`${wishlistShareProd.id}`, ['users', 'groups', 'channels'])
+                    } else {
+                      tg?.openLink(`https://t.me/share/url?url=${encodeURIComponent(prodUrl)}&text=${encodeURIComponent(wishlistShareProd.name)}`)
+                    }
+                    setWishlistShareProd(null)
+                  }}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                    padding: '14px 16px', borderRadius: 14, marginBottom: 8,
+                    background: 'var(--card)', border: '1px solid var(--border)', cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: 'rgba(37,161,228,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="#25A1E4">
+                      <path d="M12 0C5.374 0 0 5.373 0 12c0 6.628 5.374 12 12 12 6.628 0 12-5.372 12-12 0-6.627-5.372-12-12-12zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.869 4.326-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.829.941z"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1, textAlign: 'left' }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Отправить в Telegram</div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>Поделитесь с друзьями в чате</div>
+                  </div>
+                </button>
+                {/* Share to Story */}
+                {!!(tg?.shareToStory) && wishlistShareProd.images?.[0] && (
+                  <button
+                    onClick={() => {
+                      tg.shareToStory(wishlistShareProd.images[0], { widget_link: { url: prodUrl, name: wishlistShareProd.name } })
+                      setWishlistShareProd(null)
+                    }}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                      padding: '14px 16px', borderRadius: 14, marginBottom: 8,
+                      background: 'var(--card)', border: '1px solid var(--border)', cursor: 'pointer',
+                    }}
+                  >
+                    <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: 'rgba(131,58,180,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#833AB4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                      </svg>
+                    </div>
+                    <div style={{ flex: 1, textAlign: 'left' }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Добавить в Stories</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>Поделитесь в Telegram Stories</div>
+                    </div>
+                  </button>
+                )}
+                {/* Copy link */}
+                <button
+                  onClick={() => {
+                    navigator.clipboard?.writeText(prodUrl).then(() => {
+                      setWishlistCopied(true)
+                      setTimeout(() => setWishlistCopied(false), 2000)
+                    })
+                  }}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                    padding: '14px 16px', borderRadius: 14,
+                    background: wishlistCopied ? 'var(--accent-soft)' : 'var(--card)',
+                    border: `1px solid ${wishlistCopied ? 'var(--accent)' : 'var(--border)'}`, cursor: 'pointer',
+                    transition: 'background 0.2s',
+                  }}
+                >
+                  <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: wishlistCopied ? 'var(--accent-soft)' : 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {wishlistCopied
+                      ? <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 8-8" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                    }
+                  </div>
+                  <div style={{ flex: 1, textAlign: 'left' }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: wishlistCopied ? 'var(--accent)' : 'var(--ink)' }}>
+                      {wishlistCopied ? 'Ссылка скопирована!' : 'Скопировать ссылку'}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {prodUrl}
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )
+        })()}
       </div>
     )
   }
@@ -1464,9 +2248,9 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
             padding: '16px', borderRadius: 16,
             background: 'var(--card)', border: '1px solid var(--border)',
           }}>
-            {tgUser?.photo_url ? (
+            {(profile as any)?.custom_avatar_url || tgUser?.photo_url ? (
               <img
-                src={tgUser.photo_url}
+                src={(profile as any)?.custom_avatar_url || tgUser.photo_url}
                 alt={displayName}
                 style={{ width: 56, height: 56, borderRadius: 999, objectFit: 'cover', flexShrink: 0 }}
               />
@@ -1487,6 +2271,11 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
               {username && (
                 <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>
                   @{username}
+                </div>
+              )}
+              {(profile as any)?.phone && (
+                <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>
+                  📞 {(profile as any).phone}
                 </div>
               )}
             </div>
@@ -1581,17 +2370,47 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
               )}
               <Icon name="chevronRight" size={16} color="var(--muted)" />
             </button>
+            {/* Loyalty */}
+            <button
+              onClick={() => setShowLoyalty(true)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px', background: 'var(--card)',
+                borderBottom: '1px solid var(--border)', cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: 18 }}>⭐</span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>
+                Программа лояльности
+              </span>
+              <Icon name="chevronRight" size={16} color="var(--muted)" />
+            </button>
             {/* Returns tab */}
             <button
               onClick={() => setOrderTab('returns')}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-                padding: '14px 16px', background: 'var(--card)', cursor: 'pointer',
+                padding: '14px 16px', background: 'var(--card)',
+                borderBottom: '1px solid var(--border)', cursor: 'pointer',
               }}
             >
               <span style={{ fontSize: 18 }}>🔄</span>
               <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>
                 Возвраты
+              </span>
+              <Icon name="chevronRight" size={16} color="var(--muted)" />
+            </button>
+            {/* Referral */}
+            <button
+              onClick={() => setShowReferral(true)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px', background: 'var(--card)', cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: 18 }}>🎁</span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>
+                Пригласить друга
               </span>
               <Icon name="chevronRight" size={16} color="var(--muted)" />
             </button>
@@ -1639,10 +2458,7 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
           {/* Group 3: Settings & legal */}
           <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)' }}>
             <button
-              onClick={() => {
-                const tg = (window as any).Telegram?.WebApp
-                tg?.openTelegramLink?.('https://t.me/dokonly_support') ?? window.open('https://t.me/dokonly_support', '_blank')
-              }}
+              onClick={() => setShowHelp(true)}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 12,
                 padding: '14px 16px', background: 'var(--card)',
@@ -1652,6 +2468,20 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
               <span style={{ fontSize: 18 }}>❓</span>
               <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>
                 Помощь и FAQ
+              </span>
+              <Icon name="chevronRight" size={16} color="var(--muted)" />
+            </button>
+            <button
+              onClick={() => setShowLanguage(true)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px', background: 'var(--card)',
+                borderBottom: '1px solid var(--border)', cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: 18 }}>🌐</span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>
+                Язык: {LOCALE_LABELS[(profile as any)?.locale || 'ru'] ?? 'Русский'}
               </span>
               <Icon name="chevronRight" size={16} color="var(--muted)" />
             </button>
@@ -1730,13 +2560,56 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
             </div>
           ) : (() => {
             if (orderTab === 'returns') {
+              const RETURN_STATUS_LABEL: Record<string, string> = {
+                requested: 'На рассмотрении', approved: 'Одобрен', rejected: 'Отклонён',
+                refunded: 'Возврат выполнен', exchanged: 'Обмен выполнен',
+              }
+              const RETURN_STATUS_COLOR: Record<string, string> = {
+                requested: '#F59E0B', approved: '#10B981', rejected: '#EF4444',
+                refunded: '#00B383', exchanged: '#8B5CF6',
+              }
+              if ((returns as any[]).length === 0) {
+                return (
+                  <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)' }}>
+                    <div style={{ fontSize: 36, marginBottom: 12 }}>🔄</div>
+                    <p style={{ fontSize: 14, marginBottom: 6 }}>Возвратов нет</p>
+                    <p style={{ fontSize: 12, lineHeight: 1.5 }}>
+                      Запросить возврат можно из<br/>завершённого заказа
+                    </p>
+                  </div>
+                )
+              }
               return (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)' }}>
-                  <div style={{ fontSize: 36, marginBottom: 12 }}>🔄</div>
-                  <p style={{ fontSize: 14, marginBottom: 6 }}>Возвратов нет</p>
-                  <p style={{ fontSize: 12, lineHeight: 1.5 }}>
-                    Запросить возврат можно из<br/>завершённого заказа
-                  </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {(returns as any[]).map((r: any) => {
+                    const statusLabel = RETURN_STATUS_LABEL[r.status] ?? r.status
+                    const statusColor = RETURN_STATUS_COLOR[r.status] ?? 'var(--muted)'
+                    const retId = (r.id ?? '').slice(0, 8).toUpperCase()
+                    const ordId = (r.order_id ?? '').slice(0, 8).toUpperCase()
+                    return (
+                      <div key={r.id} style={{
+                        padding: '12px 14px', borderRadius: 14,
+                        background: 'var(--card)', border: '1px solid var(--border)',
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                          <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
+                            #RET-{retId}
+                          </span>
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: statusColor + '20', color: statusColor }}>
+                            {statusLabel}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                          По заказу #{ordId} · {r.reason ?? ''}
+                        </div>
+                        {r.refund_amount && (
+                          <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginTop: 4 }}>
+                            {fmtPrice(Number(r.refund_amount), currency)}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               )
             }

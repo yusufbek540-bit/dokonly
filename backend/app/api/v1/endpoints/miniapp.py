@@ -693,6 +693,74 @@ ACHIEVEMENTS = [
 ]
 
 
+@router.get("/streak")
+async def seller_streak(
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    now = datetime.now(timezone.utc)
+    thirty_days_ago = now - timedelta(days=30)
+
+    orders_q = await db.execute(
+        select(Order.created_at)
+        .where(Order.tenant_id == tenant.id, Order.created_at >= thirty_days_ago)
+        .order_by(Order.created_at.asc())
+    )
+    order_dates = orders_q.scalars().all()
+
+    # Build set of dates (local dates as ISO strings) that had orders
+    days_with_orders: set[str] = set()
+    for dt in order_dates:
+        if dt:
+            d = dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
+            days_with_orders.add(d.strftime("%Y-%m-%d"))
+
+    # Build last-30-days calendar
+    calendar: list[dict] = []
+    for i in range(29, -1, -1):
+        day = now - timedelta(days=i)
+        iso = day.strftime("%Y-%m-%d")
+        calendar.append({"date": iso, "has_orders": iso in days_with_orders})
+
+    # Compute current streak (consecutive days ending today or yesterday with orders)
+    current_streak = 0
+    today_iso = now.strftime("%Y-%m-%d")
+    if today_iso not in days_with_orders:
+        yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
+        start_day = now - timedelta(days=1) if yesterday in days_with_orders else None
+    else:
+        start_day = now
+    if start_day is not None:
+        check = start_day
+        while True:
+            iso = check.strftime("%Y-%m-%d")
+            if iso in days_with_orders:
+                current_streak += 1
+                check = check - timedelta(days=1)
+            else:
+                break
+
+    # Best streak (within last 30 days)
+    best_streak = 0
+    run = 0
+    for entry in calendar:
+        if entry["has_orders"]:
+            run += 1
+            best_streak = max(best_streak, run)
+        else:
+            run = 0
+
+    today_at_risk = today_iso not in days_with_orders and current_streak > 0
+
+    return {
+        "current_streak": current_streak,
+        "best_streak": best_streak,
+        "today_at_risk": today_at_risk,
+        "calendar": calendar,
+    }
+
+
 @router.get("/achievements")
 async def seller_achievements(
     user: dict = Depends(get_tg_user),
@@ -742,41 +810,47 @@ async def seller_achievements(
     delivery_configured = bool(tenant_settings.get("delivery_methods"))
     payment_configured = bool(tenant_settings.get("payment_methods"))
 
-    def _is_unlocked(achievement: dict) -> bool:
+    numeric_progress: dict[str, int | float] = {
+        "order_count": total_orders,
+        "customer_count": total_customers,
+        "product_count": total_products,
+        "revenue": total_revenue,
+        "days_since_created": days_since_created,
+    }
+    bool_progress: dict[str, bool] = {
+        "storefront_theme_configured": storefront_theme_configured,
+        "bot_connected": bot_connected,
+        "delivery_configured": delivery_configured,
+        "payment_configured": payment_configured,
+    }
+
+    def _compute(achievement: dict) -> tuple[bool, int | float | None, int | float | None]:
         ctype = achievement["condition_type"]
         threshold = achievement["threshold"]
-        if ctype == "order_count":
-            return total_orders >= threshold
-        if ctype == "customer_count":
-            return total_customers >= threshold
-        if ctype == "product_count":
-            return total_products >= threshold
-        if ctype == "revenue":
-            return total_revenue >= threshold
-        if ctype == "storefront_theme_configured":
-            return storefront_theme_configured
-        if ctype == "bot_connected":
-            return bot_connected
-        if ctype == "delivery_configured":
-            return delivery_configured
-        if ctype == "payment_configured":
-            return payment_configured
-        if ctype == "days_since_created":
-            return days_since_created >= threshold
-        return False
+        if ctype in numeric_progress:
+            current = numeric_progress[ctype]
+            return current >= threshold, current, threshold
+        if ctype in bool_progress:
+            v = bool_progress[ctype]
+            return v, None, None
+        return False, None, None
 
-    result = [
-        {
+    result = []
+    for a in ACHIEVEMENTS:
+        unlocked, current, target = _compute(a)
+        entry: dict = {
             "id": a["id"],
             "category": a["category"],
             "icon": a["icon"],
             "name_ru": a["name_ru"],
             "desc_ru": a["desc_ru"],
             "tier": a["tier"],
-            "unlocked": _is_unlocked(a),
+            "unlocked": unlocked,
         }
-        for a in ACHIEVEMENTS
-    ]
+        if not unlocked and current is not None and target is not None:
+            entry["progress"] = current
+            entry["target"] = target
+        result.append(entry)
     unlocked_count = sum(1 for r in result if r["unlocked"])
     return {
         "achievements": result,

@@ -657,18 +657,27 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
               }}
             />
             {phoneVerified ? (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                height: 48, padding: '0 14px',
-                borderRadius: 12, background: 'var(--card)',
-                border: '1.5px solid var(--accent)',
-              }}>
-                <span style={{ flex: 1, fontSize: 14, color: 'var(--ink)' }}>{phone}</span>
-                <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700 }}>✓ Telegram</span>
+              <div>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  height: 48, padding: '0 14px',
+                  borderRadius: 12, background: 'var(--card)',
+                  border: '1.5px solid var(--accent)',
+                }}>
+                  <div style={{ width: 20, height: 20, borderRadius: 999, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <span style={{ flex: 1, fontSize: 14, color: 'var(--ink)' }}>{phone}</span>
+                  <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700 }}>Подтверждён</span>
+                </div>
                 <button
                   onClick={() => { setPhone(''); setPhoneVerified(false) }}
-                  style={{ fontSize: 12, color: 'var(--muted)', background: 'none' }}
-                >изм.</button>
+                  style={{ fontSize: 12, color: 'var(--muted)', background: 'none', marginTop: 6, textDecoration: 'underline', cursor: 'pointer' }}
+                >
+                  Использовать другой номер?
+                </button>
               </div>
             ) : (window as any).Telegram?.WebApp?.requestContact ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

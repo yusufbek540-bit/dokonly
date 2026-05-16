@@ -534,8 +534,16 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
             <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 6 }}>
               Поделиться
             </div>
-            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {product.name}
+            </div>
+            {/* Referral earn callout */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent)', marginBottom: 16 }}>
+              <span style={{ fontSize: 20, flexShrink: 0 }}>🎁</span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>Зарабатывайте с каждого заказа</div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>Ваш реферальный код добавится к ссылке автоматически</div>
+              </div>
             </div>
             {/* Send via Telegram */}
             <button

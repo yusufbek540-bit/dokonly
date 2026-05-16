@@ -58,6 +58,21 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
   const [carouselIdx, setCarouselIdx] = useState(0)
   const [justAdded, setJustAdded] = useState<string | null>(null)
 
+  const recentlyViewedIds: string[] = JSON.parse(
+    localStorage.getItem(`dokonly_viewed_${tenantId}`) ?? '[]'
+  ).slice(0, 8)
+  const recentlyViewed = recentlyViewedIds
+    .map(id => activeProducts.find((p: any) => p.id === id))
+    .filter(Boolean) as any[]
+
+  const handleViewProduct = (id: string) => {
+    const key = `dokonly_viewed_${tenantId}`
+    const prev: string[] = JSON.parse(localStorage.getItem(key) ?? '[]')
+    const next = [id, ...prev.filter(x => x !== id)].slice(0, 20)
+    localStorage.setItem(key, JSON.stringify(next))
+    onProduct(id)
+  }
+
   const handleQuickAdd = (e: React.MouseEvent, p: any) => {
     e.stopPropagation()
     addToCart({ productId: p.id, name: p.name, price: Number(p.price), imageUrl: p.images?.[0], tone: tone(p.name) })
@@ -65,6 +80,34 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
     setJustAdded(p.id)
     setTimeout(() => setJustAdded(null), 1200)
   }
+
+  const { data: stories = [] } = useQuery({
+    queryKey: ['shop-stories', tenantId],
+    queryFn: () => api.getStories(tenantId),
+    staleTime: 5 * 60 * 1000,
+  })
+  const [activeStory, setActiveStory] = useState<any | null>(null)
+  const [storyProgress, setStoryProgress] = useState(0)
+
+  useEffect(() => {
+    if (!activeStory) return
+    setStoryProgress(0)
+    const interval = setInterval(() => {
+      setStoryProgress(p => {
+        if (p >= 100) {
+          const idx = (stories as any[]).findIndex((s: any) => s.id === activeStory.id)
+          if (idx < (stories as any[]).length - 1) {
+            setActiveStory((stories as any[])[idx + 1])
+          } else {
+            setActiveStory(null)
+          }
+          return 0
+        }
+        return p + 2
+      })
+    }, 100)
+    return () => clearInterval(interval)
+  }, [activeStory, stories])
 
   const { data: shopStats } = useQuery({
     queryKey: ['shopStats', tenantId],
@@ -148,13 +191,26 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
               />
             )}
             <div>
-              <div style={{
-                fontFamily: 'Sora', fontWeight: 700, fontSize: 22,
-                color: 'white',
-                textShadow: '0 1px 4px rgba(0,0,0,0.4)',
-                letterSpacing: '-0.02em',
-              }}>
-                {shop.name}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  fontFamily: 'Sora', fontWeight: 700, fontSize: 22,
+                  color: 'white',
+                  textShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                  letterSpacing: '-0.02em',
+                }}>
+                  {shop.name}
+                </div>
+                {(shop as any).is_verified && (
+                  <div title="Проверенный магазин" style={{
+                    width: 20, height: 20, borderRadius: 999,
+                    background: '#1DA1F2', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M2.5 6l2.5 2.5 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                )}
               </div>
               {(shopStats?.avg_rating != null || (shopStats?.customer_count ?? 0) >= 10) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
@@ -192,6 +248,36 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
             <span style={{ flex: 1, fontSize: 14, color: 'var(--muted)', textAlign: 'left' }}>Поиск товаров</span>
           </button>
         </div>
+
+        {/* Stories carousel */}
+        {(stories as any[]).length > 0 && (
+          <div style={{ padding: '12px 16px 0', display: 'flex', gap: 14, overflowX: 'auto', scrollbarWidth: 'none' }}>
+            {(stories as any[]).map((s: any) => (
+              <button
+                key={s.id}
+                onClick={() => setActiveStory(s)}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+              >
+                <div style={{
+                  width: 60, height: 60, borderRadius: 999,
+                  padding: 2,
+                  background: 'linear-gradient(135deg, var(--accent) 0%, #005c40 100%)',
+                  flexShrink: 0,
+                }}>
+                  <div style={{ width: '100%', height: '100%', borderRadius: 999, overflow: 'hidden', border: '2px solid var(--bg)', background: 'var(--subtle)' }}>
+                    {s.media_url
+                      ? <img src={s.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎬</div>
+                    }
+                  </div>
+                </div>
+                <span style={{ fontSize: 10, color: 'var(--ink)', fontWeight: 500, maxWidth: 60, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {s.caption?.split(' ').slice(0, 2).join(' ') || 'Story'}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Categories chips */}
         {uniqueCats.length > 0 && (
@@ -294,6 +380,20 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
                     📍 Адрес
                   </button>
                 )}
+                {(shop.contact_info as any)?.email && (
+                  <a
+                    href={`mailto:${(shop.contact_info as any).email}`}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      padding: '7px 12px', borderRadius: 999,
+                      background: 'var(--card)', border: '1px solid var(--border)',
+                      fontSize: 13, fontWeight: 500, color: 'var(--ink)',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    ✉ Email
+                  </a>
+                )}
               </div>
             )}
           </div>
@@ -332,7 +432,7 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
                 return (
                   <button
                     key={p.id}
-                    onClick={() => onProduct(p.id)}
+                    onClick={() => handleViewProduct(p.id)}
                     style={{
                       width: '100%', borderRadius: 16, overflow: 'hidden', textAlign: 'left',
                       background: 'var(--card)', border: '1px solid var(--border)',
@@ -423,7 +523,7 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
               {preview.map((p: any) => {
                 const inWishlist = wishlistIds.includes(p.id)
                 return (
-                <button key={p.id} onClick={() => onProduct(p.id)} style={{ textAlign: 'left', display: 'flex', flexDirection: 'column' }}>
+                <button key={p.id} onClick={() => handleViewProduct(p.id)} style={{ textAlign: 'left', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ position: 'relative', width: '100%' }}>
                     {p.images?.[0]
                       ? <img src={p.images[0]} alt={p.name} style={{ width: '100%', aspectRatio: '1/1', borderRadius: 12, objectFit: 'cover' }}/>
@@ -511,7 +611,118 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
             <p style={{ fontSize: 14 }}>Товары появятся скоро</p>
           </div>
         )}
+
+        {/* Trust strip */}
+        {shop.settings?.show_trust_strip !== false && activeProducts.length > 0 && (() => {
+          const strips: { icon: string; text: string }[] = []
+          const si = shop.contact_info as any
+          const ss = shop.settings as any
+          const stats = shopStats as any
+          if (si?.address) strips.push({ icon: '📍', text: si.address })
+          if (stats?.review_count > 0) strips.push({ icon: '⭐', text: `${stats.avg_rating ?? '5.0'} (${stats.review_count} отзывов)` })
+          if (ss?.delivery_methods?.some((m: any) => m.id === 'delivery' && m.enabled))
+            strips.push({ icon: '🚚', text: 'Есть доставка' })
+          if (ss?.return_policy) strips.push({ icon: '↩', text: 'Возврат принимается' })
+          if (strips.length === 0) return null
+          return (
+            <div style={{ padding: '0 16px 12px' }}>
+              <div style={{ display: 'flex', overflowX: 'auto', gap: 8, scrollbarWidth: 'none' }}>
+                {strips.map((s, i) => (
+                  <div key={i} style={{
+                    flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '6px 12px', borderRadius: 999,
+                    background: 'var(--card)', border: '1px solid var(--border)',
+                    fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap',
+                  }}>
+                    <span>{s.icon}</span>
+                    <span>{s.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* Recently viewed */}
+        {recentlyViewed.length > 0 && (
+          <div style={{ padding: '0 16px 24px' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>
+              Недавно просматривали
+            </div>
+            <div style={{ display: 'flex', overflowX: 'auto', gap: 10, scrollbarWidth: 'none', paddingBottom: 4 }}>
+              {recentlyViewed.map((p: any) => (
+                <button
+                  key={p.id}
+                  onClick={() => handleViewProduct(p.id)}
+                  style={{
+                    flexShrink: 0, width: 120, background: 'var(--card)',
+                    border: '1px solid var(--border)', borderRadius: 12,
+                    overflow: 'hidden', textAlign: 'left',
+                  }}
+                >
+                  {p.images?.[0] ? (
+                    <img src={p.images[0]} alt={p.name} style={{ width: '100%', height: 90, objectFit: 'cover', display: 'block' }} />
+                  ) : (
+                    <div style={{ width: '100%', height: 90, background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
+                      🛍
+                    </div>
+                  )}
+                  <div style={{ padding: '8px 8px 10px' }}>
+                    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>
+                      {p.name}
+                    </div>
+                    <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono', fontWeight: 700, color: 'var(--accent)', marginTop: 4 }}>
+                      {fmtPrice(Number(p.price), shop.currency)}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Story viewer overlay */}
+      {activeStory && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 200, display: 'flex', flexDirection: 'column' }}
+          onClick={() => setActiveStory(null)}
+        >
+          {/* Progress bars */}
+          <div style={{ display: 'flex', gap: 3, padding: '12px 12px 8px', zIndex: 10 }}>
+            {(stories as any[]).map((s: any) => (
+              <div key={s.id} style={{ flex: 1, height: 3, borderRadius: 999, background: 'rgba(255,255,255,0.3)', overflow: 'hidden' }}>
+                <div style={{
+                  height: '100%', borderRadius: 999, background: 'white',
+                  width: s.id === activeStory.id ? `${storyProgress}%` : (stories as any[]).indexOf(s) < (stories as any[]).findIndex((x: any) => x.id === activeStory.id) ? '100%' : '0%',
+                  transition: s.id === activeStory.id ? 'width 0.1s linear' : 'none',
+                }} />
+              </div>
+            ))}
+          </div>
+          {/* Media */}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {activeStory.media_url
+              ? <img src={activeStory.media_url} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              : <div style={{ fontSize: 60 }}>🎬</div>
+            }
+          </div>
+          {/* Caption + CTA */}
+          {(activeStory.caption || activeStory.cta_text) && (
+            <div style={{ padding: '16px 20px', background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)' }} onClick={e => e.stopPropagation()}>
+              {activeStory.caption && (
+                <p style={{ fontSize: 16, color: 'white', lineHeight: 1.5, marginBottom: activeStory.cta_text ? 12 : 0 }}>{activeStory.caption}</p>
+              )}
+              {activeStory.cta_text && (
+                <button
+                  onClick={() => activeStory.cta_url && window.open(activeStory.cta_url, '_blank')}
+                  style={{ padding: '10px 24px', borderRadius: 12, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 14 }}
+                >{activeStory.cta_text}</button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

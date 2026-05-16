@@ -11,6 +11,14 @@ import { ProductsPage } from '@/pages/Products'
 import { OrdersPage } from '@/pages/Orders'
 import { PlatformOverviewPage } from '@/pages/PlatformOverview'
 import { PlatformTenantsPage } from '@/pages/PlatformTenants'
+import { PlatformSubscriptionsPage } from '@/pages/PlatformSubscriptions'
+import { PlatformAnalyticsPage } from '@/pages/PlatformAnalytics'
+import { PlatformTeamPage } from '@/pages/PlatformTeam'
+import { PlatformAuditLogPage } from '@/pages/PlatformAuditLog'
+import { PlatformStatusPage } from '@/pages/PlatformStatus'
+import { PlatformSupportPage } from '@/pages/PlatformSupport'
+import { PlatformContentPage } from '@/pages/PlatformContent'
+import { MerchantHome } from '@/pages/MerchantHome'
 
 export default function App() {
   const { token, setToken } = useAuth()
@@ -60,34 +68,18 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
-          <Route
-            path="/"
-            element={
-              <div>
-                <h1 className="text-2xl font-bold font-display mb-4">Обзор</h1>
-                <div className="bg-white rounded-2xl border p-4 text-sm text-gray-600">
-                  <p className="font-medium text-gray-900 mb-1">{tenant.name}</p>
-                  <p>Slug: <span className="font-mono">{tenant.slug}</span></p>
-                  <p>Валюта: {tenant.currency}</p>
-                  <p className="mt-3 text-xs text-gray-400">
-                    Ссылка для покупателей:{' '}
-                    <a
-                      href={`https://dokonly-miniapp.pages.dev?shop=${tenant.slug}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-mono text-accent underline"
-                    >
-                      dokonly-miniapp.pages.dev?shop={tenant.slug}
-                    </a>
-                  </p>
-                </div>
-              </div>
-            }
-          />
+          <Route path="/" element={<MerchantHome tenant={tenant} />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/orders" element={<OrdersPage />} />
           <Route path="/platform" element={<PlatformOverviewPage />} />
           <Route path="/platform/tenants" element={<PlatformTenantsPage />} />
+          <Route path="/platform/subscriptions" element={<PlatformSubscriptionsPage />} />
+          <Route path="/platform/analytics" element={<PlatformAnalyticsPage />} />
+          <Route path="/platform/team" element={<PlatformTeamPage />} />
+          <Route path="/platform/audit" element={<PlatformAuditLogPage />} />
+          <Route path="/platform/status" element={<PlatformStatusPage />} />
+          <Route path="/platform/support" element={<PlatformSupportPage />} />
+          <Route path="/platform/content" element={<PlatformContentPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -48,6 +48,8 @@ export const api = {
     request<{ valid: boolean; discount_type: string; discount_value: number; discount_amount: number }>(
       `/api/v1/shop/${tenantId}/coupon?code=${encodeURIComponent(code)}&subtotal=${subtotal}${productIds?.length ? `&product_ids=${productIds.join(',')}` : ''}`,
     ),
+  getStories: (tenantId: string) =>
+    request<any[]>(`/api/v1/shop/${tenantId}/stories`),
   checkChannelMembership: (tenantId: string) =>
     request<{ is_member: boolean }>(`/api/v1/shop/${tenantId}/check-channel-membership`),
   getWishlist: (tenantId: string) =>
@@ -81,10 +83,28 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ rating, text }),
     }),
+  getMyReferral: (tenantId: string) =>
+    request<{
+      is_active: boolean; code: string; link: string;
+      stats: { invited: number; completed: number; pending: number; earned: number };
+      friends: { name: string; status: string; date: string }[]
+    }>(`/api/v1/shop/${tenantId}/my-referral`),
   getProductReviews: (tenantId: string, productId: string) =>
     request<{ avg_rating: number | null; count: number; reviews: { rating: number; text: string; reviewer_name: string; created_at: string }[] }>(
       `/api/v1/shop/${tenantId}/products/${productId}/reviews`,
     ),
+  aiChat: (tenantId: string, messages: { role: string; content: string }[]) =>
+    request<{ reply: string }>(`/api/v1/shop/${tenantId}/ai/chat`, {
+      method: 'POST',
+      body: JSON.stringify({ messages }),
+    }),
+  getMyReturns: (tenantId: string) =>
+    request<any[]>(`/api/v1/shop/${tenantId}/my-returns`),
+  createReturn: (tenantId: string, body: object) =>
+    request<any>(`/api/v1/shop/${tenantId}/returns`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   uploadPaymentScreenshot: async (tenantId: string, orderId: string, file: File): Promise<{ url: string }> => {
     const formData = new FormData()
     formData.append('file', file)
@@ -96,6 +116,21 @@ export const api = {
     if (!res.ok) throw new Error(await res.text())
     return res.json()
   },
+  getHelpArticles: () =>
+    request<{ id: string; title: string; category: string; content: string; slug: string }[]>('/api/v1/public/help-articles'),
+  uploadBuyerAvatar: async (tenantId: string, file: File): Promise<{ url: string }> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch(`${BASE}/api/v1/shop/${tenantId}/profile/avatar`, {
+      method: 'POST',
+      headers: { 'X-Telegram-Init-Data': getInitData() },
+      body: formData,
+    })
+    if (!res.ok) throw new Error(await res.text())
+    return res.json()
+  },
+  resetBuyerAvatar: (tenantId: string) =>
+    request<{ ok: boolean }>(`/api/v1/shop/${tenantId}/profile/avatar`, { method: 'DELETE' }),
 
   // Seller Mini App endpoints (Telegram initData auth)
   seller: {
@@ -135,6 +170,7 @@ export const api = {
       request<any>('/api/v1/miniapp/settings', { method: 'PATCH', body: JSON.stringify(body) }),
     analytics: (period?: string) => request<any>(`/api/v1/miniapp/analytics/summary${period ? `?period=${period}` : ''}`),
     achievements: () => request<any>('/api/v1/miniapp/achievements'),
+    streak: () => request<{ current_streak: number; best_streak: number; today_at_risk: boolean; calendar: { date: string; has_orders: boolean }[] }>('/api/v1/miniapp/streak'),
     categories: () => request<any[]>('/api/v1/miniapp/categories'),
     createCategory: (body: object) =>
       request<any>('/api/v1/miniapp/categories', { method: 'POST', body: JSON.stringify(body) }),
@@ -152,6 +188,32 @@ export const api = {
       request<any>(`/api/v1/miniapp/mailings/${id}/send`, { method: 'POST' }),
     deleteMailing: (id: string) =>
       request<void>(`/api/v1/miniapp/mailings/${id}`, { method: 'DELETE' }),
+    stories: () => request<any[]>('/api/v1/miniapp/stories'),
+    createStory: (body: object) =>
+      request<any>('/api/v1/miniapp/stories', { method: 'POST', body: JSON.stringify(body) }),
+    deleteStory: (id: string) =>
+      request<void>(`/api/v1/miniapp/stories/${id}`, { method: 'DELETE' }),
+    teamMembers: () => request<any[]>('/api/v1/miniapp/team'),
+    inviteTeamMember: (body: object) =>
+      request<any>('/api/v1/miniapp/team/invite', { method: 'POST', body: JSON.stringify(body) }),
+    removeTeamMember: (id: string) =>
+      request<void>(`/api/v1/miniapp/team/${id}`, { method: 'DELETE' }),
+    channelPosts: () => request<any[]>('/api/v1/miniapp/channel-posts'),
+    createChannelPost: (body: object) =>
+      request<any>('/api/v1/miniapp/channel-posts', { method: 'POST', body: JSON.stringify(body) }),
+    loyaltyConfig: () => request<any>('/api/v1/miniapp/loyalty-config'),
+    updateLoyaltyConfig: (body: object) =>
+      request<any>('/api/v1/miniapp/loyalty-config', { method: 'PATCH', body: JSON.stringify(body) }),
+    referralConfig: () => request<any>('/api/v1/miniapp/referral-config'),
+    updateReferralConfig: (body: object) =>
+      request<any>('/api/v1/miniapp/referral-config', { method: 'PATCH', body: JSON.stringify(body) }),
+    returns: () => request<any[]>('/api/v1/miniapp/returns'),
+    approveReturn: (id: string) =>
+      request<any>(`/api/v1/miniapp/returns/${id}/approve`, { method: 'POST' }),
+    rejectReturn: (id: string, reason: string) =>
+      request<any>(`/api/v1/miniapp/returns/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
+    markReturnRefunded: (id: string) =>
+      request<any>(`/api/v1/miniapp/returns/${id}/refund`, { method: 'POST' }),
     uploadFile: (file: File) => {
       const form = new FormData()
       form.append('file', file)

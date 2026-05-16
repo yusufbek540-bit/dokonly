@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
 import { PlanPicker } from '../PlanPicker'
 import { AchievementsPage } from '../AchievementsPage'
-import { MailingsView, CouponsView } from './SettingsTab'
+import { StreakDetailPage } from '../StreakDetailPage'
+import { MailingsView, CouponsView, AbandonedCartsView, StoriesView, LoyaltyProgramView, ReferralProgramView, ChannelCrosspostingView, TeamView } from './SettingsTab'
 
 function fmtPrice(n: number, currency: string) {
   if (currency === 'UZS') return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' сум'
@@ -54,11 +55,188 @@ function MenuRow({ emoji, label, value, last, onPress }: { emoji: string; label:
   )
 }
 
+const RETURN_STATUS_LABELS: Record<string, string> = {
+  requested: 'На рассмотрении', approved: 'Одобрен',
+  rejected: 'Отклонён', refunded: 'Возврат выполнен', exchanged: 'Обмен',
+}
+const RETURN_STATUS_COLORS: Record<string, string> = {
+  requested: '#F59E0B', approved: '#3B82F6',
+  rejected: '#EF4444', refunded: '#10B981', exchanged: '#8B5CF6',
+}
+
+function SellerReturnsView({ onBack }: { onBack: () => void }) {
+  const qc = useQueryClient()
+  const { data: returns = [], isLoading } = useQuery({
+    queryKey: ['seller-returns'],
+    queryFn: api.seller.returns,
+  })
+  const [selected, setSelected] = useState<any>(null)
+  const [rejectReason, setRejectReason] = useState('')
+  const [showReject, setShowReject] = useState(false)
+
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => api.seller.approveReturn(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['seller-returns'] }); setSelected(null) },
+  })
+  const rejectMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => api.seller.rejectReturn(id, reason),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['seller-returns'] }); setSelected(null); setShowReject(false); setRejectReason('') },
+  })
+  const refundMutation = useMutation({
+    mutationFn: (id: string) => api.seller.markReturnRefunded(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['seller-returns'] }); setSelected(null) },
+  })
+
+  if (selected) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: 'var(--card)', borderBottom: '1px solid var(--border)' }}>
+          <button onClick={() => { setSelected(null); setShowReject(false); setRejectReason('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+            <Icon name="chevronLeft" size={22} color="var(--ink)" />
+          </button>
+          <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)' }}>Возврат #{selected.id?.slice(0, 8).toUpperCase()}</span>
+        </div>
+        <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)', padding: '14px 16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: 13, color: 'var(--muted)' }}>Статус</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: RETURN_STATUS_COLORS[selected.status] ?? 'var(--muted)' }}>
+                {RETURN_STATUS_LABELS[selected.status] ?? selected.status}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: 13, color: 'var(--muted)' }}>Заказ</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>#{selected.order_id?.slice(0, 8).toUpperCase()}</span>
+            </div>
+            {selected.reason && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ fontSize: 13, color: 'var(--muted)' }}>Причина</span>
+                <span style={{ fontSize: 13, color: 'var(--ink)', textAlign: 'right', maxWidth: '60%' }}>{selected.reason}</span>
+              </div>
+            )}
+            {selected.description && (
+              <div style={{ marginTop: 4 }}>
+                <span style={{ fontSize: 13, color: 'var(--muted)' }}>Описание</span>
+                <p style={{ fontSize: 13, color: 'var(--ink)', marginTop: 4 }}>{selected.description}</p>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+              <span style={{ fontSize: 13, color: 'var(--muted)' }}>Дата</span>
+              <span style={{ fontSize: 13, color: 'var(--muted)' }}>{timeAgo(selected.created_at)}</span>
+            </div>
+          </div>
+
+          {selected.status === 'requested' && !showReject && (
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => approveMutation.mutate(selected.id)}
+                disabled={approveMutation.isPending}
+                style={{ flex: 1, height: 46, borderRadius: 12, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', opacity: approveMutation.isPending ? 0.7 : 1 }}
+              >
+                ✓ Одобрить
+              </button>
+              <button
+                onClick={() => setShowReject(true)}
+                style={{ flex: 1, height: 46, borderRadius: 12, background: '#FEF2F2', border: '1.5px solid #FECACA', color: '#DC2626', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}
+              >
+                ✕ Отклонить
+              </button>
+            </div>
+          )}
+          {showReject && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <textarea
+                placeholder="Причина отклонения..."
+                value={rejectReason}
+                onChange={e => setRejectReason(e.target.value)}
+                rows={3}
+                style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)', resize: 'none', fontFamily: 'inherit' }}
+              />
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setShowReject(false)} style={{ flex: 1, height: 46, borderRadius: 12, background: 'var(--subtle)', border: '1px solid var(--border)', color: 'var(--ink)', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>
+                  Назад
+                </button>
+                <button
+                  onClick={() => rejectMutation.mutate({ id: selected.id, reason: rejectReason })}
+                  disabled={!rejectReason.trim() || rejectMutation.isPending}
+                  style={{ flex: 2, height: 46, borderRadius: 12, background: '#DC2626', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', opacity: (!rejectReason.trim() || rejectMutation.isPending) ? 0.6 : 1 }}
+                >
+                  Подтвердить отклонение
+                </button>
+              </div>
+            </div>
+          )}
+          {selected.status === 'approved' && (
+            <button
+              onClick={() => refundMutation.mutate(selected.id)}
+              disabled={refundMutation.isPending}
+              style={{ width: '100%', height: 46, borderRadius: 12, background: '#10B981', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', opacity: refundMutation.isPending ? 0.7 : 1 }}
+            >
+              💰 Возврат выполнен
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: 'var(--card)', borderBottom: '1px solid var(--border)' }}>
+        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+          <Icon name="chevronLeft" size={22} color="var(--ink)" />
+        </button>
+        <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)' }}>Возвраты</span>
+      </div>
+      {isLoading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 0' }}>
+          <div style={{ width: 28, height: 28, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+        </div>
+      ) : (returns as any[]).length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '48px 16px', color: 'var(--muted)', fontSize: 14 }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>📦</div>
+          <p>Нет возвратов</p>
+        </div>
+      ) : (
+        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {(returns as any[]).map((r: any) => (
+            <button
+              key={r.id}
+              onClick={() => setSelected(r)}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)', textAlign: 'left', cursor: 'pointer', width: '100%' }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)', marginBottom: 2 }}>
+                  Возврат #{r.id?.slice(0, 8).toUpperCase()}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--muted)' }}>Заказ #{r.order_id?.slice(0, 8).toUpperCase()} · {timeAgo(r.created_at)}</div>
+                {r.reason && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{r.reason}</div>}
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'white', background: RETURN_STATUS_COLORS[r.status] ?? 'var(--muted)', borderRadius: 999, padding: '3px 9px', flexShrink: 0 }}>
+                {RETURN_STATUS_LABELS[r.status] ?? r.status}
+              </span>
+              <Icon name="chevronRight" size={15} color="var(--muted)" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function HomeTab({ tenant, onTabChange }: Props) {
   const [showPlanPicker, setShowPlanPicker] = useState(false)
   const [showAchievements, setShowAchievements] = useState(false)
+  const [showStreak, setShowStreak] = useState(false)
   const [showMailings, setShowMailings] = useState(false)
   const [showCoupons, setShowCoupons] = useState(false)
+  const [showStories, setShowStories] = useState(false)
+  const [showLoyaltyProgram, setShowLoyaltyProgram] = useState(false)
+  const [showReferralProgram, setShowReferralProgram] = useState(false)
+  const [showChannelCrossposting, setShowChannelCrossposting] = useState(false)
+  const [showTeam, setShowTeam] = useState(false)
+  const [showAbandonedCarts, setShowAbandonedCarts] = useState(false)
+  const [showReturns, setShowReturns] = useState(false)
   const { data: summary } = useQuery({ queryKey: ['seller-analytics', 'all'], queryFn: () => api.seller.analytics('all') })
   const { data: orders = [] } = useQuery({ queryKey: ['seller-orders'], queryFn: () => api.seller.orders() })
   const recentOrders = orders.slice(0, 3)
@@ -122,6 +300,14 @@ export function HomeTab({ tenant, onTabChange }: Props) {
 
   if (showMailings) return <MailingsView onBack={() => setShowMailings(false)} />
   if (showCoupons) return <CouponsView onBack={() => setShowCoupons(false)} />
+  if (showStories) return <StoriesView onBack={() => setShowStories(false)} />
+  if (showLoyaltyProgram) return <LoyaltyProgramView onBack={() => setShowLoyaltyProgram(false)} />
+  if (showReferralProgram) return <ReferralProgramView onBack={() => setShowReferralProgram(false)} />
+  if (showChannelCrossposting) return <ChannelCrosspostingView tenant={tenant} onBack={() => setShowChannelCrossposting(false)} />
+  if (showTeam) return <TeamView onBack={() => setShowTeam(false)} />
+  if (showAbandonedCarts) return <AbandonedCartsView onBack={() => setShowAbandonedCarts(false)} />
+  if (showReturns) return <SellerReturnsView onBack={() => setShowReturns(false)} />
+  if (showStreak) return <StreakDetailPage onBack={() => setShowStreak(false)} daysPassed={daysPassed} />
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -189,6 +375,32 @@ export function HomeTab({ tenant, onTabChange }: Props) {
             </div>
           )}
           <button
+            onClick={() => {
+              if ((window as any).Telegram?.WebApp?.openLink) {
+                (window as any).Telegram.WebApp.openLink(shopUrl)
+              } else {
+                window.open(shopUrl, '_blank')
+              }
+            }}
+            style={{
+              height: 30,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '0 12px',
+              borderRadius: 999,
+              background: 'rgba(255,255,255,0.92)',
+              border: '1px solid rgba(255,255,255,0.3)',
+              color: 'var(--accent)',
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Открыть магазин ›
+          </button>
+          <button
             onClick={() => navigator.clipboard?.writeText(shopUrl)}
             style={{
               height: 30,
@@ -208,7 +420,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
             }}
           >
             <Icon name="copy" size={12} color="white" />
-            Копировать ссылку
+            Ссылка
           </button>
         </div>
       </div>
@@ -487,20 +699,24 @@ export function HomeTab({ tenant, onTabChange }: Props) {
           </button>
 
           {/* Streak */}
-          <div style={{
-            padding: '12px 10px',
-            borderRadius: 14,
-            background: 'var(--card)',
-            border: '1px solid var(--border)',
-            textAlign: 'left',
-          }}>
+          <button
+            onClick={() => setShowStreak(true)}
+            style={{
+              padding: '12px 10px',
+              borderRadius: 14,
+              background: 'var(--card)',
+              border: '1px solid var(--border)',
+              textAlign: 'left',
+              cursor: 'pointer',
+            }}
+          >
             <div style={{ fontSize: 18, marginBottom: 4 }}>🔥</div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Стрик</div>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>
               {daysPassed} {daysWord(daysPassed)}
             </div>
-            <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>работа</div>
-          </div>
+            <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>работа ›</div>
+          </button>
         </div>
 
         {/* ── AI Insights ── */}
@@ -991,6 +1207,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
             )
           })()}
           <MenuRow emoji="📋" label="Категории" onPress={() => onTabChange?.('catalog')} />
+          <MenuRow emoji="🔄" label="Возвраты" onPress={() => setShowReturns(true)} />
           <MenuRow emoji="🚚" label="Способы доставки" onPress={() => onTabChange?.('more')} />
           <MenuRow emoji="🎟" label="Купоны и скидки" onPress={() => setShowCoupons(true)} />
           <MenuRow emoji="📊" label="Аналитика" last onPress={() => onTabChange?.('analytics')} />
@@ -1011,10 +1228,11 @@ export function HomeTab({ tenant, onTabChange }: Props) {
         </div>
         <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 16 }}>
           <MenuRow emoji="📨" label="Рассылки" onPress={() => setShowMailings(true)} />
-          <MenuRow emoji="🎬" label="Stories" value="Скоро" />
-          <MenuRow emoji="🎁" label="Программа лояльности" value="Скоро" />
-          <MenuRow emoji="👥" label="Реферальная программа" value="Скоро" />
-          <MenuRow emoji="📢" label="Кросспостинг в канал" value="Скоро" last />
+          <MenuRow emoji="🎬" label="Stories и баннеры" onPress={() => setShowStories(true)} />
+          <MenuRow emoji="🎁" label="Программа лояльности" onPress={() => setShowLoyaltyProgram(true)} />
+          <MenuRow emoji="👥" label="Реферальная программа" onPress={() => setShowReferralProgram(true)} />
+          <MenuRow emoji="📢" label="Кросспостинг в канал" onPress={() => setShowChannelCrossposting(true)} />
+          <MenuRow emoji="🛍" label="Брошенные корзины" onPress={() => setShowAbandonedCarts(true)} last />
         </div>
 
         {/* Group 3: Настройки */}
@@ -1036,13 +1254,32 @@ export function HomeTab({ tenant, onTabChange }: Props) {
           >
             <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>🤖</span>
             <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Telegram-бот</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              {!tenant.bot_username && <span style={{ fontSize: 12, color: 'var(--danger)', fontWeight: 600 }}>Не подключён</span>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {!tenant.bot_username && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'white', background: '#EF4444', borderRadius: 999, padding: '2px 7px' }}>!</span>
+              )}
               {tenant.bot_username && <span style={{ fontSize: 12, color: 'var(--muted)' }}>@{tenant.bot_username}</span>}
               <Icon name="chevronRight" size={15} color="var(--muted)" />
             </div>
           </button>
-          <MenuRow emoji="📢" label="Канал Telegram" value="Настроить" last onPress={() => onTabChange?.('more')} />
+          <button
+            onClick={() => onTabChange?.('more')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+              padding: '13px 16px', background: 'var(--card)', textAlign: 'left',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>📢</span>
+            <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Канал Telegram</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {!tenant.settings?.channel_id && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'white', background: '#F59E0B', borderRadius: 999, padding: '2px 7px' }}>!</span>
+              )}
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>{tenant.settings?.channel_id ? 'Настроен' : 'Настроить'}</span>
+              <Icon name="chevronRight" size={15} color="var(--muted)" />
+            </div>
+          </button>
         </div>
 
         {/* Group 4: Аккаунт */}
@@ -1056,6 +1293,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
             value={(tenant.tier ?? 'Trial').charAt(0).toUpperCase() + (tenant.tier ?? 'Trial').slice(1)}
             onPress={() => setShowPlanPicker(true)}
           />
+          <MenuRow emoji="👥" label="Команда" onPress={() => setShowTeam(true)} />
           <MenuRow emoji="🏆" label="Достижения" onPress={() => setShowAchievements(true)} />
           <MenuRow emoji="🌍" label="Язык" value="Русский" last />
         </div>

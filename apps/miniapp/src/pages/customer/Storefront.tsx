@@ -24,13 +24,15 @@ function tone(name: string) {
 
 const PAGE_SIZE = 20
 
-type SortOption = 'newest' | 'price_asc' | 'price_desc' | 'name_asc'
+type SortOption = 'newest' | 'price_asc' | 'price_desc' | 'name_asc' | 'popular' | 'top_rated'
 
 const SORT_LABELS: Record<SortOption, string> = {
   newest: 'Новинки',
   price_asc: 'Дешевле',
   price_desc: 'Дороже',
   name_asc: 'А-Я',
+  popular: 'Популярные',
+  top_rated: 'По рейтингу',
 }
 
 export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
@@ -44,6 +46,10 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
     }
   }, [initialCategory])
   const [search, setSearch] = useState('')
+  const [searchFocused, setSearchFocused] = useState(false)
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('dokonly_recent_searches') || '[]') } catch { return [] }
+  })
   const [sort, setSort] = useState<SortOption>('newest')
   const [showSort, setShowSort] = useState(false)
   const [showFilter, setShowFilter] = useState(false)
@@ -51,12 +57,14 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
   const [filterMaxPrice, setFilterMaxPrice] = useState('')
   const [filterInStock, setFilterInStock] = useState(false)
   const [filterHasDiscount, setFilterHasDiscount] = useState(false)
+  const [filterHasVideo, setFilterHasVideo] = useState(false)
   const [activeMinPrice, setActiveMinPrice] = useState('')
   const [activeMaxPrice, setActiveMaxPrice] = useState('')
   const [activeInStock, setActiveInStock] = useState(false)
   const [activeHasDiscount, setActiveHasDiscount] = useState(false)
+  const [activeHasVideo, setActiveHasVideo] = useState(false)
 
-  const hasActiveFilters = !!(activeMinPrice || activeMaxPrice || activeInStock || activeHasDiscount)
+  const hasActiveFilters = !!(activeMinPrice || activeMaxPrice || activeInStock || activeHasDiscount || activeHasVideo)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const qc = useQueryClient()
@@ -75,6 +83,13 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
   const addToCart = useCart((s) => s.add)
   const [justAdded, setJustAdded] = useState<string | null>(null)
 
+  // Price slider bounds derived from product list
+  const allPrices = (products as any[]).filter(p => p.is_active).map((p: any) => Number(p.price)).filter((n: number) => !isNaN(n))
+  const priceMin = allPrices.length > 0 ? Math.floor(Math.min(...allPrices)) : 0
+  const priceMax = allPrices.length > 0 ? Math.ceil(Math.max(...allPrices)) : 100000
+  const sliderMin = filterMinPrice !== '' ? Number(filterMinPrice) : priceMin
+  const sliderMax = filterMaxPrice !== '' ? Number(filterMaxPrice) : priceMax
+
   const handleQuickAdd = (e: React.MouseEvent, p: any) => {
     e.stopPropagation()
     addToCart({
@@ -88,7 +103,7 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
     setTimeout(() => setJustAdded(null), 1200)
   }
 
-  useEffect(() => { setVisibleCount(PAGE_SIZE) }, [cat, search, sort, activeMinPrice, activeMaxPrice, activeInStock, activeHasDiscount])
+  useEffect(() => { setVisibleCount(PAGE_SIZE) }, [cat, search, sort, activeMinPrice, activeMaxPrice, activeInStock, activeHasDiscount, activeHasVideo])
 
   const loadMore = useCallback(() => {
     setVisibleCount(n => n + PAGE_SIZE)
@@ -139,12 +154,15 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
       if (activeMaxPrice && price > Number(activeMaxPrice)) return false
       if (activeInStock && (p.stock === null || p.stock === undefined || p.stock === 0)) return false
       if (activeHasDiscount && !(p.compare_at_price && Number(p.compare_at_price) > price)) return false
+      if (activeHasVideo && !p.video_url) return false
       return true
     })
     .sort((a: any, b: any) => {
       if (sort === 'price_asc') return Number(a.price) - Number(b.price)
       if (sort === 'price_desc') return Number(b.price) - Number(a.price)
       if (sort === 'name_asc') return a.name.localeCompare(b.name, 'ru')
+      if (sort === 'popular') return (Number(b.order_count) || 0) - (Number(a.order_count) || 0)
+      if (sort === 'top_rated') return (Number(b.avg_rating) || 0) - (Number(a.avg_rating) || 0)
       return 0
     })
 
@@ -159,6 +177,7 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
     if (filterMaxPrice && price > Number(filterMaxPrice)) return false
     if (filterInStock && (p.stock === null || p.stock === undefined || p.stock === 0)) return false
     if (filterHasDiscount && !(p.compare_at_price && Number(p.compare_at_price) > price)) return false
+    if (filterHasVideo && !p.video_url) return false
     return true
   }).length
 
@@ -167,6 +186,7 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
     setActiveMaxPrice(filterMaxPrice)
     setActiveInStock(filterInStock)
     setActiveHasDiscount(filterHasDiscount)
+    setActiveHasVideo(filterHasVideo)
     setShowFilter(false)
   }
 
@@ -209,6 +229,7 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
               setFilterMaxPrice(activeMaxPrice)
               setFilterInStock(activeInStock)
               setFilterHasDiscount(activeHasDiscount)
+              setFilterHasVideo(activeHasVideo)
               setShowFilter(true)
             }}
             style={{
@@ -287,7 +308,7 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
               <button
                 onClick={() => {
                   setFilterMinPrice(''); setFilterMaxPrice('')
-                  setFilterInStock(false); setFilterHasDiscount(false)
+                  setFilterInStock(false); setFilterHasDiscount(false); setFilterHasVideo(false)
                 }}
                 style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
               >
@@ -295,45 +316,79 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
               </button>
             </div>
 
-            {/* Price range */}
+            {/* Price range dual-slider */}
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted-strong)', marginBottom: 10 }}>Цена</div>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>От</div>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    value={filterMinPrice}
-                    onChange={e => setFilterMinPrice(e.target.value)}
-                    style={{
-                      width: '100%', height: 44, borderRadius: 10,
-                      background: 'var(--card)', border: '1px solid var(--border)',
-                      paddingLeft: 12, fontSize: 15, color: 'var(--ink)', outline: 'none',
-                    }}
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>До</div>
-                  <input
-                    type="number"
-                    placeholder="∞"
-                    value={filterMaxPrice}
-                    onChange={e => setFilterMaxPrice(e.target.value)}
-                    style={{
-                      width: '100%', height: 44, borderRadius: 10,
-                      background: 'var(--card)', border: '1px solid var(--border)',
-                      paddingLeft: 12, fontSize: 15, color: 'var(--ink)', outline: 'none',
-                    }}
-                  />
-                </div>
+              {/* Value labels */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+                  {fmtPrice(sliderMin, shop.currency)}
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+                  {sliderMax === priceMax ? '∞' : fmtPrice(sliderMax, shop.currency)}
+                </span>
               </div>
+              {/* Dual slider track */}
+              <div style={{ position: 'relative', height: 40, display: 'flex', alignItems: 'center' }}>
+                {/* Track background */}
+                <div style={{ position: 'absolute', left: 0, right: 0, height: 4, borderRadius: 2, background: 'var(--border)' }} />
+                {/* Active track */}
+                <div style={{
+                  position: 'absolute', height: 4, borderRadius: 2, background: 'var(--accent)',
+                  left: `${((sliderMin - priceMin) / Math.max(1, priceMax - priceMin)) * 100}%`,
+                  right: `${100 - ((sliderMax - priceMin) / Math.max(1, priceMax - priceMin)) * 100}%`,
+                }} />
+                {/* Min range input */}
+                <input
+                  type="range"
+                  min={priceMin}
+                  max={priceMax}
+                  value={sliderMin}
+                  onChange={e => {
+                    const v = Number(e.target.value)
+                    if (v <= sliderMax) setFilterMinPrice(v === priceMin ? '' : String(v))
+                  }}
+                  style={{
+                    position: 'absolute', width: '100%', height: 4,
+                    appearance: 'none', background: 'transparent', outline: 'none', cursor: 'pointer',
+                    pointerEvents: sliderMin > sliderMax - (priceMax - priceMin) * 0.05 ? 'none' : 'auto',
+                  }}
+                />
+                {/* Max range input */}
+                <input
+                  type="range"
+                  min={priceMin}
+                  max={priceMax}
+                  value={sliderMax}
+                  onChange={e => {
+                    const v = Number(e.target.value)
+                    if (v >= sliderMin) setFilterMaxPrice(v === priceMax ? '' : String(v))
+                  }}
+                  style={{
+                    position: 'absolute', width: '100%', height: 4,
+                    appearance: 'none', background: 'transparent', outline: 'none', cursor: 'pointer',
+                  }}
+                />
+              </div>
+              <style>{`
+                input[type=range]::-webkit-slider-thumb {
+                  -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+                  background: var(--accent); border: 2px solid white;
+                  box-shadow: 0 1px 4px rgba(0,0,0,0.25); cursor: pointer;
+                }
+                input[type=range]::-moz-range-thumb {
+                  width: 20px; height: 20px; border-radius: 50%;
+                  background: var(--accent); border: 2px solid white;
+                  box-shadow: 0 1px 4px rgba(0,0,0,0.25); cursor: pointer;
+                }
+              `}</style>
             </div>
 
             {/* Toggles */}
             {[
               { label: 'Только в наличии', value: filterInStock, set: setFilterInStock },
               { label: 'Со скидкой', value: filterHasDiscount, set: setFilterHasDiscount },
+              { label: 'Есть видео 🎬', value: filterHasVideo, set: setFilterHasVideo },
             ].map(({ label, value, set }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <span style={{ fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>{label}</span>
@@ -378,6 +433,17 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
               placeholder="Поиск товаров"
               value={search}
               onChange={e => setSearch(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && search.trim()) {
+                  const trimmed = search.trim()
+                  const updated = [trimmed, ...recentSearches.filter(s => s !== trimmed)].slice(0, 5)
+                  setRecentSearches(updated)
+                  try { localStorage.setItem('dokonly_recent_searches', JSON.stringify(updated)) } catch {}
+                  setSearchFocused(false)
+                }
+              }}
               style={{
                 width: '100%', height: 48, paddingLeft: 42, paddingRight: 14,
                 borderRadius: 12, background: 'var(--card)',
@@ -386,6 +452,44 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
               }}
             />
           </div>
+          {/* Recent searches dropdown */}
+          {searchFocused && !search && recentSearches.length > 0 && (
+            <div style={{
+              marginTop: 4, borderRadius: 12,
+              background: 'var(--card)', border: '1px solid var(--border)',
+              overflow: 'hidden',
+            }}>
+              <div style={{ padding: '8px 12px', fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Недавние
+              </div>
+              {recentSearches.map(s => (
+                <button
+                  key={s}
+                  onClick={() => { setSearch(s); setSearchFocused(false) }}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 12px', background: 'none', border: 'none', cursor: 'pointer',
+                    borderTop: '1px solid var(--border)',
+                    textAlign: 'left',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                  </svg>
+                  <span style={{ flex: 1, fontSize: 14, color: 'var(--ink)' }}>{s}</span>
+                  <button
+                    onClick={e => {
+                      e.stopPropagation()
+                      const updated = recentSearches.filter(r => r !== s)
+                      setRecentSearches(updated)
+                      try { localStorage.setItem('dokonly_recent_searches', JSON.stringify(updated)) } catch {}
+                    }}
+                    style={{ background: 'none', border: 'none', padding: 4, cursor: 'pointer', fontSize: 16, color: 'var(--muted)' }}
+                  >×</button>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Active filter chips */}
@@ -413,6 +517,12 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}>
                 Со скидкой
                 <button onClick={() => setActiveHasDiscount(false)} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontWeight: 700, fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
+              </span>
+            )}
+            {activeHasVideo && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}>
+                Есть видео 🎬
+                <button onClick={() => setActiveHasVideo(false)} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontWeight: 700, fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
               </span>
             )}
           </div>

@@ -40,9 +40,20 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 function CustomerDetail({ customer, currency, onBack }: { customer: CustomerData; currency: string; onBack: () => void }) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'notes'>('overview')
+  const [note, setNote] = useState('')
+  const [tags, setTags] = useState<string[]>([])
+  const [tagInput, setTagInput] = useState('')
+
   const aov = customer.orderCount > 0 ? customer.totalSpent / customer.orderCount : 0
   const segment = customer.orderCount >= 5 ? 'VIP' : customer.orderCount >= 2 ? 'Постоянный' : 'Новый'
   const segmentColor = customer.orderCount >= 5 ? '#F59E0B' : customer.orderCount >= 2 ? '#8B5CF6' : '#3B82F6'
+
+  const TABS = [
+    { id: 'overview' as const, label: 'Обзор' },
+    { id: 'orders' as const, label: 'Заказы' },
+    { id: 'notes' as const, label: 'Заметки' },
+  ]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -64,107 +75,205 @@ function CustomerDetail({ customer, currency, onBack }: { customer: CustomerData
         </span>
       </div>
 
-      <div className="screen-scroll" style={{ flex: 1, padding: '16px', paddingBottom: 40, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {/* Stats grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          {[
-            { label: 'Заказов', value: customer.orderCount },
-            { label: 'Средний чек', value: fmtPrice(aov, currency) },
-            { label: 'Потрачено', value: fmtPrice(customer.totalSpent, currency) },
-            { label: 'Последний заказ', value: customer.lastOrderAt ? fmtDate(customer.lastOrderAt) : '—' },
-          ].map(s => (
-            <div key={s.label} style={{ padding: '14px 16px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>{s.label}</div>
-              <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>{s.value}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Email display */}
-        {customer.email && (
-          <a
-            href={`mailto:${customer.email}`}
+      {/* Tab bar */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
             style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '10px 14px', borderRadius: 12,
-              background: 'var(--card)', border: '1px solid var(--border)',
-              fontSize: 13, color: 'var(--ink)', textDecoration: 'none',
+              flex: 1, height: 42, fontSize: 14, fontWeight: 600,
+              color: activeTab === tab.id ? 'var(--accent)' : 'var(--muted)',
+              background: 'none', border: 'none', cursor: 'pointer',
+              borderBottom: activeTab === tab.id ? '2px solid var(--accent)' : '2px solid transparent',
+              transition: 'color 0.15s',
             }}
           >
-            <span>✉️</span>
-            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{customer.email}</span>
-          </a>
-        )}
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-        {/* Quick actions */}
-        {(customer.phone || customer.telegramId) && (
-          <div style={{ display: 'flex', gap: 10 }}>
-            {customer.phone && (
+      <div className="screen-scroll" style={{ flex: 1, padding: '16px', paddingBottom: 40, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* ── Overview tab ── */}
+        {activeTab === 'overview' && (
+          <>
+            {/* Stats grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {[
+                { label: 'Заказов', value: customer.orderCount },
+                { label: 'Средний чек', value: fmtPrice(aov, currency) },
+                { label: 'Потрачено', value: fmtPrice(customer.totalSpent, currency) },
+                { label: 'Последний заказ', value: customer.lastOrderAt ? fmtDate(customer.lastOrderAt) : '—' },
+              ].map(s => (
+                <div key={s.label} style={{ padding: '14px 16px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>{s.label}</div>
+                  <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Email display */}
+            {customer.email && (
               <a
-                href={`tel:${customer.phone}`}
+                href={`mailto:${customer.email}`}
                 style={{
-                  flex: 1, height: 44, borderRadius: 12,
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '10px 14px', borderRadius: 12,
                   background: 'var(--card)', border: '1px solid var(--border)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  fontSize: 14, fontWeight: 600, color: 'var(--ink)', textDecoration: 'none',
+                  fontSize: 13, color: 'var(--ink)', textDecoration: 'none',
                 }}
               >
-                <span>📞</span> Позвонить
+                <span>✉️</span>
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{customer.email}</span>
               </a>
             )}
-            {customer.telegramId && (
-              <button
-                onClick={() => {
-                  const url = `tg://user?id=${customer.telegramId}`
-                  ;(window as any).Telegram?.WebApp?.openTelegramLink?.(url) ?? window.open(url, '_blank')
-                }}
-                style={{
-                  flex: 1, height: 44, borderRadius: 12,
-                  background: 'var(--accent)', border: 'none',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  fontSize: 14, fontWeight: 600, color: 'white', cursor: 'pointer',
-                }}
-              >
-                <span>💬</span> Написать
-              </button>
-            )}
-          </div>
-        )}
 
-        {/* Orders list */}
-        {customer.orders.length > 0 && (
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
-              История заказов
-            </div>
-            <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)' }}>
-              {customer.orders.map((o: any, i: number, arr: any[]) => {
-                const orderId = '#' + (o.id ?? '').slice(0, 8).toUpperCase()
-                const statusColor = STATUS_COLORS[o.status] ?? '#888'
-                return (
-                  <div
-                    key={o.id}
+            {/* Quick actions */}
+            {(customer.phone || customer.telegramId) && (
+              <div style={{ display: 'flex', gap: 10 }}>
+                {customer.phone && (
+                  <a
+                    href={`tel:${customer.phone}`}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '12px 16px', background: 'var(--card)',
-                      borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
+                      flex: 1, height: 44, borderRadius: 12,
+                      background: 'var(--card)', border: '1px solid var(--border)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      fontSize: 14, fontWeight: 600, color: 'var(--ink)', textDecoration: 'none',
                     }}
                   >
-                    <div style={{ width: 8, height: 8, borderRadius: 999, background: statusColor, flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'JetBrains Mono', color: 'var(--ink)' }}>{orderId}</div>
-                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                        {STATUS_LABELS[o.status] ?? o.status} · {o.created_at ? fmtDateFull(o.created_at) : ''}
-                      </div>
-                    </div>
-                    <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 13, color: 'var(--ink)', flexShrink: 0 }}>
-                      {fmtPrice(Number(o.total ?? 0), currency)}
-                    </span>
-                  </div>
-                )
-              })}
+                    <span>📞</span> Позвонить
+                  </a>
+                )}
+                {customer.telegramId && (
+                  <button
+                    onClick={() => {
+                      const url = `tg://user?id=${customer.telegramId}`
+                      ;(window as any).Telegram?.WebApp?.openTelegramLink?.(url) ?? window.open(url, '_blank')
+                    }}
+                    style={{
+                      flex: 1, height: 44, borderRadius: 12,
+                      background: 'var(--accent)', border: 'none',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      fontSize: 14, fontWeight: 600, color: 'white', cursor: 'pointer',
+                    }}
+                  >
+                    <span>💬</span> Написать
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Segment info */}
+            <div style={{ padding: '12px 14px', borderRadius: 12, background: segmentColor + '15', border: `1px solid ${segmentColor}40` }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: segmentColor }}>
+                {segment === 'VIP' ? '⭐ VIP-покупатель' : segment === 'Постоянный' ? '🔄 Постоянный покупатель' : '🆕 Новый покупатель'}
+              </span>
             </div>
-          </div>
+          </>
+        )}
+
+        {/* ── Orders tab ── */}
+        {activeTab === 'orders' && (
+          <>
+            {customer.orders.length > 0 ? (
+              <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                {customer.orders.map((o: any, i: number, arr: any[]) => {
+                  const orderId = '#' + (o.id ?? '').slice(0, 8).toUpperCase()
+                  const statusColor = STATUS_COLORS[o.status] ?? '#888'
+                  return (
+                    <div
+                      key={o.id}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '12px 16px', background: 'var(--card)',
+                        borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
+                      }}
+                    >
+                      <div style={{ width: 8, height: 8, borderRadius: 999, background: statusColor, flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'JetBrains Mono', color: 'var(--ink)' }}>{orderId}</div>
+                        <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                          {STATUS_LABELS[o.status] ?? o.status} · {o.created_at ? fmtDateFull(o.created_at) : ''}
+                        </div>
+                      </div>
+                      <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 13, color: 'var(--ink)', flexShrink: 0 }}>
+                        {fmtPrice(Number(o.total ?? 0), currency)}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--muted)' }}>
+                <div style={{ fontSize: 32, marginBottom: 12 }}>📦</div>
+                <div style={{ fontSize: 14 }}>Нет заказов</div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Notes & Tags tab ── */}
+        {activeTab === 'notes' && (
+          <>
+            {/* Tags */}
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', marginBottom: 10 }}>Теги</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                {tags.map(tag => (
+                  <div key={tag} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 999, background: 'var(--accent-soft)', border: '1px solid var(--accent)' }}>
+                    <span style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 500 }}>{tag}</span>
+                    <button onClick={() => setTags(t => t.filter(x => x !== tag))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  value={tagInput}
+                  onChange={e => setTagInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && tagInput.trim()) {
+                      setTags(t => [...t, tagInput.trim()])
+                      setTagInput('')
+                    }
+                  }}
+                  placeholder="Добавить тег..."
+                  style={{ flex: 1, height: 40, padding: '0 12px', borderRadius: 10, background: 'var(--card)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--ink)', outline: 'none' }}
+                />
+                <button
+                  onClick={() => { if (tagInput.trim()) { setTags(t => [...t, tagInput.trim()]); setTagInput('') } }}
+                  style={{ height: 40, padding: '0 14px', borderRadius: 10, background: 'var(--accent)', color: 'white', fontSize: 13, fontWeight: 600 }}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* Note */}
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', marginBottom: 8 }}>Заметка</div>
+              <textarea
+                value={note}
+                onChange={e => setNote(e.target.value)}
+                placeholder="Добавьте заметку об этом покупателе..."
+                rows={4}
+                style={{
+                  width: '100%', padding: '12px 14px', borderRadius: 12,
+                  background: 'var(--card)', border: '1px solid var(--border)',
+                  fontSize: 14, color: 'var(--ink)', resize: 'none', outline: 'none',
+                  fontFamily: 'inherit', lineHeight: 1.5, boxSizing: 'border-box',
+                }}
+              />
+              {note && (
+                <button
+                  onClick={() => alert('Заметка сохранена (функция в разработке)')}
+                  style={{ marginTop: 10, height: 40, padding: '0 20px', borderRadius: 10, background: 'var(--accent)', color: 'white', fontSize: 14, fontWeight: 600 }}
+                >
+                  Сохранить
+                </button>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>
