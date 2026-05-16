@@ -346,6 +346,8 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
   const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent')
   const [discountValue, setDiscountValue] = useState('')
   const [maxUses, setMaxUses] = useState('')
+  const [minAmount, setMinAmount] = useState('')
+  const [expiresAt, setExpiresAt] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
 
@@ -358,10 +360,12 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
     mutationFn: () => api.seller.createPromoCode({
       code, discount_type: discountType, discount_value: Number(discountValue),
       max_uses: maxUses ? Number(maxUses) : null,
+      min_order_amount: minAmount ? Number(minAmount) : null,
+      expires_at: expiresAt || null,
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['seller-promo-codes'] })
-      setCode(''); setDiscountValue(''); setMaxUses(''); setShowForm(false); setError('')
+      setCode(''); setDiscountValue(''); setMaxUses(''); setMinAmount(''); setExpiresAt(''); setShowForm(false); setError('')
     },
     onError: (e: any) => setError(e.message ?? 'Ошибка'),
   })
@@ -470,7 +474,7 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <input
-                  placeholder={discountType === 'percent' ? 'Процент (1-100)' : 'Сумма'}
+                  placeholder={discountType === 'percent' ? 'Процент (1-100)' : 'Сумма скидки'}
                   value={discountValue}
                   onChange={e => setDiscountValue(e.target.value)}
                   type="number"
@@ -482,6 +486,22 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
                   onChange={e => setMaxUses(e.target.value)}
                   type="number"
                   style={{ width: 120, height: 46, padding: '0 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <input
+                  placeholder="Мин. сумма заказа"
+                  value={minAmount}
+                  onChange={e => setMinAmount(e.target.value)}
+                  type="number"
+                  style={{ flex: 1, height: 46, padding: '0 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }}
+                />
+                <input
+                  placeholder="Срок до (дата)"
+                  value={expiresAt}
+                  onChange={e => setExpiresAt(e.target.value)}
+                  type="date"
+                  style={{ flex: 1, height: 46, padding: '0 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }}
                 />
               </div>
               {error && <div style={{ fontSize: 13, color: 'var(--danger)' }}>{error}</div>}
