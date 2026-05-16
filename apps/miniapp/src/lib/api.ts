@@ -70,6 +70,15 @@ export const api = {
     request<{ ok: boolean; status: string }>(`/api/v1/shop/${tenantId}/orders/${orderId}/cancel`, {
       method: 'POST',
     }),
+  reviewOrder: (tenantId: string, orderId: string, rating: number, text: string) =>
+    request<{ ok: boolean; rating: number }>(`/api/v1/shop/${tenantId}/orders/${orderId}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ rating, text }),
+    }),
+  getProductReviews: (tenantId: string, productId: string) =>
+    request<{ avg_rating: number | null; count: number; reviews: { rating: number; text: string; reviewer_name: string; created_at: string }[] }>(
+      `/api/v1/shop/${tenantId}/products/${productId}/reviews`,
+    ),
 
   // Seller Mini App endpoints (Telegram initData auth)
   seller: {

@@ -261,6 +261,23 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
           )}
         </div>
 
+        {/* Buyer review */}
+        {order.meta?.review_rating && (
+          <div style={{ margin: '12px 16px 0', padding: '14px', borderRadius: 14, background: 'var(--accent-soft)', border: '1px solid var(--accent)' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Отзыв покупателя</div>
+            <div style={{ display: 'flex', gap: 3, marginBottom: 6 }}>
+              {[1,2,3,4,5].map(s => (
+                <svg key={s} width="14" height="14" viewBox="0 0 24 24" fill={s <= order.meta.review_rating ? 'var(--accent)' : 'none'} stroke="var(--accent)" strokeWidth="2">
+                  <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+                </svg>
+              ))}
+            </div>
+            {order.meta.review_text && (
+              <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.5 }}>{order.meta.review_text}</div>
+            )}
+          </div>
+        )}
+
         {/* Spacer so content doesn't hide behind sticky button */}
         {nextStatus && <div style={{ height: 90 }}/>}
       </div>

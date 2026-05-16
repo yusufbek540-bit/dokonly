@@ -182,6 +182,34 @@ async def get_shop_products(tenant_id: str, db: AsyncSession = Depends(get_db)):
     return out
 
 
+@router.get("/{tenant_id}/products/{product_id}/reviews")
+async def get_product_reviews(tenant_id: str, product_id: str, db: AsyncSession = Depends(get_db)):
+    """Return aggregated reviews for a product (from orders that include this product)."""
+    result = await db.execute(
+        select(Order).join(
+            OrderItem, OrderItem.order_id == Order.id
+        ).where(
+            Order.tenant_id == tenant_id,
+            OrderItem.product_id == product_id,
+        )
+    )
+    orders = result.scalars().all()
+    reviews = []
+    for o in orders:
+        meta = o.meta or {}
+        if meta.get("review_rating"):
+            reviews.append({
+                "rating": meta["review_rating"],
+                "text": meta.get("review_text", ""),
+                "reviewer_name": o.customer_name or "Покупатель",
+                "created_at": meta.get("review_at", str(o.updated_at)),
+            })
+    if not reviews:
+        return {"avg_rating": None, "count": 0, "reviews": []}
+    avg = round(sum(r["rating"] for r in reviews) / len(reviews), 1)
+    return {"avg_rating": avg, "count": len(reviews), "reviews": reviews}
+
+
 @router.post("/{tenant_id}/orders", status_code=201)
 async def create_buyer_order(
     tenant_id: str,
@@ -397,6 +425,8 @@ async def get_my_orders(
                 "payment_method": order.payment_method,
                 "delivery_type": order.delivery_type,
                 "created_at": order.created_at.isoformat() if order.created_at else None,
+                "meta": order.meta or {},
+                "customer_note": order.customer_note,
                 "items": [
                     {
                         "product_id": str(oi.product_id) if oi.product_id else None,
@@ -645,6 +675,50 @@ async def cancel_buyer_order(
     order.status = "cancelled"
     await db.commit()
     return {"ok": True, "status": "cancelled"}
+
+
+@router.post("/{tenant_id}/orders/{order_id}/review")
+async def submit_order_review(
+    tenant_id: str,
+    order_id: str,
+    body: dict,
+    x_telegram_init_data: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Allow buyer to submit a star rating + optional text for a delivered order."""
+    if not x_telegram_init_data:
+        raise HTTPException(status_code=401, detail="Auth required")
+    tg_user = _validate_init_data(x_telegram_init_data)
+    if tg_user is None:
+        raise HTTPException(status_code=401, detail="Invalid auth")
+
+    rating = body.get("rating")
+    if rating is None or not (1 <= int(rating) <= 5):
+        raise HTTPException(status_code=400, detail="rating must be 1-5")
+
+    result = await db.execute(
+        select(Order).where(Order.id == order_id, Order.tenant_id == tenant_id)
+    )
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    if order.status not in ("delivered", "completed"):
+        raise HTTPException(status_code=400, detail="Order must be delivered to review")
+
+    meta = dict(order.meta or {})
+    if meta.get("review_rating"):
+        raise HTTPException(status_code=400, detail="Already reviewed")
+
+    from datetime import datetime, timezone
+    from sqlalchemy.orm.attributes import flag_modified
+    meta["review_rating"] = int(rating)
+    meta["review_text"] = body.get("text", "")
+    meta["review_at"] = datetime.now(timezone.utc).isoformat()
+    order.meta = meta
+    flag_modified(order, "meta")
+    await db.commit()
+    return {"ok": True, "rating": int(rating)}
 
 
 @router.post("/{tenant_id}/wishlist/toggle")

@@ -68,9 +68,17 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
 
   const inWishlist = wishlistIds.includes(productId)
 
+  const [showAllReviews, setShowAllReviews] = useState(false)
+
   const { data: allProducts = [], isLoading } = useQuery({
     queryKey: ['products', tenantId],
     queryFn: () => api.getProducts(tenantId),
+  })
+
+  const { data: reviewData } = useQuery({
+    queryKey: ['product-reviews', tenantId, productId],
+    queryFn: () => api.getProductReviews(tenantId, productId),
+    retry: false,
   })
 
   const product = (allProducts as any[]).find(p => p.id === productId)
@@ -280,6 +288,18 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
               )}
             </div>
           </div>
+          {/* Rating badge */}
+          {reviewData && reviewData.count > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+              <span style={{ fontSize: 14 }}>⭐</span>
+              <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
+                {reviewData.avg_rating}
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                ({reviewData.count} {reviewData.count === 1 ? 'отзыв' : reviewData.count < 5 ? 'отзыва' : 'отзывов'})
+              </span>
+            </div>
+          )}
           {product.category && (
             <span style={{
               display: 'inline-block', marginTop: 6,
@@ -391,6 +411,47 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
         {product.stock > 0 && product.stock <= 10 && (
           <div style={{ margin: '16px 16px 0', padding: '10px 14px', borderRadius: 10, background: '#FEF3C7' }}>
             <span style={{ fontSize: 13, fontWeight: 500, color: '#92400E' }}>Осталось {product.stock} шт.</span>
+          </div>
+        )}
+
+        {/* Reviews section */}
+        {reviewData && reviewData.count > 0 && (
+          <div style={{ padding: '24px 16px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted-strong)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Отзывы ({reviewData.count})
+              </div>
+              {reviewData.reviews.length > 3 && (
+                <button
+                  onClick={() => setShowAllReviews(v => !v)}
+                  style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >
+                  {showAllReviews ? 'Свернуть' : 'Все отзывы'}
+                </button>
+              )}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {(showAllReviews ? reviewData.reviews : reviewData.reviews.slice(0, 3)).map((r, i) => (
+                <div key={i} style={{
+                  padding: '12px 14px', borderRadius: 12,
+                  background: 'var(--card)', border: '1px solid var(--border)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <div style={{ display: 'flex', gap: 3 }}>
+                      {[1,2,3,4,5].map(s => (
+                        <svg key={s} width="12" height="12" viewBox="0 0 24 24" fill={s <= r.rating ? 'var(--accent)' : 'none'} stroke="var(--accent)" strokeWidth="2">
+                          <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+                        </svg>
+                      ))}
+                    </div>
+                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>{r.reviewer_name}</span>
+                  </div>
+                  {r.text && (
+                    <p style={{ fontSize: 13, color: 'var(--ink)', margin: 0, lineHeight: 1.5 }}>{r.text}</p>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

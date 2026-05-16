@@ -76,10 +76,97 @@ function statusToStep(status: string): number {
 
 // ─── OrderDetail ──────────────────────────────────────────────────────────────
 
+function StarRatingModal({ onSubmit, onClose }: { onSubmit: (rating: number, text: string) => void; onClose: () => void }) {
+  const [rating, setRating] = useState(0)
+  const [hovered, setHovered] = useState(0)
+  const [text, setText] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 100,
+      background: 'rgba(0,0,0,0.4)',
+      display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+    }} onClick={onClose}>
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: 480,
+          background: 'var(--bg)', borderRadius: '20px 20px 0 0',
+          padding: '24px 24px calc(24px + env(safe-area-inset-bottom))',
+        }}
+      >
+        <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)', marginBottom: 6, textAlign: 'center' }}>
+          Оценить заказ
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', marginBottom: 20 }}>
+          Насколько вам понравился заказ?
+        </div>
+
+        {/* Stars */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
+          {[1,2,3,4,5].map(star => (
+            <button
+              key={star}
+              onMouseEnter={() => setHovered(star)}
+              onMouseLeave={() => setHovered(0)}
+              onClick={() => setRating(star)}
+              style={{
+                width: 44, height: 44, borderRadius: 999,
+                background: (hovered || rating) >= star ? 'var(--accent-soft)' : 'var(--subtle)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: 'none', cursor: 'pointer',
+                transition: 'background 0.1s',
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill={(hovered || rating) >= star ? 'var(--accent)' : 'none'} stroke="var(--accent)" strokeWidth="1.5">
+                <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/>
+              </svg>
+            </button>
+          ))}
+        </div>
+
+        <textarea
+          placeholder="Ваш отзыв (необязательно)"
+          value={text}
+          onChange={e => setText(e.target.value)}
+          rows={3}
+          style={{
+            width: '100%', borderRadius: 12,
+            border: '1px solid var(--border)', background: 'var(--card)',
+            padding: '10px 12px', fontSize: 14, color: 'var(--ink)',
+            resize: 'none', outline: 'none', boxSizing: 'border-box',
+            marginBottom: 14,
+          }}
+        />
+
+        <button
+          disabled={rating === 0 || submitting}
+          onClick={async () => {
+            setSubmitting(true)
+            await onSubmit(rating, text)
+          }}
+          style={{
+            width: '100%', height: 50, borderRadius: 14,
+            background: rating === 0 ? 'var(--border)' : 'var(--accent)',
+            color: rating === 0 ? 'var(--muted)' : 'white',
+            fontWeight: 700, fontSize: 15,
+            opacity: submitting ? 0.7 : 1,
+          }}
+        >
+          {submitting ? 'Отправляем...' : 'Отправить отзыв'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: { order: any; currency: string; tenantId: string; onBack: () => void; shop?: any }) {
   const [order, setOrder] = useState(initialOrder)
   const [cancelling, setCancelling] = useState(false)
   const [cancelDone, setCancelDone] = useState(false)
+  const [showReview, setShowReview] = useState(false)
+  const [reviewDone, setReviewDone] = useState(false)
 
   const qc = useQueryClient()
 
@@ -92,6 +179,18 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
       qc.invalidateQueries({ queryKey: ['my-orders', tenantId] })
     },
   })
+
+  async function handleReviewSubmit(rating: number, text: string) {
+    try {
+      await api.reviewOrder(tenantId, order.id, rating, text)
+      setOrder({ ...order, meta: { ...(order.meta || {}), review_rating: rating, review_text: text } })
+      setShowReview(false)
+      setReviewDone(true)
+      qc.invalidateQueries({ queryKey: ['my-orders', tenantId] })
+    } catch {
+      setShowReview(false)
+    }
+  }
 
   const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user
   const firstName = tgUser?.first_name ?? ''
@@ -382,8 +481,42 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
               Заказ отменён
             </div>
           )}
+
+          {/* Rate order */}
+          {['delivered', 'completed'].includes(order.status) && !order.meta?.review_rating && !reviewDone && (
+            <button
+              onClick={() => setShowReview(true)}
+              style={{
+                height: 46, borderRadius: 12,
+                background: 'var(--card)', border: '1px solid var(--border)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                fontSize: 14, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
+              }}
+            >
+              <span>⭐</span> Оценить заказ
+            </button>
+          )}
+
+          {/* Already reviewed */}
+          {(order.meta?.review_rating || reviewDone) && (
+            <div style={{
+              padding: '12px 16px', borderRadius: 12,
+              background: 'var(--accent-soft)', border: '1px solid var(--accent)',
+              display: 'flex', alignItems: 'center', gap: 8,
+              fontSize: 14, fontWeight: 600, color: 'var(--accent)',
+            }}>
+              {'⭐'.repeat(order.meta?.review_rating ?? 5)} Отзыв оставлен
+            </div>
+          )}
         </div>
       </div>
+
+      {showReview && (
+        <StarRatingModal
+          onSubmit={handleReviewSubmit}
+          onClose={() => setShowReview(false)}
+        />
+      )}
     </div>
   )
 }
