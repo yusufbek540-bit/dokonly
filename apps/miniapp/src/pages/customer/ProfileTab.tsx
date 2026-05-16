@@ -483,6 +483,33 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
             </div>
           )}
 
+          {/* Return request — only within 14-day window */}
+          {order.status === 'completed' && (() => {
+            const daysSince = (Date.now() - new Date(order.created_at).getTime()) / (1000 * 60 * 60 * 24)
+            return daysSince <= 14
+          })() && (
+            <button
+              onClick={() => {
+                const tg = (window as any).Telegram?.WebApp
+                const handle = shop?.contact_info?.telegram?.replace('@', '')
+                const orderRef = '#' + (order.id ?? '').slice(0, 8).toUpperCase()
+                if (handle) {
+                  const msg = encodeURIComponent(`Хочу оформить возврат по заказу ${orderRef}`)
+                  const url = `https://t.me/${handle}?text=${msg}`
+                  tg?.openTelegramLink?.(url) ?? window.open(url, '_blank')
+                }
+              }}
+              style={{
+                height: 46, borderRadius: 12,
+                background: 'transparent', border: '1.5px solid var(--muted)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                fontSize: 14, fontWeight: 600, color: 'var(--muted)', cursor: 'pointer',
+              }}
+            >
+              <span>🔄</span> Запросить возврат
+            </button>
+          )}
+
           {/* Rate order */}
           {['delivered', 'completed'].includes(order.status) && !order.meta?.review_rating && !reviewDone && (
             <button
@@ -524,11 +551,17 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
 
 // ─── AboutStore ───────────────────────────────────────────────────────────────
 
-function AboutStore({ shop, currency, onBack }: { shop: any; currency: string; onBack: () => void }) {
+function AboutStore({ shop, currency, tenantId, onBack }: { shop: any; currency: string; tenantId: string; onBack: () => void }) {
   const contact = shop.contact_info ?? {}
   const settings = shop.settings ?? {}
   const deliveryMethods: any[] = settings.delivery_methods ?? []
   const enabledDeliveries = deliveryMethods.filter((d: any) => d.enabled)
+
+  const { data: stats } = useQuery({
+    queryKey: ['shop-stats', tenantId],
+    queryFn: () => api.getShopStats(tenantId),
+    retry: false,
+  })
 
   function fmt(price: number) {
     if (currency === 'UZS') return price === 0 ? 'Бесплатно' : price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' сум'
@@ -583,11 +616,22 @@ function AboutStore({ shop, currency, onBack }: { shop: any; currency: string; o
           </div>
         </div>
 
-        {/* Name */}
+        {/* Name + rating */}
         <div style={{ padding: '32px 16px 0' }}>
-          <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 22, color: 'var(--ink)', marginBottom: 4 }}>
+          <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 22, color: 'var(--ink)', marginBottom: 6 }}>
             {shop.name}
           </div>
+          {stats && stats.avg_rating && stats.review_count > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ fontSize: 14 }}>⭐</span>
+              <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>
+                {stats.avg_rating.toFixed(1)}
+              </span>
+              <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+                ({stats.review_count} {stats.review_count === 1 ? 'отзыв' : stats.review_count < 5 ? 'отзыва' : 'отзывов'})
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Description */}
@@ -1016,7 +1060,16 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
     },
   })
 
-  const wishlistProducts = (allProducts as any[]).filter(p => wishlistIds.includes(p.id))
+  const [wishlistSort, setWishlistSort] = useState<'recent' | 'price_asc' | 'price_desc'>('recent')
+
+  const wishlistProducts = (allProducts as any[])
+    .filter(p => wishlistIds.includes(p.id))
+    .sort((a: any, b: any) => {
+      if (wishlistSort === 'price_asc') return Number(a.price) - Number(b.price)
+      if (wishlistSort === 'price_desc') return Number(b.price) - Number(a.price)
+      // 'recent': order by position in wishlistIds array
+      return wishlistIds.indexOf(a.id) - wishlistIds.indexOf(b.id)
+    })
 
   if (showEditProfile) {
     return <EditProfile tenantId={tenantId} onBack={() => setShowEditProfile(false)} />
@@ -1035,7 +1088,7 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
   }
 
   if (showAbout && shop) {
-    return <AboutStore shop={shop} currency={currency} onBack={() => setShowAbout(false)} />
+    return <AboutStore shop={shop} currency={currency} tenantId={tenantId} onBack={() => setShowAbout(false)} />
   }
 
   if (showWishlist) {
@@ -1058,9 +1111,21 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
             <Icon name="arrowLeft" size={18} color="var(--ink)" />
           </button>
           <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', flex: 1 }}>
-            Избранное
+            Избранное {wishlistIds.length > 0 && <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--muted)' }}>({wishlistIds.length})</span>}
           </span>
-          <span style={{ fontSize: 13, color: 'var(--muted)' }}>{wishlistIds.length}</span>
+          <select
+            value={wishlistSort}
+            onChange={e => setWishlistSort(e.target.value as any)}
+            style={{
+              fontSize: 12, color: 'var(--muted)', background: 'var(--subtle)',
+              border: '1px solid var(--border)', borderRadius: 8, padding: '4px 8px',
+              outline: 'none',
+            }}
+          >
+            <option value="recent">Недавние</option>
+            <option value="price_asc">Дешевле</option>
+            <option value="price_desc">Дороже</option>
+          </select>
         </div>
         <div className="screen-scroll" style={{ flex: 1, padding: 16, paddingBottom: 40 }}>
           {wishlistProducts.length === 0 ? (

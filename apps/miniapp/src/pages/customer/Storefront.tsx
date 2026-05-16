@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
@@ -20,6 +20,8 @@ function tone(name: string) {
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffffffff
   return Math.abs(h) % 8
 }
+
+const PAGE_SIZE = 20
 
 type SortOption = 'newest' | 'price_asc' | 'price_desc' | 'name_asc'
 
@@ -54,6 +56,8 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
   const [activeHasDiscount, setActiveHasDiscount] = useState(false)
 
   const hasActiveFilters = !!(activeMinPrice || activeMaxPrice || activeInStock || activeHasDiscount)
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const sentinelRef = useRef<HTMLDivElement>(null)
   const qc = useQueryClient()
 
   const { data: products = [], isLoading } = useQuery({
@@ -82,6 +86,23 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
     setJustAdded(p.id)
     setTimeout(() => setJustAdded(null), 1200)
   }
+
+  useEffect(() => { setVisibleCount(PAGE_SIZE) }, [cat, search, sort, activeMinPrice, activeMaxPrice, activeInStock, activeHasDiscount])
+
+  const loadMore = useCallback(() => {
+    setVisibleCount(n => n + PAGE_SIZE)
+  }, [])
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) loadMore() },
+      { threshold: 0.1 }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [loadMore])
 
   const { mutate: toggleWishlist } = useMutation({
     mutationFn: (productId: string) => api.toggleWishlist(shop.id, productId),
@@ -449,17 +470,31 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
             )}
           </div>
           {isLoading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 40 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }}/>
-              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-            </div>
+            <>
+              <style>{`
+                @keyframes shimmer { 0%,100%{opacity:.45} 50%{opacity:.85} }
+                .sk{animation:shimmer 1.4s ease-in-out infinite;background:var(--subtle);border-radius:12px}
+              `}</style>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i}>
+                    <div className="sk" style={{ width: '100%', aspectRatio: '1/1', animationDelay: `${i * 0.1}s` }}/>
+                    <div style={{ padding: '8px 2px 0' }}>
+                      <div className="sk" style={{ height: 13, width: '80%', marginBottom: 6, animationDelay: `${i * 0.1 + 0.05}s` }}/>
+                      <div className="sk" style={{ height: 13, width: '55%', animationDelay: `${i * 0.1 + 0.1}s` }}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           ) : visible.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)' }}>
               {search ? 'Ничего не найдено' : 'Товары появятся скоро'}
             </div>
           ) : (
+            <>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {visible.map((p: any) => {
+              {visible.slice(0, visibleCount).map((p: any) => {
                 const inWishlist = wishlistIds.includes(p.id)
                 return (
                   <div key={p.id} style={{ textAlign: 'left', cursor: 'pointer' }} onClick={() => onProduct(p.id)}>
@@ -564,6 +599,14 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
                 )
               })}
             </div>
+            {/* Sentinel for infinite scroll */}
+            {visibleCount < visible.length && (
+              <div ref={sentinelRef} style={{ height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 8 }}>
+                <div style={{ width: 22, height: 22, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }}/>
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              </div>
+            )}
+            </>
           )}
         </div>
       </div>
