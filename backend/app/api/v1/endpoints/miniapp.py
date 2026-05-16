@@ -807,6 +807,7 @@ async def list_promo_codes(
             "discount_value": float(c.discount_value),
             "max_uses": c.max_uses,
             "used_count": c.used_count,
+            "min_order_amount": float(c.min_order_amount) if c.min_order_amount else None,
             "expires_at": c.expires_at.isoformat() if c.expires_at else None,
             "is_active": c.is_active,
         }

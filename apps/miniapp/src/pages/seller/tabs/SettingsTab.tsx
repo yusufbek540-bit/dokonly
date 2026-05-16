@@ -431,6 +431,7 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--muted)' }}>
                     Использований: {c.used_count}{c.max_uses ? `/${c.max_uses}` : ''}
+                    {c.min_order_amount ? ` · мин. ${c.min_order_amount.toLocaleString()}` : ''}
                     {c.expires_at ? ` · до ${new Date(c.expires_at).toLocaleDateString('ru')}` : ''}
                   </div>
                 </div>
