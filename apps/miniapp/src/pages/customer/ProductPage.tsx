@@ -12,6 +12,7 @@ interface Props {
   botUsername?: string
   onBack: () => void
   onCheckout: () => void
+  onProduct?: (id: string) => void
 }
 
 function fmtPrice(n: number, currency: string) {
@@ -25,7 +26,7 @@ function tone(name: string) {
   return Math.abs(h) % 8
 }
 
-export function ProductPage({ tenantId, productId, currency, shopSlug, botUsername, onBack, onCheckout }: Props) {
+export function ProductPage({ tenantId, productId, currency, shopSlug, botUsername, onBack, onCheckout, onProduct }: Props) {
   const [imgIdx, setImgIdx] = useState(0)
   const galleryTouchStart = useRef<number | null>(null)
   const [selectedSize, setSelectedSize] = useState<string | null>(null)
@@ -404,14 +405,9 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
                 <button
                   key={p.id}
                   onClick={() => {
-                    setImgIdx(0)
-                    setSelectedSize(null)
-                    setSelectedColor(null)
-                    setQty(1)
-                    setDescExpanded(false)
-                    // Navigate to this product - re-use the onBack + re-open pattern isn't ideal,
-                    // but we can trigger the parent nav by calling back and letting storefront handle it
-                    // For now, scroll to top and update product ID via onBack cycle
+                    if (onProduct) {
+                      onProduct(p.id)
+                    }
                   }}
                   style={{
                     flexShrink: 0, width: 140,

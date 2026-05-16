@@ -342,6 +342,7 @@ function ShopApp() {
           botUsername={(shop as any).bot_username}
           onBack={() => setProductId(null)}
           onCheckout={() => setShowCheckout(true)}
+          onProduct={setProductId}
         />
       </div>
     )
