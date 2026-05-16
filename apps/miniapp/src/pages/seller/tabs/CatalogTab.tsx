@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
+import { useTelegramMainButton } from '@/hooks/useTelegram'
 
 function fmtPrice(n: number, currency: string) {
   if (currency === 'UZS') return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' сум'
@@ -46,6 +47,29 @@ function ProductForm({ mode, currency, onSave, onClose }: {
   })
 
   const canSave = name.trim() && price
+
+  const handleSaveClick = () => {
+    if (!canSave) return
+    const sizes = sizesStr.split(',').map(s => s.trim()).filter(Boolean)
+    const colors = colorsStr.split(',').map(s => s.trim()).filter(Boolean)
+    onSave({
+      name, price: Number(price),
+      compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
+      stock: stock ? Number(stock) : null,
+      description,
+      category_id: categoryId || null,
+      is_active: active, is_featured: featured, images,
+      sizes, colors,
+      video_url: videoUrl.trim() || null,
+    })
+  }
+
+  useTelegramMainButton({
+    text: mode.type === 'edit' ? 'Сохранить товар' : 'Добавить товар',
+    onClick: handleSaveClick,
+    isVisible: true,
+    disabled: !canSave,
+  })
 
   return (
     <div style={{
@@ -260,31 +284,6 @@ function ProductForm({ mode, currency, onSave, onClose }: {
               }}/>
             </button>
           </div>
-          <button
-            disabled={!canSave}
-            onClick={() => {
-              const sizes = sizesStr.split(',').map(s => s.trim()).filter(Boolean)
-              const colors = colorsStr.split(',').map(s => s.trim()).filter(Boolean)
-              onSave({
-                name, price: Number(price),
-                compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
-                stock: stock ? Number(stock) : null,
-                description,
-                category_id: categoryId || null,
-                is_active: active, is_featured: featured, images,
-                sizes, colors,
-                video_url: videoUrl.trim() || null,
-              })
-            }}
-            style={{
-              width: '100%', height: 50, borderRadius: 14, marginTop: 4,
-              background: canSave ? 'var(--accent)' : 'var(--subtle)',
-              color: canSave ? 'white' : 'var(--muted)',
-              fontWeight: 700, fontSize: 15,
-            }}
-          >
-            Сохранить
-          </button>
         </div>
       </div>
     </div>
