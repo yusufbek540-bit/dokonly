@@ -103,6 +103,7 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
   const [paymentMethodSnapshot, setPaymentMethodSnapshot] = useState('')
   const [screenshotUploading, setScreenshotUploading] = useState(false)
   const [screenshotDone, setScreenshotDone] = useState(false)
+  const [summaryOpen, setSummaryOpen] = useState(false)
 
   const deliveryCost = deliveryOptions.find(d => d.id === delivery)?.price ?? 0
   const discount = couponApplied?.discountAmount ?? 0
@@ -686,29 +687,60 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
         </div>
 
         {/* Order summary */}
-        <div style={{ margin: '20px 16px 0', padding: 16, borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)' }}>
-          <div style={{ fontFamily: 'Sora', fontWeight: 600, fontSize: 14, color: 'var(--ink)', marginBottom: 12 }}>Итог</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--muted)' }}>
-              <span>Товары ({items.reduce((s, i) => s + i.qty, 0)} шт.)</span>
-              <span style={{ fontFamily: 'JetBrains Mono' }}>{fmtPrice(cartTotal, currency)}</span>
+        <div style={{ margin: '20px 16px 0', borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)', overflow: 'hidden' }}>
+          <button
+            onClick={() => setSummaryOpen(o => !o)}
+            style={{
+              width: '100%', padding: '14px 16px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: 'none', cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontFamily: 'Sora', fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>
+              Итог · {items.reduce((s, i) => s + i.qty, 0)} шт.
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 15, color: 'var(--accent)' }}>
+                {fmtPrice(grandTotal, currency)}
+              </span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" style={{ transform: summaryOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
             </div>
-            {couponApplied && discount > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--accent)' }}>
-                <span>Скидка ({couponApplied.code})</span>
-                <span style={{ fontFamily: 'JetBrains Mono' }}>−{fmtPrice(discount, currency)}</span>
+          </button>
+          {summaryOpen && (
+            <div style={{ padding: '0 16px 14px', display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid var(--border)' }}>
+              {items.map((item, idx) => (
+                <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: idx === 0 ? 12 : 0 }}>
+                  <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1, marginRight: 8 }}>
+                    {item.name}{item.size ? ` · ${item.size}` : ''}{item.qty > 1 ? ` ×${item.qty}` : ''}
+                  </span>
+                  <span style={{ fontFamily: 'JetBrains Mono', fontSize: 12, fontWeight: 600, color: 'var(--muted)', flexShrink: 0 }}>
+                    {fmtPrice(item.price * item.qty, currency)}
+                  </span>
+                </div>
+              ))}
+              <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }}/>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--muted)' }}>
+                <span>Товары</span>
+                <span style={{ fontFamily: 'JetBrains Mono' }}>{fmtPrice(cartTotal, currency)}</span>
               </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--muted)' }}>
-              <span>Доставка</span>
-              <span style={{ fontFamily: 'JetBrains Mono' }}>{deliveryCost === 0 ? 'Бесплатно' : fmtPrice(deliveryCost, currency)}</span>
+              {couponApplied && discount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--accent)' }}>
+                  <span>Скидка ({couponApplied.code})</span>
+                  <span style={{ fontFamily: 'JetBrains Mono' }}>−{fmtPrice(discount, currency)}</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--muted)' }}>
+                <span>Доставка</span>
+                <span style={{ fontFamily: 'JetBrains Mono' }}>{deliveryCost === 0 ? 'Бесплатно' : fmtPrice(deliveryCost, currency)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, color: 'var(--ink)', paddingTop: 4, borderTop: '1px solid var(--border)' }}>
+                <span>К оплате</span>
+                <span style={{ fontFamily: 'JetBrains Mono', color: 'var(--accent)' }}>{fmtPrice(grandTotal, currency)}</span>
+              </div>
             </div>
-            <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }}/>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>
-              <span>К оплате</span>
-              <span style={{ fontFamily: 'JetBrains Mono' }}>{fmtPrice(grandTotal, currency)}</span>
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
