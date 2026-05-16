@@ -30,7 +30,7 @@ function ProductForm({ mode, currency, onSave, onClose }: {
   const [compareAtPrice, setCompareAtPrice] = useState(p?.compare_at_price?.toString() ?? '')
   const [stock, setStock] = useState(p?.stock?.toString() ?? '')
   const [description, setDescription] = useState(p?.description ?? '')
-  const [category, setCategory] = useState(p?.category ?? '')
+  const [categoryId, setCategoryId] = useState<string>(p?.category_id ?? '')
   const [active, setActive] = useState(p?.is_active ?? true)
   const [featured, setFeatured] = useState(p?.is_featured ?? false)
   const [images, setImages] = useState<string[]>(p?.images ?? [])
@@ -145,19 +145,19 @@ function ProductForm({ mode, currency, onSave, onClose }: {
           <div>
             <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>Категория</label>
             <select
-              value={category}
-              onChange={e => setCategory(e.target.value)}
+              value={categoryId}
+              onChange={e => setCategoryId(e.target.value)}
               style={{
                 width: '100%', height: 46, padding: '0 12px',
                 borderRadius: 12, background: 'var(--card)',
                 border: '1px solid var(--border)', outline: 'none',
-                fontSize: 14, color: category ? 'var(--ink)' : 'var(--muted)',
+                fontSize: 14, color: categoryId ? 'var(--ink)' : 'var(--muted)',
                 appearance: 'none', WebkitAppearance: 'none',
               }}
             >
               <option value="">Без категории</option>
               {(categories as any[]).map((cat: any) => (
-                <option key={cat.id} value={cat.name}>{cat.name}</option>
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
           </div>
@@ -269,7 +269,9 @@ function ProductForm({ mode, currency, onSave, onClose }: {
                 name, price: Number(price),
                 compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
                 stock: stock ? Number(stock) : null,
-                description, category, is_active: active, is_featured: featured, images,
+                description,
+                category_id: categoryId || null,
+                is_active: active, is_featured: featured, images,
                 sizes, colors,
                 video_url: videoUrl.trim() || null,
               })

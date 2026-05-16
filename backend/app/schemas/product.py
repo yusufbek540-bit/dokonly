@@ -30,6 +30,7 @@ class ProductCreate(BaseModel):
     sizes: list[str] = []
     colors: list[str] = []
     is_featured: bool = False
+    video_url: Optional[str] = None
 
 
 class ProductUpdate(BaseModel):
@@ -44,6 +45,7 @@ class ProductUpdate(BaseModel):
     sizes: Optional[list[str]] = None
     colors: Optional[list[str]] = None
     is_featured: Optional[bool] = None
+    video_url: Optional[str] = None
 
 
 class ProductResponse(BaseModel):
@@ -60,4 +62,5 @@ class ProductResponse(BaseModel):
     is_featured: bool = False
     sort_order: int
     category_id: Optional[UUID]
+    video_url: Optional[str] = None
     model_config = {"from_attributes": True}

@@ -363,6 +363,7 @@ async def seller_list_products(
             "sizes": meta.get("sizes", []),
             "colors": meta.get("colors", []),
             "is_featured": meta.get("is_featured", False),
+            "video_url": p.video_url,
         })
     return out
 
@@ -385,7 +386,7 @@ async def seller_create_product(
         meta["colors"] = colors
     if is_featured:
         meta["is_featured"] = is_featured
-    product = Product(**data, tenant_id=tenant.id, meta=meta)
+    product = Product(**data, tenant_id=tenant.id, meta=meta)  # video_url passed through via **data
     db.add(product)
     await db.commit()
     await db.refresh(product)
@@ -406,7 +407,7 @@ async def seller_update_product(
     product = result.scalar_one_or_none()
     if not product:
         raise HTTPException(404, "Product not found")
-    update_data = body.model_dump(exclude_none=True)
+    update_data = body.model_dump(exclude_unset=True)
     sizes = update_data.pop("sizes", None)
     colors = update_data.pop("colors", None)
     is_featured = update_data.pop("is_featured", None)

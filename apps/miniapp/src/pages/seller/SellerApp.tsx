@@ -152,12 +152,18 @@ export function SellerApp({ tenantSlug, shop }: Props) {
           {tab === 'customers' && 'Клиенты'}
           {tab === 'more'      && 'Ещё'}
         </div>
-        {tab === 'home' && (
-          <span style={{
-            fontSize: 11, padding: '3px 9px', borderRadius: 999,
-            background: 'var(--accent-soft)', color: 'var(--accent)', fontWeight: 700,
-          }}>Trial</span>
-        )}
+        {tab === 'home' && (() => {
+          const tier = tenant.tier ?? 'start'
+          const isTrial = !tenant.tier || tier === 'trial' || tier === 'start'
+          const tierLabel = isTrial ? 'Trial' : tier.charAt(0).toUpperCase() + tier.slice(1)
+          return (
+            <span style={{
+              fontSize: 11, padding: '3px 9px', borderRadius: 999,
+              background: isTrial ? 'var(--accent-soft)' : 'rgba(0,179,131,0.15)',
+              color: 'var(--accent)', fontWeight: 700,
+            }}>{tierLabel}</span>
+          )
+        })()}
       </div>
 
       {/* Tab content */}
