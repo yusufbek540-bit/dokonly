@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Icon } from '@/components/Icon'
 import { api } from '@/lib/api'
+import { useCart } from '@/store/cart'
 
 interface ShopData {
   id: string
@@ -42,6 +43,7 @@ function tone(name: string) {
 
 export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: Props) {
   const qc = useQueryClient()
+  const addToCart = useCart(s => s.add)
   const activeProducts = products.filter((p: any) => p.is_active)
   const featuredProducts = activeProducts.filter((p: any) => p.is_featured)
   const featured = (featuredProducts.length > 0 ? featuredProducts : activeProducts).slice(0, 5)
@@ -54,6 +56,15 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
   const hasCover = !!shop.cover_url
 
   const [carouselIdx, setCarouselIdx] = useState(0)
+  const [justAdded, setJustAdded] = useState<string | null>(null)
+
+  const handleQuickAdd = (e: React.MouseEvent, p: any) => {
+    e.stopPropagation()
+    addToCart({ productId: p.id, name: p.name, price: Number(p.price), imageUrl: p.images?.[0], tone: tone(p.name) })
+    ;(window as any).Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('light')
+    setJustAdded(p.id)
+    setTimeout(() => setJustAdded(null), 1200)
+  }
 
   const { data: wishlistIds = [] } = useQuery<string[]>({
     queryKey: ['wishlist', tenantId],
@@ -390,8 +401,8 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
               {preview.map((p: any) => {
                 const inWishlist = wishlistIds.includes(p.id)
                 return (
-                <button key={p.id} onClick={() => onProduct(p.id)} style={{ textAlign: 'left' }}>
-                  <div style={{ position: 'relative' }}>
+                <button key={p.id} onClick={() => onProduct(p.id)} style={{ textAlign: 'left', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ position: 'relative', width: '100%' }}>
                     {p.images?.[0]
                       ? <img src={p.images[0]} alt={p.name} style={{ width: '100%', aspectRatio: '1/1', borderRadius: 12, objectFit: 'cover' }}/>
                       : <div className="img-ph" data-tone={tone(p.name)}><span>{p.name.split(' ').slice(0,2).join(' ')}</span></div>
@@ -419,12 +430,31 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
                       </svg>
                     </button>
                   </div>
-                  <div style={{ padding: '8px 2px 0' }}>
+                  <div style={{ padding: '8px 2px 0', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.3, marginBottom: 4, height: 34, overflow: 'hidden' }}>
                       {p.name}
                     </div>
-                    <div style={{ fontFamily: 'JetBrains Mono', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
-                      {fmtPrice(Number(p.price), shop.currency)}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                      <div style={{ fontFamily: 'JetBrains Mono', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+                        {fmtPrice(Number(p.price), shop.currency)}
+                      </div>
+                      {!p.sizes?.length && !p.colors?.length && p.stock !== 0 && (
+                        <button
+                          onClick={e => handleQuickAdd(e, p)}
+                          style={{
+                            width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                            background: justAdded === p.id ? 'var(--accent)' : 'var(--subtle)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            transition: 'background 0.2s, transform 0.15s',
+                            transform: justAdded === p.id ? 'scale(0.9)' : 'scale(1)',
+                          }}
+                        >
+                          {justAdded === p.id
+                            ? <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            : <Icon name="plus" size={14} color="var(--ink)"/>
+                          }
+                        </button>
+                      )}
                     </div>
                   </div>
                 </button>
