@@ -33,6 +33,8 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
   const [qty, setQty] = useState(1)
   const [added, setAdded] = useState(false)
   const [descExpanded, setDescExpanded] = useState(false)
+  const [showShare, setShowShare] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const add = useCart((s) => s.add)
   const cartCount = useCart((s) => s.count)()
@@ -92,22 +94,37 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
   const colors: string[] = product.colors ?? []
   const t = tone(product.name)
 
-  const handleShare = () => {
+  const productUrl = botUsername
+    ? `https://t.me/${botUsername}/store?startapp=p_${productId}`
+    : shopSlug
+      ? `https://t.me/${shopSlug}bot/store?startapp=p_${productId}`
+      : window.location.href
+
+  const handleShare = () => setShowShare(true)
+
+  const handleTelegramShare = () => {
     const tg = (window as any).Telegram?.WebApp
     if (botUsername && tg?.switchInlineQuery) {
       tg.switchInlineQuery(`${productId}`, ['users', 'groups', 'channels'])
-    } else {
-      const url = botUsername
-        ? `https://t.me/${botUsername}?start=p_${productId}`
-        : `https://dokonly-miniapp.pages.dev?shop=${shopSlug ?? ''}`
-      if (navigator.share) {
-        navigator.share({ title: product.name, url }).catch(() => navigator.clipboard?.writeText(url))
-      } else if (tg?.openLink) {
-        tg.openLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(product.name)}`)
-      } else {
-        navigator.clipboard?.writeText(url)
-      }
+    } else if (tg?.openLink) {
+      tg.openLink(`https://t.me/share/url?url=${encodeURIComponent(productUrl)}&text=${encodeURIComponent(product.name)}`)
     }
+    setShowShare(false)
+  }
+
+  const handleCopyLink = () => {
+    navigator.clipboard?.writeText(productUrl).then(() => {
+      setCopied(true)
+      setTimeout(() => { setCopied(false); setShowShare(false) }, 1200)
+    })
+  }
+
+  const handleStoryShare = () => {
+    const tg = (window as any).Telegram?.WebApp
+    if (tg?.shareToStory) {
+      tg.shareToStory(product.images?.[0] ?? '', { widget_link: { url: productUrl, name: product.name } })
+    }
+    setShowShare(false)
   }
 
   const handleAddToCart = () => {
@@ -453,6 +470,105 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
           )}
         </button>
       </div>
+
+      {/* Share bottom sheet */}
+      {showShare && (
+        <div
+          onClick={() => setShowShare(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px calc(28px + env(safe-area-inset-bottom))' }}
+          >
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 20px' }}/>
+            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 6 }}>
+              Поделиться
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {product.name}
+            </div>
+            {/* Send via Telegram */}
+            <button
+              onClick={handleTelegramShare}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                padding: '14px 16px', borderRadius: 14, marginBottom: 8,
+                background: 'var(--card)', border: '1px solid var(--border)', cursor: 'pointer',
+              }}
+            >
+              <div style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                background: 'rgba(37,161,228,0.12)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="#25A1E4">
+                  <path d="M12 0C5.374 0 0 5.373 0 12c0 6.628 5.374 12 12 12 6.628 0 12-5.372 12-12 0-6.627-5.372-12-12-12zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.447 1.394c-.16.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.869 4.326-2.96-.924c-.643-.204-.657-.643.136-.953l11.57-4.461c.537-.194 1.006.131.829.941z"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1, textAlign: 'left' }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Отправить в Telegram</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>Поделитесь с друзьями в чате</div>
+              </div>
+            </button>
+            {/* Share to Story */}
+            {!!(window as any).Telegram?.WebApp?.shareToStory && product.images?.[0] && (
+              <button
+                onClick={handleStoryShare}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '14px 16px', borderRadius: 14, marginBottom: 8,
+                  background: 'var(--card)', border: '1px solid var(--border)', cursor: 'pointer',
+                }}
+              >
+                <div style={{
+                  width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                  background: 'rgba(131,58,180,0.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#833AB4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                  </svg>
+                </div>
+                <div style={{ flex: 1, textAlign: 'left' }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Добавить в Stories</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>Поделитесь в Telegram Stories</div>
+                </div>
+              </button>
+            )}
+            {/* Copy link */}
+            <button
+              onClick={handleCopyLink}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                padding: '14px 16px', borderRadius: 14,
+                background: copied ? 'var(--accent-soft)' : 'var(--card)',
+                border: `1px solid ${copied ? 'var(--accent)' : 'var(--border)'}`, cursor: 'pointer',
+                transition: 'background 0.2s',
+              }}
+            >
+              <div style={{
+                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                background: copied ? 'var(--accent-soft)' : 'var(--subtle)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {copied
+                  ? <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 8-8" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                }
+              </div>
+              <div style={{ flex: 1, textAlign: 'left' }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: copied ? 'var(--accent)' : 'var(--ink)' }}>
+                  {copied ? 'Ссылка скопирована!' : 'Скопировать ссылку'}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {productUrl}
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

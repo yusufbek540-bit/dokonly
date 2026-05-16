@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Icon } from '@/components/Icon'
 
 interface ShopData {
@@ -39,10 +40,18 @@ function tone(name: string) {
 export function HomeTab({ shop, products, onProduct, onShowCatalog }: Props) {
   const activeProducts = products.filter((p: any) => p.is_active)
   const featuredProducts = activeProducts.filter((p: any) => p.is_featured)
-  const featured = featuredProducts.length > 0 ? featuredProducts : activeProducts.slice(0, 6)
+  const featured = (featuredProducts.length > 0 ? featuredProducts : activeProducts).slice(0, 5)
   const preview = activeProducts.slice(0, 4)
 
   const hasCover = !!shop.cover_url
+
+  const [carouselIdx, setCarouselIdx] = useState(0)
+
+  useEffect(() => {
+    if (featured.length <= 1) return
+    const t = setInterval(() => setCarouselIdx(i => (i + 1) % featured.length), 5000)
+    return () => clearInterval(t)
+  }, [featured.length])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -182,30 +191,105 @@ export function HomeTab({ shop, products, onProduct, onShowCatalog }: Props) {
           </div>
         )}
 
-        {/* Featured strip */}
+        {/* Featured carousel */}
         {featured.length > 0 && (
           <div style={{ marginTop: 24, marginBottom: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px 10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px 12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon name="starFilled" size={14} color="var(--warning)"/>
                 <span style={{ fontFamily: 'Sora', fontWeight: 600, fontSize: 16, color: 'var(--ink)' }}>Хиты продаж</span>
               </div>
+              {featured.length > 1 && (
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {featured.map((_: any, i: number) => (
+                    <button
+                      key={i}
+                      onClick={() => setCarouselIdx(i)}
+                      style={{
+                        width: i === carouselIdx ? 16 : 6, height: 6, borderRadius: 3,
+                        background: i === carouselIdx ? 'var(--accent)' : 'var(--border)',
+                        transition: 'width 0.3s, background 0.3s', padding: 0, border: 'none', cursor: 'pointer',
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-            <div style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '0 16px 4px' }}>
-              {featured.map((p: any) => (
-                <button key={p.id} onClick={() => onProduct(p.id)} style={{ flexShrink: 0, width: 148, textAlign: 'left' }}>
-                  {p.images?.[0]
-                    ? <img src={p.images[0]} alt={p.name} style={{ width: 148, height: 148, borderRadius: 12, objectFit: 'cover' }}/>
-                    : <div className="img-ph" data-tone={tone(p.name)} style={{ width: 148, height: 148 }}><span>{p.name.split(' ').slice(0,2).join(' ')}</span></div>
-                  }
-                  <div style={{ padding: '8px 2px 0' }}>
-                    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-                    <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginTop: 4 }}>
-                      {fmtPrice(Number(p.price), shop.currency)}
+            {/* Carousel card */}
+            <div style={{ padding: '0 16px' }}>
+              {(() => {
+                const p = featured[carouselIdx]
+                if (!p) return null
+                const hasDiscount = p.compare_at_price && Number(p.compare_at_price) > Number(p.price)
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => onProduct(p.id)}
+                    style={{
+                      width: '100%', borderRadius: 16, overflow: 'hidden', textAlign: 'left',
+                      background: 'var(--card)', border: '1px solid var(--border)',
+                      boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+                      position: 'relative',
+                    }}
+                  >
+                    {p.images?.[0] ? (
+                      <img
+                        src={p.images[0]}
+                        alt={p.name}
+                        style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }}
+                      />
+                    ) : (
+                      <div
+                        className="img-ph"
+                        data-tone={tone(p.name)}
+                        style={{ width: '100%', height: 200 }}
+                      >
+                        <span>{p.name.split(' ').slice(0, 2).join(' ')}</span>
+                      </div>
+                    )}
+                    {/* Gradient overlay */}
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0,
+                      height: 120,
+                      background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 100%)',
+                    }}/>
+                    {/* Discount badge */}
+                    {hasDiscount && (
+                      <div style={{
+                        position: 'absolute', top: 12, left: 12,
+                        background: 'var(--accent)', color: 'white',
+                        borderRadius: 8, fontSize: 12, fontWeight: 700,
+                        padding: '3px 8px',
+                      }}>
+                        -{Math.round((1 - Number(p.price) / Number(p.compare_at_price)) * 100)}%
+                      </div>
+                    )}
+                    {p.is_featured && (
+                      <div style={{
+                        position: 'absolute', top: 12, right: 12,
+                        background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)',
+                        borderRadius: 8, padding: '3px 8px', fontSize: 12, fontWeight: 700, color: 'white',
+                      }}>⭐ Хит</div>
+                    )}
+                    {/* Info overlay */}
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 16px 14px' }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'white', lineHeight: 1.3, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {p.name}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 16, color: 'white' }}>
+                          {fmtPrice(Number(p.price), shop.currency)}
+                        </span>
+                        {hasDiscount && (
+                          <span style={{ fontFamily: 'JetBrains Mono', fontSize: 12, color: 'rgba(255,255,255,0.6)', textDecoration: 'line-through' }}>
+                            {fmtPrice(Number(p.compare_at_price), shop.currency)}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                )
+              })()}
             </div>
           </div>
         )}
