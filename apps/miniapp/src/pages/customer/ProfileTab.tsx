@@ -1380,6 +1380,34 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
                         fontWeight: 600, fontSize: 11,
                       }}>Нет в наличии</div>
                     )}
+                    {/* Share button */}
+                    <button
+                      onClick={e => {
+                        e.stopPropagation()
+                        const tg = (window as any).Telegram?.WebApp
+                        const botUsername = shop?.settings?.bot_username
+                        if (botUsername && tg?.switchInlineQuery) {
+                          tg.switchInlineQuery(`${p.id}`, ['users', 'groups', 'channels'])
+                        } else {
+                          const url = `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(p.name)}`
+                          tg?.openLink?.(url) ?? window.open(url, '_blank')
+                        }
+                      }}
+                      style={{
+                        position: 'absolute', top: 6, right: 42,
+                        width: 30, height: 30, borderRadius: 999,
+                        background: 'rgba(255,255,255,0.92)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                        <polyline points="16 6 12 2 8 6"/>
+                        <line x1="12" y1="2" x2="12" y2="15"/>
+                      </svg>
+                    </button>
+                    {/* Remove from wishlist */}
                     <button
                       onClick={e => { e.stopPropagation(); removeFromWishlist(p.id) }}
                       style={{

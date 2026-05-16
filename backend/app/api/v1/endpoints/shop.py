@@ -67,10 +67,15 @@ async def _notify_merchant_new_order(tenant, order, items_data: list, products_b
         "stars": "Stars",
     }
 
+    customer_line = f"👤 {order.customer_name or 'Покупатель'}"
+    if order.customer_phone:
+        customer_line += f" · `{order.customer_phone}`"
+    if order.customer_email:
+        customer_line += f" · {order.customer_email}"
+
     msg = (
         f"🛍 *Новый заказ!*\n\n"
-        f"👤 {order.customer_name or 'Покупатель'}"
-        + (f" · `{order.customer_phone}`" if order.customer_phone else "")
+        + customer_line
         + f"\n\n"
         + "\n".join(items_lines)
         + f"\n\n💰 *{fmt(order.total, order.currency)}*\n"
