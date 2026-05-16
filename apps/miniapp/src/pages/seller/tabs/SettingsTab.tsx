@@ -351,6 +351,7 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
   const [restrictProducts, setRestrictProducts] = useState(false)
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([])
   const [showForm, setShowForm] = useState(false)
+  const [couponFilter, setCouponFilter] = useState<'all' | 'active' | 'expired'>('active')
   const [error, setError] = useState('')
 
   const { data: codes = [], isLoading } = useQuery({
@@ -409,6 +410,25 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="screen-scroll" style={{ flex: 1, padding: '16px', paddingBottom: 32 }}>
+        {/* Filter chips */}
+        {(codes as any[]).length > 0 && (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+            {([['all', 'Все'], ['active', 'Активные'], ['expired', 'Истёкшие']] as const).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setCouponFilter(id)}
+                style={{
+                  padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+                  background: couponFilter === id ? 'var(--accent)' : 'var(--subtle)',
+                  border: `1px solid ${couponFilter === id ? 'var(--accent)' : 'var(--border)'}`,
+                  color: couponFilter === id ? 'white' : 'var(--muted)',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
         {isLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
             <div style={{ width: 28, height: 28, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }}/>
@@ -419,9 +439,18 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
             <div style={{ fontSize: 40, marginBottom: 12 }}>🎟</div>
             <p style={{ fontSize: 14 }}>Купонов пока нет</p>
           </div>
-        ) : (
+        ) : (() => {
+          const now = Date.now()
+          const filtered = (codes as any[]).filter((c: any) => {
+            if (couponFilter === 'active') return c.is_active && (!c.expires_at || new Date(c.expires_at).getTime() > now)
+            if (couponFilter === 'expired') return !c.is_active || (c.expires_at && new Date(c.expires_at).getTime() <= now)
+            return true
+          })
+          return filtered.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--muted)', fontSize: 14 }}>Нет купонов</div>
+          ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {(codes as any[]).map((c: any) => (
+            {filtered.map((c: any) => (
               <div key={c.id} style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 padding: '14px 16px', background: 'var(--card)', borderRadius: 14, border: '1px solid var(--border)',
@@ -455,7 +484,8 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
               </div>
             ))}
           </div>
-        )}
+          )
+        })()}
       </div>
 
       {showForm && (

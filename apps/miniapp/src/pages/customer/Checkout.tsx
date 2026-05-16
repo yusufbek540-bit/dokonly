@@ -119,7 +119,7 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
     (isRequired('note') && !customerNote.trim())
 
   const { mutate: applyCoupon, isPending: applyingCoupon } = useMutation({
-    mutationFn: () => api.validateCoupon(tenantId, coupon, cartTotal),
+    mutationFn: () => api.validateCoupon(tenantId, coupon, cartTotal, items.map(i => i.productId)),
     onSuccess: (data) => {
       setCouponApplied({ code: coupon.toUpperCase(), discountAmount: data.discount_amount, discountType: data.discount_type, discountValue: data.discount_value })
       setCouponError('')
