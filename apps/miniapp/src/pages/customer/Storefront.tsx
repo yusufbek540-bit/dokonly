@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
 import { useCart } from '@/store/cart'
+import { useTelegramMainButton } from '@/hooks/useTelegram'
 
 interface Props {
   shop: { id: string; name: string; currency: string; logo_url: string | null }
@@ -150,6 +151,30 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
   const allActive = products.filter((p: any) => p.is_active)
   const trulyFeatured = allActive.filter((p: any) => p.is_featured)
   const featured = trulyFeatured.length > 0 ? trulyFeatured.slice(0, 4) : allActive.slice(0, 4)
+
+  const pendingFilterCount = activeProducts.filter((p: any) => {
+    if (cat !== 'Все' && p.category !== cat) return false
+    const price = Number(p.price)
+    if (filterMinPrice && price < Number(filterMinPrice)) return false
+    if (filterMaxPrice && price > Number(filterMaxPrice)) return false
+    if (filterInStock && (p.stock === null || p.stock === undefined || p.stock === 0)) return false
+    if (filterHasDiscount && !(p.compare_at_price && Number(p.compare_at_price) > price)) return false
+    return true
+  }).length
+
+  const handleApplyFilter = () => {
+    setActiveMinPrice(filterMinPrice)
+    setActiveMaxPrice(filterMaxPrice)
+    setActiveInStock(filterInStock)
+    setActiveHasDiscount(filterHasDiscount)
+    setShowFilter(false)
+  }
+
+  useTelegramMainButton({
+    text: `Применить (${pendingFilterCount})`,
+    onClick: handleApplyFilter,
+    isVisible: showFilter,
+  })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -331,20 +356,14 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
 
             {/* Apply */}
             <button
-              onClick={() => {
-                setActiveMinPrice(filterMinPrice)
-                setActiveMaxPrice(filterMaxPrice)
-                setActiveInStock(filterInStock)
-                setActiveHasDiscount(filterHasDiscount)
-                setShowFilter(false)
-              }}
+              onClick={handleApplyFilter}
               style={{
                 width: '100%', height: 50, borderRadius: 14,
                 background: 'var(--accent)', color: 'white',
                 fontWeight: 700, fontSize: 15, marginTop: 8,
               }}
             >
-              Применить
+              Применить ({pendingFilterCount})
             </button>
           </div>
         </div>

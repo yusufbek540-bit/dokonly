@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
+import { useTelegramMainButton } from '@/hooks/useTelegram'
 
 interface Props {
   tenantId: string
@@ -1002,6 +1003,14 @@ function EditProfile({ tenantId, onBack }: { tenantId: string; onBack: () => voi
     }
   }
 
+  useTelegramMainButton({
+    text: saved ? '✓ Сохранено' : isPending ? 'Сохранение...' : 'Сохранить',
+    onClick: () => saveProfile(),
+    isVisible: true,
+    color: saved ? '#10B981' : null,
+    disabled: isPending || saved,
+  })
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       {/* Header */}
@@ -1190,27 +1199,6 @@ function EditProfile({ tenantId, onBack }: { tenantId: string; onBack: () => voi
             </div>
           </div>
 
-          {/* Save button */}
-          <div style={{
-            position: 'sticky', bottom: 0,
-            padding: '10px 16px calc(10px + env(safe-area-inset-bottom))',
-            background: 'var(--bg)', borderTop: '1px solid var(--border)', zIndex: 30,
-          }}>
-            <button
-              onClick={() => saveProfile()}
-              disabled={isPending || saved}
-              style={{
-                width: '100%', height: 52, borderRadius: 14,
-                background: saved ? '#10B981' : 'var(--accent)', color: 'white',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                fontWeight: 700, fontSize: 15, transition: 'background 0.2s',
-              }}
-            >
-              {isPending ? (
-                <><div style={{ width: 18, height: 18, borderRadius: 999, border: '2px solid white', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }}/> Сохранение...</>
-              ) : saved ? '✓ Сохранено' : 'Сохранить'}
-            </button>
-          </div>
         </>
       )}
     </div>
