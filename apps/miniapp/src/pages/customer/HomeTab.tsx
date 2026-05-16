@@ -23,7 +23,7 @@ interface Props {
   shop: ShopData
   products: any[]
   onProduct: (id: string) => void
-  onShowCatalog: () => void
+  onShowCatalog: (category?: string) => void
 }
 
 function fmtPrice(n: number, currency: string) {
@@ -42,6 +42,10 @@ export function HomeTab({ shop, products, onProduct, onShowCatalog }: Props) {
   const featuredProducts = activeProducts.filter((p: any) => p.is_featured)
   const featured = (featuredProducts.length > 0 ? featuredProducts : activeProducts).slice(0, 5)
   const preview = activeProducts.slice(0, 4)
+
+  const uniqueCats = Array.from(new Set(activeProducts.map((p: any) => p.category).filter(Boolean))) as string[]
+  const catCounts: Record<string, number> = {}
+  for (const c of uniqueCats) catCounts[c] = activeProducts.filter((p: any) => p.category === c).length
 
   const hasCover = !!shop.cover_url
 
@@ -116,7 +120,7 @@ export function HomeTab({ shop, products, onProduct, onShowCatalog }: Props) {
         {/* Search shortcut */}
         <div style={{ padding: '14px 16px 0' }}>
           <button
-            onClick={onShowCatalog}
+            onClick={() => onShowCatalog()}
             style={{
               width: '100%', height: 46, borderRadius: 12,
               background: 'var(--card)', border: '1px solid var(--border)',
@@ -131,6 +135,34 @@ export function HomeTab({ shop, products, onProduct, onShowCatalog }: Props) {
             <span style={{ flex: 1, fontSize: 14, color: 'var(--muted)', textAlign: 'left' }}>Поиск товаров</span>
           </button>
         </div>
+
+        {/* Categories chips */}
+        {uniqueCats.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0', overflowX: 'auto', scrollbarWidth: 'none' }}>
+            {uniqueCats.map(c => (
+              <button
+                key={c}
+                onClick={() => onShowCatalog(c)}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '7px 14px', borderRadius: 999,
+                  background: 'var(--card)', border: '1px solid var(--border)',
+                  fontSize: 13, fontWeight: 500, color: 'var(--ink)',
+                  whiteSpace: 'nowrap', flexShrink: 0,
+                }}
+              >
+                {c}
+                <span style={{
+                  fontSize: 11, fontWeight: 600,
+                  background: 'rgba(0,0,0,0.06)',
+                  borderRadius: 999, padding: '1px 5px', color: 'var(--muted)',
+                }}>
+                  {catCounts[c]}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Store info: description + contact buttons */}
         {(shop.description || shop.contact_info?.phone || shop.contact_info?.telegram || shop.contact_info?.instagram || shop.contact_info?.address) && (
@@ -321,7 +353,7 @@ export function HomeTab({ shop, products, onProduct, onShowCatalog }: Props) {
                 Товары
               </h3>
               <button
-                onClick={onShowCatalog}
+                onClick={() => onShowCatalog()}
                 style={{
                   fontSize: 13, fontWeight: 500, color: 'var(--accent)',
                   display: 'flex', alignItems: 'center', gap: 4,
@@ -361,7 +393,7 @@ export function HomeTab({ shop, products, onProduct, onShowCatalog }: Props) {
 
             {activeProducts.length > 4 && (
               <button
-                onClick={onShowCatalog}
+                onClick={() => onShowCatalog()}
                 style={{
                   width: '100%', height: 46, marginTop: 16, borderRadius: 12,
                   border: '1.5px solid var(--border)', background: 'var(--card)',

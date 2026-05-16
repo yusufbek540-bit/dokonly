@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
@@ -7,6 +7,7 @@ import { useCart } from '@/store/cart'
 interface Props {
   shop: { id: string; name: string; currency: string; logo_url: string | null }
   onProduct: (id: string) => void
+  initialCategory?: string
 }
 
 function fmtPrice(n: number, currency: string) {
@@ -29,8 +30,16 @@ const SORT_LABELS: Record<SortOption, string> = {
   name_asc: 'А-Я',
 }
 
-export function CatalogContent({ shop, onProduct }: Props) {
-  const [cat, setCat] = useState('Все')
+export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
+  const [cat, setCat] = useState(initialCategory ?? 'Все')
+  const prevInitCat = useRef(initialCategory)
+
+  useEffect(() => {
+    if (initialCategory !== prevInitCat.current) {
+      prevInitCat.current = initialCategory
+      if (initialCategory) setCat(initialCategory)
+    }
+  }, [initialCategory])
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<SortOption>('newest')
   const [showSort, setShowSort] = useState(false)
@@ -476,6 +485,17 @@ export function CatalogContent({ shop, onProduct }: Props) {
                           padding: '2px 6px',
                         }}>
                           -{Math.round((1 - Number(p.price) / Number(p.compare_at_price)) * 100)}%
+                        </div>
+                      )}
+                      {/* Video badge */}
+                      {p.video_url && !p.compare_at_price && (
+                        <div style={{
+                          position: 'absolute', top: 6, left: 6,
+                          background: 'rgba(0,0,0,0.55)', color: 'white',
+                          borderRadius: 6, fontSize: 11, fontWeight: 700,
+                          padding: '2px 6px',
+                        }}>
+                          🎬
                         </div>
                       )}
                       {/* Wishlist heart */}

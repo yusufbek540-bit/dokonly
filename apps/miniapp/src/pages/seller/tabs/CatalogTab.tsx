@@ -36,6 +36,7 @@ function ProductForm({ mode, currency, onSave, onClose }: {
   const [images, setImages] = useState<string[]>(p?.images ?? [])
   const [sizesStr, setSizesStr] = useState<string>((p?.sizes ?? []).join(', '))
   const [colorsStr, setColorsStr] = useState<string>((p?.colors ?? []).join(', '))
+  const [videoUrl, setVideoUrl] = useState<string>(p?.video_url ?? '')
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -212,6 +213,16 @@ function ProductForm({ mode, currency, onSave, onClose }: {
               />
             </div>
           </div>
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>Видео (URL)</label>
+            <input
+              value={videoUrl}
+              onChange={e => setVideoUrl(e.target.value)}
+              placeholder="https://..."
+              type="url"
+              style={{ width: '100%', height: 46, padding: '0 12px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }}
+            />
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
             <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Активен</span>
             <button
@@ -260,6 +271,7 @@ function ProductForm({ mode, currency, onSave, onClose }: {
                 stock: stock ? Number(stock) : null,
                 description, category, is_active: active, is_featured: featured, images,
                 sizes, colors,
+                video_url: videoUrl.trim() || null,
               })
             }}
             style={{

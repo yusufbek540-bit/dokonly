@@ -257,6 +257,7 @@ function ShopApp() {
   const [productId, setProductId] = useState<string | null>(null)
   const [showCheckout, setShowCheckout] = useState(false)
   const [gateUnlocked, setGateUnlocked] = useState(false)
+  const [catalogInitCat, setCatalogInitCat] = useState<string | undefined>(undefined)
 
   const cartCount = useCart((s) => s.count)()
 
@@ -305,7 +306,14 @@ function ShopApp() {
   // Tab switch — clear product detail
   const handleTabChange = (t: BuyerTab) => {
     setProductId(null)
+    if (t !== 'catalog') setCatalogInitCat(undefined)
     setTab(t)
+  }
+
+  const handleShowCatalog = (category?: string) => {
+    setCatalogInitCat(category)
+    setProductId(null)
+    setTab('catalog')
   }
 
   // Checkout flow (full screen, no tabs)
@@ -347,13 +355,14 @@ function ShopApp() {
             shop={shop}
             products={products}
             onProduct={setProductId}
-            onShowCatalog={() => handleTabChange('catalog')}
+            onShowCatalog={handleShowCatalog}
           />
         )}
         {tab === 'catalog' && (
           <CatalogContent
             shop={shop}
             onProduct={setProductId}
+            initialCategory={catalogInitCat}
           />
         )}
         {tab === 'cart' && (
