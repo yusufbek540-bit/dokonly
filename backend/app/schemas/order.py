@@ -18,8 +18,9 @@ class OrderItemResponse(BaseModel):
 
 
 class OrderStatusUpdate(BaseModel):
-    status: str  # "confirmed" | "packing" | "shipped" | "delivered" | "cancelled"
+    status: Optional[str] = None
     delivery_note: Optional[str] = None
+    seller_note: Optional[str] = None
 
 
 class OrderResponse(BaseModel):
@@ -37,6 +38,7 @@ class OrderResponse(BaseModel):
     delivery_type: Optional[str] = None
     customer_note: Optional[str] = None
     delivery_note: Optional[str] = None
+    seller_note: Optional[str] = None
     created_at: datetime
     items: list[OrderItemResponse] = []
     model_config = {"from_attributes": True}

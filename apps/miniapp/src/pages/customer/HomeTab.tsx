@@ -113,6 +113,25 @@ export function HomeTab({ shop, products, onProduct, onShowCatalog }: Props) {
           </div>
         </div>
 
+        {/* Search shortcut */}
+        <div style={{ padding: '14px 16px 0' }}>
+          <button
+            onClick={onShowCatalog}
+            style={{
+              width: '100%', height: 46, borderRadius: 12,
+              background: 'var(--card)', border: '1px solid var(--border)',
+              display: 'flex', alignItems: 'center', gap: 10,
+              paddingLeft: 14, paddingRight: 14,
+              cursor: 'pointer',
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            <span style={{ flex: 1, fontSize: 14, color: 'var(--muted)', textAlign: 'left' }}>Поиск товаров</span>
+          </button>
+        </div>
+
         {/* Store info: description + contact buttons */}
         {(shop.description || shop.contact_info?.phone || shop.contact_info?.telegram || shop.contact_info?.instagram || shop.contact_info?.address) && (
           <div style={{ padding: '16px 16px 0' }}>

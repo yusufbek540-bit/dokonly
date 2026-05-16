@@ -95,6 +95,11 @@ export const api = {
         method: 'PATCH',
         body: JSON.stringify({ status }),
       }),
+    updateOrderNote: (id: string, seller_note: string) =>
+      request<any>(`/api/v1/miniapp/orders/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ seller_note }),
+      }),
     updateSettings: (body: object) =>
       request<any>('/api/v1/miniapp/settings', { method: 'PATCH', body: JSON.stringify(body) }),
     analytics: (period?: string) => request<any>(`/api/v1/miniapp/analytics/summary${period ? `?period=${period}` : ''}`),

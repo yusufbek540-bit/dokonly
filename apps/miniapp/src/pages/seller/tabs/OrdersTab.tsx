@@ -63,10 +63,22 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
   onBack: () => void
   onStatusUpdate: (updated: any) => void
 }) {
+  const [note, setNote] = useState<string>(order.seller_note ?? '')
+  const [noteSaved, setNoteSaved] = useState(false)
+
   const advanceMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       api.seller.updateOrderStatus(id, status),
     onSuccess: (data) => onStatusUpdate(data),
+  })
+
+  const noteMutation = useMutation({
+    mutationFn: (text: string) => api.seller.updateOrderNote(order.id, text),
+    onSuccess: (data) => {
+      onStatusUpdate(data)
+      setNoteSaved(true)
+      setTimeout(() => setNoteSaved(false), 2000)
+    },
   })
 
   const nextStatus = NEXT_STATUS[order.status]
@@ -205,6 +217,48 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
               {order.payment_status === 'paid' ? 'Оплачено ✓' : 'Ожидает оплаты'}
             </span>
           </div>
+        </div>
+
+        {/* Customer note */}
+        {order.customer_note && (
+          <div style={{ margin: '12px 16px 0', padding: '14px', borderRadius: 14, background: '#FFF7ED', border: '1px solid #FDE68A' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#92400E', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Заметка покупателя</div>
+            <div style={{ fontSize: 14, color: '#78350F', lineHeight: 1.5 }}>{order.customer_note}</div>
+          </div>
+        )}
+
+        {/* Seller note */}
+        <div style={{ margin: '12px 16px 0', padding: '14px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Заметка (внутренняя)</div>
+            {noteSaved && <span style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>✓ Сохранено</span>}
+          </div>
+          <textarea
+            value={note}
+            onChange={e => setNote(e.target.value)}
+            placeholder="Для служебного пользования..."
+            rows={3}
+            style={{
+              width: '100%', borderRadius: 10, border: '1px solid var(--border)',
+              background: 'var(--subtle)', padding: '10px 12px',
+              fontSize: 14, color: 'var(--ink)', resize: 'none', outline: 'none',
+              lineHeight: 1.5, boxSizing: 'border-box',
+            }}
+          />
+          {note !== (order.seller_note ?? '') && (
+            <button
+              onClick={() => noteMutation.mutate(note)}
+              disabled={noteMutation.isPending}
+              style={{
+                marginTop: 8, height: 38, padding: '0 16px', borderRadius: 10,
+                background: 'var(--accent)', color: 'white',
+                fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                opacity: noteMutation.isPending ? 0.7 : 1,
+              }}
+            >
+              {noteMutation.isPending ? 'Сохраняем...' : 'Сохранить'}
+            </button>
+          )}
         </div>
 
         {/* Spacer so content doesn't hide behind sticky button */}

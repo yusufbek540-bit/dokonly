@@ -57,6 +57,7 @@ class Order(Base, TimestampMixin):
     currency = Column(String(3), nullable=False, default="UZS")
     delivery_note = Column(Text)
     customer_note = Column(Text)
+    seller_note = Column(Text)
     meta = Column(JSONB, default=dict)
 
 

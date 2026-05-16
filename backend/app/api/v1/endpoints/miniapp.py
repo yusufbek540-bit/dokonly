@@ -79,6 +79,7 @@ async def _enrich_orders(orders: list, db: AsyncSession) -> list[dict]:
             "delivery_type": getattr(o, "delivery_type", None),
             "customer_note": o.customer_note,
             "delivery_note": o.delivery_note,
+            "seller_note": getattr(o, "seller_note", None),
             "created_at": o.created_at.isoformat() if o.created_at else None,
             "items": items_by_order.get(str(o.id), []),
         })
