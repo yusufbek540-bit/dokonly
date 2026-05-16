@@ -81,6 +81,11 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
     },
   })
 
+  const verifyPaymentMutation = useMutation({
+    mutationFn: () => api.seller.verifyPayment(order.id),
+    onSuccess: (data) => onStatusUpdate(data),
+  })
+
   const nextStatus = NEXT_STATUS[order.status]
   const currentIdx = TIMELINE_STEPS.findIndex(s => s.id === order.status)
 
@@ -222,7 +227,27 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
         {/* Payment screenshot */}
         {order.meta?.payment_screenshot && (
           <div style={{ margin: '12px 16px 0', padding: '14px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Скриншот оплаты</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Скриншот оплаты</div>
+              {order.payment_status === 'paid'
+                ? <span style={{ fontSize: 12, fontWeight: 700, color: '#10B981' }}>✓ Оплата подтверждена</span>
+                : (
+                  <button
+                    onClick={() => verifyPaymentMutation.mutate()}
+                    disabled={verifyPaymentMutation.isPending}
+                    style={{
+                      padding: '5px 12px', borderRadius: 8,
+                      background: '#10B981', color: 'white',
+                      fontWeight: 700, fontSize: 12, border: 'none',
+                      cursor: verifyPaymentMutation.isPending ? 'default' : 'pointer',
+                      opacity: verifyPaymentMutation.isPending ? 0.7 : 1,
+                    }}
+                  >
+                    {verifyPaymentMutation.isPending ? '...' : '✓ Подтвердить'}
+                  </button>
+                )
+              }
+            </div>
             <a href={order.meta.payment_screenshot} target="_blank" rel="noopener noreferrer">
               <img
                 src={order.meta.payment_screenshot}

@@ -21,6 +21,7 @@ class OrderStatusUpdate(BaseModel):
     status: Optional[str] = None
     delivery_note: Optional[str] = None
     seller_note: Optional[str] = None
+    payment_status: Optional[str] = None
 
 
 class OrderResponse(BaseModel):

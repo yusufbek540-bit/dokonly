@@ -1431,7 +1431,8 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
             <button
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-                padding: '14px 16px', background: 'var(--card)', cursor: 'default',
+                padding: '14px 16px', background: 'var(--card)',
+                borderBottom: '1px solid var(--border)', cursor: 'default',
               }}
             >
               <span style={{ fontSize: 18 }}>🔒</span>
@@ -1439,6 +1440,18 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
                 Приватность
               </span>
               <span style={{ fontSize: 12, color: 'var(--muted)' }}>Скоро</span>
+            </button>
+            <button
+              onClick={() => (window as any).Telegram?.WebApp?.close?.()}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px', background: 'var(--card)', cursor: 'pointer',
+              }}
+            >
+              <span style={{ fontSize: 18 }}>🚪</span>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--muted)', textAlign: 'left' }}>
+                Закрыть магазин
+              </span>
             </button>
           </div>
         </div>

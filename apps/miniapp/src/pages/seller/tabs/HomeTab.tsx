@@ -961,7 +961,11 @@ export function HomeTab({ tenant, onTabChange }: Props) {
             )
           })()}
           {(() => {
+            const unverifiedScreenshots = (orders as any[]).filter((o: any) =>
+              o.meta?.payment_screenshot && o.payment_status !== 'paid'
+            ).length
             const pendingCount = (orders as any[]).filter((o: any) => o.status === 'new' || o.status === 'created').length
+            const badgeCount = Math.max(pendingCount, unverifiedScreenshots)
             return (
               <button
                 onClick={() => onTabChange?.('orders')}
@@ -973,13 +977,13 @@ export function HomeTab({ tenant, onTabChange }: Props) {
               >
                 <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>🛍</span>
                 <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Заказы</span>
-                {pendingCount > 0 && (
+                {badgeCount > 0 && (
                   <span style={{
                     fontSize: 11, fontWeight: 700, color: 'white',
                     background: '#EF4444', borderRadius: 999,
                     padding: '2px 7px', minWidth: 20, textAlign: 'center',
                   }}>
-                    {pendingCount}
+                    {badgeCount}
                   </span>
                 )}
                 <Icon name="chevronRight" size={15} color="var(--muted)" />
