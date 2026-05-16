@@ -340,11 +340,14 @@ async def seller_list_products(
 ):
     tenant = await _require_tenant(user, db)
     result = await db.execute(
-        select(Product).where(Product.tenant_id == tenant.id).order_by(Product.sort_order)
+        select(Product, Category.name.label("category_name"))
+        .outerjoin(Category, Product.category_id == Category.id)
+        .where(Product.tenant_id == tenant.id)
+        .order_by(Product.sort_order)
     )
-    products = result.scalars().all()
+    rows = result.all()
     out = []
-    for p in products:
+    for p, category_name in rows:
         meta = p.meta or {}
         out.append({
             "id": str(p.id),
@@ -360,6 +363,7 @@ async def seller_list_products(
             "is_active": p.is_active,
             "sort_order": p.sort_order,
             "category_id": str(p.category_id) if p.category_id else None,
+            "category": category_name,
             "sizes": meta.get("sizes", []),
             "colors": meta.get("colors", []),
             "is_featured": meta.get("is_featured", False),

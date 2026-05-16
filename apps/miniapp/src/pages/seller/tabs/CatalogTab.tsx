@@ -533,12 +533,22 @@ export function CatalogTab({ tenant }: Props) {
 
                 {/* Product info bottom section */}
                 <div style={{ padding: '10px 10px 8px', flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {p.category && (
+                    <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      {p.category}
+                    </div>
+                  )}
                   <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     {p.name}
                   </div>
                   <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
                     {fmtPrice(Number(p.price), tenant.currency)}
                   </div>
+                  {p.stock !== null && p.stock !== undefined && p.stock > 0 && p.stock <= 5 && (
+                    <div style={{ fontSize: 10, fontWeight: 600, color: '#D97706' }}>
+                      ⚠ Осталось {p.stock} шт
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
                     <button
                       onClick={() => setForm({ type: 'edit', product: p })}
