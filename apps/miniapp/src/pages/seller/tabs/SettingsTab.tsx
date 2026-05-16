@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Icon } from '@/components/Icon'
 import { api } from '@/lib/api'
+import { useTelegramMainButton } from '@/hooks/useTelegram'
 
 interface Props { tenant: any }
 
@@ -208,6 +209,13 @@ export function MailingsView({ onBack }: { onBack: () => void }) {
   const STATUS_LABELS: Record<string, string> = { draft: 'Черновик', sending: 'Отправка', sent: 'Отправлено', failed: 'Ошибка' }
   const STATUS_COLORS: Record<string, string> = { draft: 'var(--muted)', sending: '#F59E0B', sent: 'var(--accent)', failed: 'var(--danger)' }
 
+  useTelegramMainButton({
+    text: creating ? 'Создание...' : 'Сохранить черновик',
+    onClick: () => { if (title.trim() && text.trim() && !creating) createMailing() },
+    isVisible: showForm,
+    disabled: !title.trim() || !text.trim() || creating,
+  })
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
       <div style={{
@@ -319,18 +327,6 @@ export function MailingsView({ onBack }: { onBack: () => void }) {
               style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)', resize: 'none', fontFamily: 'inherit' }}
             />
             {error && <div style={{ fontSize: 13, color: 'var(--danger)' }}>{error}</div>}
-            <button
-              disabled={!title.trim() || !text.trim() || creating}
-              onClick={() => createMailing()}
-              style={{
-                height: 50, borderRadius: 14,
-                background: title && text ? 'var(--accent)' : 'var(--subtle)',
-                color: title && text ? 'white' : 'var(--muted)',
-                fontWeight: 700, fontSize: 15,
-              }}
-            >
-              {creating ? 'Создание...' : 'Сохранить черновик'}
-            </button>
           </div>
         </BottomSheet>
       )}

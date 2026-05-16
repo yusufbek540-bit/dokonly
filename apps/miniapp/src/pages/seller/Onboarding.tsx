@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
+import { useTelegramMainButton } from '@/hooks/useTelegram'
 
 interface Props {
   tgUser: any
@@ -202,6 +203,22 @@ export function Onboarding({ tgUser: _tgUser, onDone }: Props) {
   }
 
   const handleBack = () => { setError(''); setStep(s => s - 1) }
+
+  const mainButtonText = isPending
+    ? step === 3 ? 'Создаём магазин...'
+      : step === 4 ? 'Подключаем бота...'
+      : 'Сохраняем...'
+    : step < 3 ? 'Далее →'
+      : step === 3 ? 'Создать магазин'
+      : step === 4 ? 'Подключить бота'
+      : 'Готово →'
+
+  useTelegramMainButton({
+    text: mainButtonText,
+    onClick: handleNext,
+    isVisible: step < 6,
+    disabled: !canNext() || isPending,
+  })
 
   // ── Success screen ────────────────────────────────────────────────────────
   if (step === 6) {
@@ -551,55 +568,32 @@ export function Onboarding({ tgUser: _tgUser, onDone }: Props) {
 
       </div>
 
-      {/* Bottom CTA */}
-      <div style={{
-        position: 'sticky', bottom: 0, zIndex: 30,
-        padding: '10px 16px calc(10px + env(safe-area-inset-bottom))',
-        background: 'var(--bg)', borderTop: '1px solid var(--border)',
-        display: 'flex', flexDirection: 'column', gap: 8,
-      }}>
-        <div style={{ display: 'flex', gap: 10 }}>
+      {/* Bottom nav — back button + skip (primary action via MainButton) */}
+      {(step > 0 || (step === 4 && !isPending)) && (
+        <div style={{
+          position: 'sticky', bottom: 0, zIndex: 30,
+          padding: '10px 16px calc(10px + env(safe-area-inset-bottom))',
+          background: 'var(--bg)', borderTop: '1px solid var(--border)',
+          display: 'flex', flexDirection: 'column', gap: 8,
+        }}>
           {step > 0 && (
             <button onClick={handleBack} disabled={isPending} style={{
-              width: 52, height: 52, borderRadius: 14, background: 'var(--subtle)', flexShrink: 0,
+              width: 52, height: 52, borderRadius: 14, background: 'var(--subtle)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <Icon name="arrowLeft" size={18}/>
             </button>
           )}
-          <button
-            disabled={!canNext() || isPending}
-            onClick={handleNext}
-            style={{
-              flex: 1, height: 52, borderRadius: 14,
-              background: canNext() && !isPending ? 'var(--accent)' : 'var(--subtle)',
-              color:      canNext() && !isPending ? 'white'          : 'var(--muted)',
-              fontWeight: 700, fontSize: 15, transition: 'background 0.2s',
-            }}
-          >
-            {isPending
-              ? step === 3 ? 'Создаём магазин...'
-              : step === 4 ? 'Подключаем бота...'
-              : 'Сохраняем...'
-              : step < 3 ? 'Далее →'
-              : step === 3 ? 'Создать магазин'
-              : step === 4 ? 'Подключить бота'
-              : step === 5 ? 'Готово →'
-              : 'Далее →'
-            }
-          </button>
+          {step === 4 && !isPending && (
+            <button
+              onClick={() => { setBotSkipped(true); setStep(5) }}
+              style={{ fontSize: 13, color: 'var(--muted)', padding: '4px 0', textAlign: 'center' }}
+            >
+              Пропустить — настрою позже
+            </button>
+          )}
         </div>
-
-        {/* Skip bot step */}
-        {step === 4 && !isPending && (
-          <button
-            onClick={() => { setBotSkipped(true); setStep(5) }}
-            style={{ fontSize: 13, color: 'var(--muted)', padding: '4px 0', textAlign: 'center' }}
-          >
-            Пропустить — настрою позже
-          </button>
-        )}
-      </div>
+      )}
     </div>
   )
 }
