@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { useCart } from '@/store/cart'
 import { Icon } from '@/components/Icon'
+import { api } from '@/lib/api'
 
 interface Props {
   currency: string
+  tenantId: string
   shopSettings?: any
   onCheckout: () => void
   onShowCatalog: () => void
@@ -13,15 +16,52 @@ function fmtPrice(n: number, currency: string) {
   return n.toLocaleString() + ' ' + currency
 }
 
-export function CartTab({ currency, shopSettings, onCheckout, onShowCatalog }: Props) {
+export function CartTab({ currency, tenantId, shopSettings, onCheckout, onShowCatalog }: Props) {
   const items = useCart((s) => s.items)
   const setQty = useCart((s) => s.setQty)
   const remove = useCart((s) => s.remove)
   const cartTotal = useCart((s) => s.total)()
+  const couponCode = useCart((s) => s.couponCode)
+  const couponDiscount = useCart((s) => s.couponDiscount)
+  const setCoupon = useCart((s) => s.setCoupon)
+
+  const [couponInput, setCouponInput] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [couponError, setCouponError] = useState('')
 
   const minOrderAmount = shopSettings?.min_order_amount ? Number(shopSettings.min_order_amount) : 0
+  const finalTotal = Math.max(0, cartTotal - couponDiscount)
   const belowMin = minOrderAmount > 0 && cartTotal < minOrderAmount
   const remaining = minOrderAmount - cartTotal
+
+  async function handleApplyCoupon() {
+    const code = couponInput.trim().toUpperCase()
+    if (!code) return
+    setCouponLoading(true)
+    setCouponError('')
+    try {
+      const result = await api.validateCoupon(tenantId, code, cartTotal)
+      if (result.valid || result.discount_amount > 0) {
+        setCoupon(code, result.discount_amount)
+        setCouponInput('')
+      } else {
+        setCouponError('Купон недействителен или истёк')
+      }
+    } catch (e: any) {
+      const msg = e?.message ?? ''
+      if (msg.includes('expired')) setCouponError('Срок действия купона истёк')
+      else if (msg.includes('exhausted') || msg.includes('max')) setCouponError('Купон уже использован максимальное количество раз')
+      else setCouponError('Купон недействителен')
+    } finally {
+      setCouponLoading(false)
+    }
+  }
+
+  function handleRemoveCoupon() {
+    setCoupon(null, 0)
+    setCouponInput('')
+    setCouponError('')
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -151,16 +191,105 @@ export function CartTab({ currency, shopSettings, onCheckout, onShowCatalog }: P
               ))}
             </div>
 
-            {/* Total summary */}
-            <div style={{ margin: '20px 16px 0', padding: 16, borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {/* Coupon input */}
+            <div style={{ margin: '16px 16px 0', padding: '14px 16px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                🎟 Промокод
+              </div>
+              {couponCode ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{
+                    flex: 1, display: 'flex', alignItems: 'center', gap: 8,
+                    height: 42, padding: '0 12px', borderRadius: 10,
+                    background: 'var(--accent-soft)', border: '1.5px solid var(--accent)',
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 8-8" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 14, color: 'var(--accent)' }}>
+                      {couponCode}
+                    </span>
+                    <span style={{ fontSize: 12, color: 'var(--accent)', marginLeft: 'auto' }}>
+                      -{fmtPrice(couponDiscount, currency)}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleRemoveCoupon}
+                    style={{ width: 42, height: 42, borderRadius: 10, background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                  >
+                    <Icon name="x" size={14} color="var(--muted)"/>
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      value={couponInput}
+                      onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError('') }}
+                      onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
+                      placeholder="Введите промокод"
+                      style={{
+                        flex: 1, height: 42, padding: '0 12px', borderRadius: 10,
+                        background: 'var(--bg)', border: `1px solid ${couponError ? '#EF4444' : 'var(--border)'}`,
+                        outline: 'none', fontSize: 14, color: 'var(--ink)',
+                        fontFamily: 'JetBrains Mono', letterSpacing: '0.05em',
+                      }}
+                    />
+                    <button
+                      onClick={handleApplyCoupon}
+                      disabled={!couponInput.trim() || couponLoading}
+                      style={{
+                        height: 42, padding: '0 16px', borderRadius: 10,
+                        background: couponInput.trim() ? 'var(--accent)' : 'var(--subtle)',
+                        color: couponInput.trim() ? 'white' : 'var(--muted)',
+                        fontWeight: 600, fontSize: 14, flexShrink: 0,
+                        opacity: couponLoading ? 0.7 : 1,
+                      }}
+                    >
+                      {couponLoading ? '...' : 'Применить'}
+                    </button>
+                  </div>
+                  {couponError && (
+                    <div style={{ fontSize: 12, color: '#EF4444', marginTop: 6 }}>{couponError}</div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Order summary */}
+            <div style={{ margin: '12px 16px 0', padding: 16, borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: couponDiscount > 0 ? 8 : 0 }}>
                 <span style={{ fontSize: 14, color: 'var(--muted)' }}>
                   {items.reduce((s, i) => s + i.qty, 0)} товара
                 </span>
-                <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>
+                <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>
                   {fmtPrice(cartTotal, currency)}
                 </span>
               </div>
+              {couponDiscount > 0 && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontSize: 14, color: 'var(--accent)' }}>Скидка ({couponCode})</span>
+                    <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 600, fontSize: 14, color: 'var(--accent)' }}>
+                      -{fmtPrice(couponDiscount, currency)}
+                    </span>
+                  </div>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Итого</span>
+                      <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>
+                        {fmtPrice(finalTotal, currency)}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+              {couponDiscount === 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Итого</span>
+                  <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>
+                    {fmtPrice(cartTotal, currency)}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Min order amount warning */}
@@ -204,7 +333,7 @@ export function CartTab({ currency, shopSettings, onCheckout, onShowCatalog }: P
             >
               {belowMin
                 ? `Ещё ${fmtPrice(remaining, currency)} до минимума`
-                : `Оформить заказ · ${fmtPrice(cartTotal, currency)}`}
+                : `Оформить заказ · ${fmtPrice(finalTotal, currency)}`}
             </button>
           </div>
         </>

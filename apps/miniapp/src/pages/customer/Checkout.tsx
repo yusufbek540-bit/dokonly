@@ -39,6 +39,8 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
   const remove = useCart((s) => s.remove)
   const cartTotal = useCart((s) => s.total)()
   const clear = useCart((s) => s.clear)
+  const cartCouponCode = useCart((s) => s.couponCode)
+  const cartCouponDiscount = useCart((s) => s.couponDiscount)
 
   // Build delivery options from shop settings, fall back to defaults
   const deliveryOptions: { id: string; label: string; icon: string; price: number }[] =
@@ -89,7 +91,9 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
     }
   }, [profile, profileLoaded, phone, address])
   const [coupon, setCoupon] = useState('')
-  const [couponApplied, setCouponApplied] = useState<{ code: string; discountAmount: number; discountType: string; discountValue: number } | null>(null)
+  const [couponApplied, setCouponApplied] = useState<{ code: string; discountAmount: number; discountType: string; discountValue: number } | null>(
+    cartCouponCode ? { code: cartCouponCode, discountAmount: cartCouponDiscount, discountType: 'fixed', discountValue: cartCouponDiscount } : null,
+  )
   const [couponError, setCouponError] = useState('')
   const [orderId, setOrderId] = useState<string | null>(null)
   const [orderItemsSnapshot, setOrderItemsSnapshot] = useState<typeof items>([])
