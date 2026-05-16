@@ -176,29 +176,6 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
         <div style={{ flex: 1, fontFamily: 'Sora', fontWeight: 600, fontSize: 15, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {product.name}
         </div>
-        {/* Wishlist heart */}
-        <button
-          onClick={() => toggleWishlist(productId)}
-          style={{
-            width: 36, height: 36, borderRadius: 999,
-            background: inWishlist ? 'var(--accent-soft)' : 'var(--subtle)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}
-        >
-          <svg width="18" height="18" viewBox="0 0 18 18" fill={inWishlist ? 'var(--accent)' : 'none'} stroke={inWishlist ? 'var(--accent)' : 'var(--ink)'} strokeWidth="1.5">
-            <path d="M9 15.5S1.5 11 1.5 6A4 4 0 0 1 9 4.3 4 4 0 0 1 16.5 6C16.5 11 9 15.5 9 15.5z" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        {/* Share */}
-        <button
-          onClick={handleShare}
-          style={{ width: 36, height: 36, borderRadius: 999, background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-          </svg>
-        </button>
         {cartCount > 0 && (
           <button onClick={onCheckout} style={{ position: 'relative', width: 36, height: 36, borderRadius: 999, background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="cart" size={18}/>
@@ -239,6 +216,39 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
               <span>{product.name.split(' ').slice(0, 2).join(' ')}</span>
             </div>
           )}
+          {/* Share + Wishlist overlay — top-right of gallery */}
+          <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', flexDirection: 'column', gap: 8, zIndex: 10 }}>
+            <button
+              onClick={handleShare}
+              style={{
+                width: 44, height: 44, borderRadius: 999,
+                background: 'rgba(255,255,255,0.92)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+            </button>
+            <button
+              onClick={() => {
+                toggleWishlist(productId)
+                ;(window as any).Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('light')
+              }}
+              style={{
+                width: 44, height: 44, borderRadius: 999,
+                background: 'rgba(255,255,255,0.92)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.12)',
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 18 18" fill={inWishlist ? 'var(--accent)' : 'none'} stroke={inWishlist ? 'var(--accent)' : 'var(--ink)'} strokeWidth="1.5">
+                <path d="M9 15.5S1.5 11 1.5 6A4 4 0 0 1 9 4.3 4 4 0 0 1 16.5 6C16.5 11 9 15.5 9 15.5z" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
           {product.stock === 0 && (
             <div style={{
               position: 'absolute', inset: 0,
