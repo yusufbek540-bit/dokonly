@@ -1,5 +1,9 @@
+import asyncio
+import uuid as _uuid
+
+import boto3
 import httpx
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -760,3 +764,64 @@ async def toggle_wishlist(
         db.add(new_item)
         await db.commit()
         return {"in_wishlist": True, "product_id": product_id}
+
+
+@router.post("/{tenant_id}/orders/{order_id}/payment-screenshot")
+async def upload_payment_screenshot(
+    tenant_id: str,
+    order_id: str,
+    file: UploadFile = File(...),
+    x_telegram_init_data: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Buyer uploads payment screenshot for manual card transfer orders."""
+    if not x_telegram_init_data:
+        raise HTTPException(status_code=401, detail="Auth required")
+    tg_user = _validate_init_data(x_telegram_init_data)
+    if tg_user is None:
+        raise HTTPException(status_code=401, detail="Invalid auth")
+
+    result = await db.execute(
+        select(Order).where(Order.id == order_id, Order.tenant_id == tenant_id)
+    )
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Only image files are allowed")
+
+    contents = await file.read()
+    if len(contents) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large (max 10 MB)")
+
+    ext = (file.filename or "img").rsplit(".", 1)[-1] if "." in (file.filename or "") else "jpg"
+    key = f"payments/{tenant_id}/{_uuid.uuid4()}.{ext}"
+
+    def _upload():
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=f"https://{settings.cloudflare_account_id}.r2.cloudflarestorage.com",
+            aws_access_key_id=settings.r2_access_key_id,
+            aws_secret_access_key=settings.r2_secret_access_key,
+        )
+        s3.put_object(
+            Bucket=settings.r2_bucket_name,
+            Key=key,
+            Body=contents,
+            ContentType=file.content_type,
+        )
+
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, _upload)
+
+    public_url = f"{settings.r2_public_url.rstrip('/')}/{key}"
+
+    from sqlalchemy.orm.attributes import flag_modified
+    meta = dict(order.meta or {})
+    meta["payment_screenshot"] = public_url
+    order.meta = meta
+    flag_modified(order, "meta")
+    await db.commit()
+
+    return {"url": public_url}

@@ -79,6 +79,17 @@ export const api = {
     request<{ avg_rating: number | null; count: number; reviews: { rating: number; text: string; reviewer_name: string; created_at: string }[] }>(
       `/api/v1/shop/${tenantId}/products/${productId}/reviews`,
     ),
+  uploadPaymentScreenshot: async (tenantId: string, orderId: string, file: File): Promise<{ url: string }> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch(`${BASE}/api/v1/shop/${tenantId}/orders/${orderId}/payment-screenshot`, {
+      method: 'POST',
+      headers: { 'X-Telegram-Init-Data': getInitData() },
+      body: formData,
+    })
+    if (!res.ok) throw new Error(await res.text())
+    return res.json()
+  },
 
   // Seller Mini App endpoints (Telegram initData auth)
   seller: {

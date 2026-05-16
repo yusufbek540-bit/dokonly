@@ -219,6 +219,20 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
           </div>
         </div>
 
+        {/* Payment screenshot */}
+        {order.meta?.payment_screenshot && (
+          <div style={{ margin: '12px 16px 0', padding: '14px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Скриншот оплаты</div>
+            <a href={order.meta.payment_screenshot} target="_blank" rel="noopener noreferrer">
+              <img
+                src={order.meta.payment_screenshot}
+                alt="Скриншот оплаты"
+                style={{ width: '100%', maxHeight: 240, objectFit: 'contain', borderRadius: 8, display: 'block' }}
+              />
+            </a>
+          </div>
+        )}
+
         {/* Customer note */}
         {order.customer_note && (
           <div style={{ margin: '12px 16px 0', padding: '14px', borderRadius: 14, background: '#FFF7ED', border: '1px solid #FDE68A' }}>

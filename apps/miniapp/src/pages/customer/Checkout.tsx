@@ -96,10 +96,13 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
   )
   const [couponError, setCouponError] = useState('')
   const [orderId, setOrderId] = useState<string | null>(null)
+  const [orderIdFull, setOrderIdFull] = useState<string | null>(null)
   const [orderItemsSnapshot, setOrderItemsSnapshot] = useState<typeof items>([])
   const [orderTotalSnapshot, setOrderTotalSnapshot] = useState(0)
   const [orderDeliverySnapshot, setOrderDeliverySnapshot] = useState('')
   const [paymentMethodSnapshot, setPaymentMethodSnapshot] = useState('')
+  const [screenshotUploading, setScreenshotUploading] = useState(false)
+  const [screenshotDone, setScreenshotDone] = useState(false)
 
   const deliveryCost = deliveryOptions.find(d => d.id === delivery)?.price ?? 0
   const discount = couponApplied?.discountAmount ?? 0
@@ -143,6 +146,7 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
       setOrderDeliverySnapshot(deliveryOptions.find(d => d.id === delivery)?.label ?? 'Доставка')
       setPaymentMethodSnapshot(payment)
       setOrderId(data.id?.slice(0, 8).toUpperCase() ?? 'НОВЫЙ')
+      setOrderIdFull(data.id ?? null)
       clear()
     },
   })
@@ -302,9 +306,45 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
                   {fmtPrice(orderTotalSnapshot, currency)}
                 </div>
               </div>
-              <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-                После оплаты отправьте скриншот продавцу в Telegram
-              </div>
+              {/* Screenshot upload */}
+              {!screenshotDone ? (
+                <div>
+                  <label style={{ cursor: 'pointer', display: 'block' }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file || !orderIdFull) return
+                        setScreenshotUploading(true)
+                        try {
+                          await api.uploadPaymentScreenshot(tenantId, orderIdFull, file)
+                          setScreenshotDone(true)
+                        } catch {
+                          // ignore upload error — buyer can still send manually
+                        } finally {
+                          setScreenshotUploading(false)
+                        }
+                      }}
+                    />
+                    <div style={{
+                      height: 42, borderRadius: 10,
+                      background: 'var(--accent)', color: 'white',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      fontWeight: 600, fontSize: 14,
+                      opacity: screenshotUploading ? 0.7 : 1,
+                    }}>
+                      {screenshotUploading ? 'Загружаем...' : '📸 Прикрепить скриншот'}
+                    </div>
+                  </label>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0 0', borderTop: '1px solid var(--border)' }}>
+                  <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M4 10l5 5 8-8" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>Скриншот загружен</span>
+                </div>
+              )}
             </div>
           </div>
         )}
