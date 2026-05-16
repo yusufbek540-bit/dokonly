@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useCart } from '@/store/cart'
 import { Icon } from '@/components/Icon'
@@ -72,6 +72,21 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
   const [phone, setPhone] = useState('')
   const [phoneVerified, setPhoneVerified] = useState(false)
   const [address, setAddress] = useState('')
+  const [profileLoaded, setProfileLoaded] = useState(false)
+
+  const { data: profile } = useQuery({
+    queryKey: ['my-profile', tenantId],
+    queryFn: () => api.getMyProfile(tenantId),
+    retry: false,
+  })
+
+  useEffect(() => {
+    if (profile && !profileLoaded) {
+      if (profile.phone && !phone) setPhone(profile.phone)
+      if (profile.saved_address && !address) setAddress(profile.saved_address)
+      setProfileLoaded(true)
+    }
+  }, [profile, profileLoaded, phone, address])
   const [coupon, setCoupon] = useState('')
   const [couponApplied, setCouponApplied] = useState<{ code: string; discountAmount: number; discountType: string; discountValue: number } | null>(null)
   const [couponError, setCouponError] = useState('')
