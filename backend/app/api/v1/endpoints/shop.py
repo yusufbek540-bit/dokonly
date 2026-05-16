@@ -650,6 +650,7 @@ async def get_buyer_profile(
         "saved_address": customer.saved_address,
         "custom_avatar_url": customer.custom_avatar_url,
         "locale": customer.locale or "ru",
+        "created_at": customer.created_at.isoformat() if customer.created_at else None,
     }
 
 

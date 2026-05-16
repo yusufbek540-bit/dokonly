@@ -24,6 +24,15 @@ function fmtDate(iso: string) {
   }
 }
 
+function fmtJoinedAgo(iso: string) {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000)
+  if (days < 1) return 'сегодня'
+  if (days < 30) return `${days} дн.`
+  const months = Math.floor(days / 30)
+  if (months < 12) return `${months} мес.`
+  return `${Math.floor(months / 12)} лет`
+}
+
 const STATUS_LABEL: Record<string, string> = {
   created: 'Новый',
   new: 'Новый',
@@ -1233,6 +1242,12 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
 
   const qc = useQueryClient()
 
+  const { data: profile } = useQuery({
+    queryKey: ['my-profile', tenantId],
+    queryFn: () => api.getMyProfile(tenantId),
+    retry: false,
+  })
+
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['my-orders', tenantId],
     queryFn: () => api.getMyOrders(tenantId),
@@ -1489,24 +1504,30 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
         </div>
 
         {/* Quick stats */}
-        {orders.length > 0 && (
+        {(orders.length > 0 || (profile as any)?.created_at) && (
           <div style={{ padding: '0 16px 16px' }}>
             <div style={{
-              display: 'grid', gridTemplateColumns: '1fr 1fr',
-              gap: 10, padding: '14px 16px',
-              borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)',
+              display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+              gap: 0, borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)',
+              overflow: 'hidden',
             }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 20, color: 'var(--accent)' }}>
+              <div style={{ textAlign: 'center', padding: '12px 8px' }}>
+                <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 18, color: 'var(--accent)' }}>
                   {orders.length}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>заказов</div>
               </div>
-              <div style={{ textAlign: 'center', borderLeft: '1px solid var(--border)' }}>
-                <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>
+              <div style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)', padding: '12px 8px' }}>
+                <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 11, color: 'var(--ink)' }}>
                   {fmtPrice(orders.reduce((s: number, o: any) => s + Number(o.total ?? 0), 0), currency)}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>потрачено</div>
+              </div>
+              <div style={{ textAlign: 'center', padding: '12px 8px' }}>
+                <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
+                  {(profile as any)?.created_at ? fmtJoinedAgo((profile as any).created_at) : '—'}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>с нами</div>
               </div>
             </div>
           </div>
