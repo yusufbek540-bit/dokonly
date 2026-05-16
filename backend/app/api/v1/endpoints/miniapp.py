@@ -825,12 +825,22 @@ async def create_promo_code(
     code = str(body.get("code", "")).upper().strip()
     if not code:
         raise HTTPException(400, "code required")
+    from datetime import datetime, timezone as _tz
+    expires_raw = body.get("expires_at")
+    expires_dt = None
+    if expires_raw:
+        try:
+            expires_dt = datetime.fromisoformat(expires_raw).replace(tzinfo=_tz.utc) if 'T' not in expires_raw else datetime.fromisoformat(expires_raw)
+        except Exception:
+            pass
     promo = PromoCode(
         tenant_id=tenant.id,
         code=code,
         discount_type=body.get("discount_type", "percent"),
         discount_value=float(body.get("discount_value", 0)),
         max_uses=body.get("max_uses") or None,
+        min_order_amount=float(body["min_order_amount"]) if body.get("min_order_amount") else None,
+        expires_at=expires_dt,
     )
     db.add(promo)
     try:

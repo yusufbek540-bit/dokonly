@@ -52,8 +52,9 @@ export function CartTab({ currency, tenantId, shopSettings, onCheckout, onShowCa
       }
     } catch (e: any) {
       const msg = e?.message ?? ''
-      if (msg.includes('expired')) setCouponError('Срок действия купона истёк')
-      else if (msg.includes('exhausted') || msg.includes('max')) setCouponError('Купон уже использован максимальное количество раз')
+      if (msg.includes('expired') || msg.includes('истёк')) setCouponError('Срок действия купона истёк')
+      else if (msg.includes('exhausted') || msg.includes('max') || msg.includes('исчерпан')) setCouponError('Купон уже использован максимальное количество раз')
+      else if (msg.includes('Минимальная') || msg.includes('minimum')) setCouponError(msg)
       else setCouponError('Купон недействителен')
     } finally {
       setCouponLoading(false)

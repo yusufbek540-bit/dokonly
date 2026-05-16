@@ -491,6 +491,12 @@ async def validate_coupon(
     if promo.max_uses is not None and promo.used_count >= promo.max_uses:
         raise HTTPException(status_code=410, detail="Промокод исчерпан")
 
+    if promo.min_order_amount is not None and subtotal < float(promo.min_order_amount):
+        raise HTTPException(
+            status_code=422,
+            detail=f"Минимальная сумма заказа для этого купона: {int(promo.min_order_amount)}",
+        )
+
     if promo.discount_type == "percent":
         discount_amount = round(subtotal * float(promo.discount_value) / 100, 2)
     else:

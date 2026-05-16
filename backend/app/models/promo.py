@@ -21,6 +21,7 @@ class PromoCode(Base, TimestampMixin):
     discount_value = Column(Numeric(14, 2), nullable=False)
     max_uses = Column(Integer, nullable=True)  # null = unlimited
     used_count = Column(Integer, nullable=False, default=0)
+    min_order_amount = Column(Numeric(15, 2), nullable=True)
     expires_at = Column(DateTime(timezone=True), nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
 
