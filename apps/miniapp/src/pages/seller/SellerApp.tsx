@@ -9,6 +9,7 @@ import { OrdersTab } from './tabs/OrdersTab'
 import { SettingsTab } from './tabs/SettingsTab'
 import { AnalyticsTab } from './tabs/AnalyticsTab'
 import { CustomersTab } from './tabs/CustomersTab'
+import { MigrationTour } from './MigrationTour'
 
 type Tab = 'home' | 'catalog' | 'orders' | 'analytics' | 'customers' | 'more'
 
@@ -109,6 +110,15 @@ export function SellerApp({ tenantSlug, shop }: Props) {
 
   const tenant = overrideTenant ?? (sellerMe as any)?.tenant ?? null
 
+  // Check for pending migration tour
+  const [tourDismissed, setTourDismissed] = useState(false)
+  const { data: pendingTour } = useQuery({
+    queryKey: ['seller-pending-tour'],
+    queryFn: api.seller.pendingTour,
+    enabled: !!tenant,
+    retry: false,
+  })
+
   // Count new orders for badge — only fetch if tenant exists
   const { data: newOrdersCount } = useQuery({
     queryKey: ['seller-new-orders-count'],
@@ -175,6 +185,11 @@ export function SellerApp({ tenantSlug, shop }: Props) {
         {tab === 'customers' && <CustomersTab tenant={tenant} />}
         {tab === 'more'      && <SettingsTab  tenant={tenant} />}
       </div>
+
+      {/* Migration tour */}
+      {pendingTour && !tourDismissed && (
+        <MigrationTour tour={pendingTour} onDone={() => setTourDismissed(true)} />
+      )}
 
       {/* Bottom nav */}
       <div style={{

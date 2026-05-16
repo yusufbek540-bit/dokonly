@@ -4,6 +4,11 @@ const links = [
   { to: '/', label: 'Обзор', icon: '📊' },
   { to: '/products', label: 'Товары', icon: '📦' },
   { to: '/orders', label: 'Заказы', icon: '🛒' },
+  { to: '/customers', label: 'CRM', icon: '👥' },
+  { to: '/marketing', label: 'Маркетинг', icon: '📨' },
+  { to: '/analytics', label: 'Аналитика', icon: '📈' },
+  { to: '/team', label: 'Команда', icon: '🤝' },
+  { to: '/settings', label: 'Настройки', icon: '⚙️' },
 ]
 
 const platformLinks = [

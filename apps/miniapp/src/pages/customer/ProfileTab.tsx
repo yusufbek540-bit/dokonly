@@ -2292,6 +2292,57 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
           </div>
         </div>
 
+        {/* Loyalty mini-card */}
+        {shop?.settings?.loyalty_enabled && (profile as any)?.loyalty_points !== undefined && (() => {
+          const pts: number = (profile as any).loyalty_points ?? 0
+          const cashback: number = (profile as any).cashback_balance ?? 0
+          const tierIdx = Math.max(0, TIERS.findIndex((t, i) =>
+            pts >= t.minPts && (i === TIERS.length - 1 || pts < TIERS[i + 1].minPts)
+          ))
+          const tier = TIERS[tierIdx]
+          const nextTier = TIERS[tierIdx + 1]
+          const pct = nextTier
+            ? Math.min(100, Math.round(((pts - tier.minPts) / (nextTier.minPts - tier.minPts)) * 100))
+            : 100
+          return (
+            <div style={{ padding: '0 16px 16px' }}>
+              <button
+                onClick={() => setShowLoyalty(true)}
+                style={{
+                  width: '100%', textAlign: 'left',
+                  padding: '14px 16px', borderRadius: 16,
+                  background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 70%, #000) 100%)',
+                  border: 'none', cursor: 'pointer', color: 'white',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 20 }}>{tier.icon}</span>
+                    <div>
+                      <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 15, color: 'white' }}>{tier.label}</div>
+                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 1 }}>{pts} баллов</div>
+                    </div>
+                  </div>
+                  {cashback > 0 && (
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>Кешбэк</div>
+                      <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 14, color: 'white' }}>
+                        {cashback.toLocaleString('ru-RU')}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div style={{ background: 'rgba(255,255,255,0.25)', borderRadius: 999, height: 5, overflow: 'hidden', marginBottom: 6 }}>
+                  <div style={{ width: `${pct}%`, height: '100%', background: 'white', borderRadius: 999, transition: 'width 0.4s' }} />
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)' }}>
+                  {nextTier ? `${nextTier.minPts - pts} до ${nextTier.label}` : 'Максимальный уровень'}
+                </div>
+              </button>
+            </div>
+          )
+        })()}
+
         {/* Quick stats */}
         {(orders.length > 0 || (profile as any)?.created_at) && (
           <div style={{ padding: '0 16px 16px' }}>

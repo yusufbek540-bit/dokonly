@@ -19,6 +19,11 @@ import { PlatformStatusPage } from '@/pages/PlatformStatus'
 import { PlatformSupportPage } from '@/pages/PlatformSupport'
 import { PlatformContentPage } from '@/pages/PlatformContent'
 import { MerchantHome } from '@/pages/MerchantHome'
+import { AnalyticsPage } from '@/pages/Analytics'
+import { SettingsPage } from '@/pages/Settings'
+import { CustomersPage } from '@/pages/Customers'
+import { MarketingPage } from '@/pages/Marketing'
+import { TeamPage } from '@/pages/Team'
 
 export default function App() {
   const { token, setToken } = useAuth()
@@ -71,6 +76,11 @@ export default function App() {
           <Route path="/" element={<MerchantHome tenant={tenant} />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/customers" element={<CustomersPage />} />
+          <Route path="/marketing" element={<MarketingPage />} />
+          <Route path="/team" element={<TeamPage />} />
           <Route path="/platform" element={<PlatformOverviewPage />} />
           <Route path="/platform/tenants" element={<PlatformTenantsPage />} />
           <Route path="/platform/subscriptions" element={<PlatformSubscriptionsPage />} />

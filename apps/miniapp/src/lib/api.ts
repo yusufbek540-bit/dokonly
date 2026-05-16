@@ -214,6 +214,25 @@ export const api = {
       request<any>(`/api/v1/miniapp/returns/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
     markReturnRefunded: (id: string) =>
       request<any>(`/api/v1/miniapp/returns/${id}/refund`, { method: 'POST' }),
+    startAiPhotoImport: (photoUrls: string[]) =>
+      request<{ id: string; status: string }>('/api/v1/miniapp/ai-imports', {
+        method: 'POST',
+        body: JSON.stringify({ photo_urls: photoUrls }),
+      }),
+    getAiImport: (id: string) =>
+      request<{
+        id: string; status: 'pending' | 'processing' | 'done' | 'failed';
+        products: { name: string; description: string; price: number; category: string; images: string[] }[];
+        error?: string;
+      }>(`/api/v1/miniapp/ai-imports/${id}`),
+    pendingTour: () =>
+      request<{ id: string; tour_id: string; current_step: number; total_steps: number } | null>('/api/v1/miniapp/tours/pending'),
+    skipTour: (tourId: string) =>
+      request<{ ok: boolean }>(`/api/v1/miniapp/tours/${tourId}/skip`, { method: 'POST' }),
+    completeTourStep: (tourId: string, step: number) =>
+      request<{ ok: boolean }>(`/api/v1/miniapp/tours/${tourId}/step/${step}/complete`, { method: 'POST' }),
+    updateTour: (id: string, body: { current_step?: number; status: string }) =>
+      request<{ ok: boolean }>(`/api/v1/miniapp/tours/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
     uploadFile: (file: File) => {
       const form = new FormData()
       form.append('file', file)

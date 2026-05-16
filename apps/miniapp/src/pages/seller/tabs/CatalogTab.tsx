@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
 import { useTelegramMainButton } from '@/hooks/useTelegram'
+import { AIPhotoImport } from '../AIPhotoImport'
 
 function fmtPrice(n: number, currency: string) {
   if (currency === 'UZS') return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' сум'
@@ -430,6 +431,7 @@ export function CatalogTab({ tenant }: Props) {
   const [view, setView] = useState<'products' | 'categories'>('products')
   const [form, setForm] = useState<FormMode | null>(null)
   const [showAddSheet, setShowAddSheet] = useState(false)
+  const [showAIImport, setShowAIImport] = useState(false)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive' | 'out_of_stock' | 'featured'>('all')
   const [bulkMode, setBulkMode] = useState(false)
@@ -818,7 +820,7 @@ export function CatalogTab({ tenant }: Props) {
             </div>
             {[
               { emoji: '✏️', label: 'Добавить вручную', desc: 'Заполните карточку товара', action: () => { setShowAddSheet(false); setForm({ type: 'new' }) } },
-              { emoji: '📸', label: 'AI из фото', desc: 'Загрузите фото — AI заполнит описание', action: null, soon: true },
+              { emoji: '📸', label: 'AI из фото', desc: 'Загрузите фото — AI заполнит описание', action: () => { setShowAddSheet(false); setShowAIImport(true) }, soon: false },
               { emoji: '🎙', label: 'AI голосом', desc: 'Опишите товар голосом', action: null, soon: true },
               { emoji: '📢', label: 'Импорт из канала', desc: 'Загрузить посты из Telegram', action: null, soon: true },
               { emoji: '📄', label: 'Импорт CSV', desc: 'Загрузить таблицу Excel/CSV', action: null, soon: true },
@@ -858,6 +860,17 @@ export function CatalogTab({ tenant }: Props) {
           currency={tenant.currency}
           onSave={handleSave}
           onClose={() => setForm(null)}
+        />
+      )}
+
+      {showAIImport && (
+        <AIPhotoImport
+          currency={tenant.currency}
+          onClose={() => setShowAIImport(false)}
+          onProductsCreated={() => {
+            qc.invalidateQueries({ queryKey: ['seller-products'] })
+            setShowAIImport(false)
+          }}
         />
       )}
     </div>

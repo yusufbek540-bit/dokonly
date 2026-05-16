@@ -90,8 +90,32 @@ export const api = {
     deleteHelpArticle: (id: string) =>
       request<void>(`/api/v1/platform/content/help-articles/${id}`, { method: 'DELETE' }),
   },
+  notifications: {
+    list: () => request<{ id: string; type: string; title: string; body?: string; action_url?: string; read_at?: string; created_at: string }[]>('/api/v1/notifications'),
+    markRead: (id: string) => request<void>(`/api/v1/notifications/${id}/read`, { method: 'POST' }),
+    markAllRead: () => request<void>('/api/v1/notifications/read-all', { method: 'POST' }),
+  },
   merchant: {
     analytics: (period?: string) => request<any>(`/api/v1/miniapp/analytics/summary${period ? `?period=${period}` : ''}`),
+    customers: (params?: { q?: string; segment?: string; skip?: number; limit?: number }) => {
+      const qs = new URLSearchParams()
+      if (params?.q) qs.set('q', params.q)
+      if (params?.segment) qs.set('segment', params.segment)
+      if (params?.skip !== undefined) qs.set('skip', String(params.skip))
+      if (params?.limit !== undefined) qs.set('limit', String(params.limit))
+      return request<any[]>(`/api/v1/miniapp/customers?${qs}`)
+    },
+    customer: (id: string) => request<any>(`/api/v1/miniapp/customers/${id}`),
+    mailings: () => request<any[]>('/api/v1/miniapp/mailings'),
+    createMailing: (body: object) => request<any>('/api/v1/miniapp/mailings', { method: 'POST', body: JSON.stringify(body) }),
+    sendMailing: (id: string) => request<any>(`/api/v1/miniapp/mailings/${id}/send`, { method: 'POST' }),
+    deleteMailing: (id: string) => request<void>(`/api/v1/miniapp/mailings/${id}`, { method: 'DELETE' }),
+    coupons: () => request<any[]>('/api/v1/miniapp/promo-codes'),
+    createCoupon: (body: object) => request<any>('/api/v1/miniapp/promo-codes', { method: 'POST', body: JSON.stringify(body) }),
+    deleteCoupon: (id: string) => request<void>(`/api/v1/miniapp/promo-codes/${id}`, { method: 'DELETE' }),
+    team: () => request<any[]>('/api/v1/miniapp/team'),
+    inviteTeam: (body: object) => request<any>('/api/v1/miniapp/team/invite', { method: 'POST', body: JSON.stringify(body) }),
+    removeTeam: (id: string) => request<void>(`/api/v1/miniapp/team/${id}`, { method: 'DELETE' }),
   },
   getTenant: () => request<Tenant>('/api/v1/tenants/me'),
   createTenant: (body: { name: string; slug: string; currency: string }) =>
