@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Icon } from '@/components/Icon'
+import { api } from '@/lib/api'
 
 interface ShopData {
   id: string
@@ -21,6 +23,7 @@ interface ShopData {
 
 interface Props {
   shop: ShopData
+  tenantId: string
   products: any[]
   onProduct: (id: string) => void
   onShowCatalog: (category?: string) => void
@@ -37,7 +40,8 @@ function tone(name: string) {
   return Math.abs(h) % 8
 }
 
-export function HomeTab({ shop, products, onProduct, onShowCatalog }: Props) {
+export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: Props) {
+  const qc = useQueryClient()
   const activeProducts = products.filter((p: any) => p.is_active)
   const featuredProducts = activeProducts.filter((p: any) => p.is_featured)
   const featured = (featuredProducts.length > 0 ? featuredProducts : activeProducts).slice(0, 5)
@@ -50,6 +54,26 @@ export function HomeTab({ shop, products, onProduct, onShowCatalog }: Props) {
   const hasCover = !!shop.cover_url
 
   const [carouselIdx, setCarouselIdx] = useState(0)
+
+  const { data: wishlistIds = [] } = useQuery<string[]>({
+    queryKey: ['wishlist', tenantId],
+    queryFn: () => api.getWishlist(tenantId),
+  })
+
+  const { mutate: toggleWishlist } = useMutation({
+    mutationFn: (productId: string) => api.toggleWishlist(tenantId, productId),
+    onMutate: async (productId) => {
+      await qc.cancelQueries({ queryKey: ['wishlist', tenantId] })
+      const prev = qc.getQueryData<string[]>(['wishlist', tenantId]) ?? []
+      const next = prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId]
+      qc.setQueryData(['wishlist', tenantId], next)
+      return { prev }
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['wishlist', tenantId], ctx.prev)
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['wishlist', tenantId] }),
+  })
 
   useEffect(() => {
     if (featured.length <= 1) return
@@ -363,7 +387,9 @@ export function HomeTab({ shop, products, onProduct, onShowCatalog }: Props) {
               </button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {preview.map((p: any) => (
+              {preview.map((p: any) => {
+                const inWishlist = wishlistIds.includes(p.id)
+                return (
                 <button key={p.id} onClick={() => onProduct(p.id)} style={{ textAlign: 'left' }}>
                   <div style={{ position: 'relative' }}>
                     {p.images?.[0]
@@ -378,6 +404,20 @@ export function HomeTab({ shop, products, onProduct, onShowCatalog }: Props) {
                         fontWeight: 600, fontSize: 12,
                       }}>Нет в наличии</div>
                     )}
+                    <button
+                      onClick={e => { e.stopPropagation(); toggleWishlist(p.id) }}
+                      style={{
+                        position: 'absolute', top: 6, right: 6,
+                        width: 30, height: 30, borderRadius: 999,
+                        background: 'rgba(255,255,255,0.92)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill={inWishlist ? 'var(--accent)' : 'none'} stroke={inWishlist ? 'var(--accent)' : 'var(--muted)'} strokeWidth="1.5">
+                        <path d="M8 13.5S1.5 9.5 1.5 5.5A3.5 3.5 0 0 1 8 3.8a3.5 3.5 0 0 1 6.5 1.7C14.5 9.5 8 13.5 8 13.5z" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
                   </div>
                   <div style={{ padding: '8px 2px 0' }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.3, marginBottom: 4, height: 34, overflow: 'hidden' }}>
@@ -388,7 +428,7 @@ export function HomeTab({ shop, products, onProduct, onShowCatalog }: Props) {
                     </div>
                   </div>
                 </button>
-              ))}
+              )})}
             </div>
 
             {activeProducts.length > 4 && (

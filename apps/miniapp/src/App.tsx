@@ -354,6 +354,7 @@ function ShopApp() {
         {tab === 'home' && (
           <HomeTab
             shop={shop}
+            tenantId={shop.id}
             products={products}
             onProduct={setProductId}
             onShowCatalog={handleShowCatalog}
