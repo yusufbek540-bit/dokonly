@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useCart } from '@/store/cart'
 import { Icon } from '@/components/Icon'
 import { api } from '@/lib/api'
@@ -28,6 +28,9 @@ export function CartTab({ currency, tenantId, shopSettings, onCheckout, onShowCa
   const [couponInput, setCouponInput] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
   const [couponError, setCouponError] = useState('')
+
+  const swipeStartX = useRef<Record<string, number>>({})
+  const [swipeOffset, setSwipeOffset] = useState<Record<string, number>>({})
 
   const minOrderAmount = shopSettings?.min_order_amount ? Number(shopSettings.min_order_amount) : 0
   const finalTotal = Math.max(0, cartTotal - couponDiscount)
@@ -118,10 +121,37 @@ export function CartTab({ currency, tenantId, shopSettings, onCheckout, onShowCa
             {/* Items */}
             <div style={{ padding: '12px 16px 0' }}>
               {items.map(item => (
-                <div key={item.key} style={{
-                  display: 'flex', gap: 12, padding: '12px 0',
-                  borderBottom: '1px solid var(--border)',
-                }}>
+                <div key={item.key} style={{ position: 'relative', overflow: 'hidden', borderBottom: '1px solid var(--border)' }}>
+                  {/* Red delete bg shown on swipe */}
+                  <div style={{
+                    position: 'absolute', top: 0, right: 0, bottom: 0, width: 80,
+                    background: '#EF4444',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>
+                    </svg>
+                  </div>
+                  <div
+                    onTouchStart={e => { swipeStartX.current[item.key] = e.touches[0].clientX }}
+                    onTouchMove={e => {
+                      const dx = e.touches[0].clientX - (swipeStartX.current[item.key] ?? e.touches[0].clientX)
+                      if (dx < 0) setSwipeOffset(s => ({ ...s, [item.key]: Math.max(dx, -120) }))
+                    }}
+                    onTouchEnd={() => {
+                      const offset = swipeOffset[item.key] ?? 0
+                      if (offset < -60) {
+                        remove(item.key)
+                      }
+                      setSwipeOffset(s => ({ ...s, [item.key]: 0 }))
+                    }}
+                    style={{
+                      display: 'flex', gap: 12, padding: '12px 0',
+                      transform: `translateX(${swipeOffset[item.key] ?? 0}px)`,
+                      transition: swipeOffset[item.key] ? 'none' : 'transform 0.2s ease',
+                      background: 'var(--bg)',
+                    }}
+                  >
                   {item.imageUrl
                     ? <img src={item.imageUrl} alt={item.name} style={{ width: 72, height: 72, flexShrink: 0, borderRadius: 10, objectFit: 'cover' }}/>
                     : <div className="img-ph" data-tone={item.tone ?? 0} style={{ width: 72, height: 72, flexShrink: 0, borderRadius: 10, fontSize: 11 }}>
@@ -186,6 +216,7 @@ export function CartTab({ currency, tenantId, shopSettings, onCheckout, onShowCa
                         </button>
                       </div>
                     </div>
+                  </div>
                   </div>
                 </div>
               ))}
