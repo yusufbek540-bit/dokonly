@@ -1216,12 +1216,12 @@ function EditProfile({ tenantId, onBack }: { tenantId: string; onBack: () => voi
 
 // ─── ProfileTab ───────────────────────────────────────────────────────────────
 
-type OrderTabId = 'active' | 'all' | 'completed' | 'cancelled'
+type OrderTabId = 'active' | 'all' | 'completed' | 'returns'
 const ORDER_TABS: { id: OrderTabId; label: string; statuses: string[] | null }[] = [
   { id: 'active',    label: 'Активные',    statuses: ['new', 'created', 'confirmed', 'shipping'] },
   { id: 'all',       label: 'Все',         statuses: null },
   { id: 'completed', label: 'Завершённые', statuses: ['delivered', 'completed'] },
-  { id: 'cancelled', label: 'Отменённые',  statuses: ['cancelled'] },
+  { id: 'returns',   label: 'Возвраты',    statuses: [] },
 ]
 
 export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
@@ -1581,9 +1581,9 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
               )}
               <Icon name="chevronRight" size={16} color="var(--muted)" />
             </button>
-            {/* Returns — links to completed orders where return can be requested */}
+            {/* Returns tab */}
             <button
-              onClick={() => setOrderTab('completed')}
+              onClick={() => setOrderTab('returns')}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 12,
                 padding: '14px 16px', background: 'var(--card)', cursor: 'pointer',
@@ -1729,15 +1729,26 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
               <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
             </div>
           ) : (() => {
+            if (orderTab === 'returns') {
+              return (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)' }}>
+                  <div style={{ fontSize: 36, marginBottom: 12 }}>🔄</div>
+                  <p style={{ fontSize: 14, marginBottom: 6 }}>Возвратов нет</p>
+                  <p style={{ fontSize: 12, lineHeight: 1.5 }}>
+                    Запросить возврат можно из<br/>завершённого заказа
+                  </p>
+                </div>
+              )
+            }
+
             const tab = ORDER_TABS.find(t => t.id === orderTab)!
-            const filtered = tab.statuses
+            const filtered = tab.statuses && tab.statuses.length > 0
               ? (orders as any[]).filter(o => tab.statuses!.includes(o.status))
-              : (orders as any[])
+              : orderTab === 'all' ? (orders as any[]) : []
 
             if (filtered.length === 0) {
               const emptyMsg = orderTab === 'active' ? 'Нет активных заказов'
                 : orderTab === 'completed' ? 'Завершённых заказов нет'
-                : orderTab === 'cancelled' ? 'Отменённых заказов нет'
                 : 'Заказов пока нет'
               return (
                 <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--muted)' }}>
