@@ -1924,8 +1924,8 @@ async def get_customer(
         "email": c.email,
         "total_orders": c.total_orders,
         "total_spent": float(c.total_spent or 0),
-        "tags": (c.meta or {}).get("tags", []) if hasattr(c, "meta") else [],
-        "notes": (c.meta or {}).get("notes", []) if hasattr(c, "meta") else [],
+        "tags": [],
+        "notes": [],
         "orders": [{"id": str(o.id), "status": o.status, "total": float(o.total), "currency": o.currency, "created_at": o.created_at.isoformat() if o.created_at else None} for o in orders],
         "created_at": c.created_at.isoformat() if c.created_at else None,
     }
