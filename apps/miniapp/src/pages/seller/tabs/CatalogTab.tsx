@@ -4,6 +4,10 @@ import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
 import { useTelegramMainButton } from '@/hooks/useTelegram'
 import { AIPhotoImport } from '../AIPhotoImport'
+import { CSVImport } from '../CSVImport'
+import { VoiceImport } from '../VoiceImport'
+import { ChannelImport } from '../ChannelImport'
+import { PlanPicker } from '../PlanPicker'
 
 function fmtPrice(n: number, currency: string) {
   if (currency === 'UZS') return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' сум'
@@ -20,9 +24,32 @@ interface Props { tenant: any }
 
 type FormMode = { type: 'new' } | { type: 'edit'; product: any }
 
-function ProductForm({ mode, currency, onSave, onClose }: {
+// Sphere → attribute keys shown in product form
+const SPHERE_ATTRS: Record<string, { key: string; label: string; placeholder: string }[]> = {
+  fashion:     [{ key: 'brand', label: 'Бренд', placeholder: 'Nike, Zara…' }, { key: 'material', label: 'Материал', placeholder: 'Хлопок, Кожа…' }],
+  clothing:    [{ key: 'brand', label: 'Бренд', placeholder: 'Nike, Zara…' }, { key: 'material', label: 'Материал', placeholder: 'Хлопок, Кожа…' }],
+  shoes:       [{ key: 'brand', label: 'Бренд', placeholder: 'Adidas, Timberland…' }, { key: 'material', label: 'Материал', placeholder: 'Кожа, Текстиль…' }],
+  electronics: [{ key: 'brand', label: 'Бренд', placeholder: 'Samsung, Apple…' }, { key: 'model', label: 'Модель', placeholder: 'Galaxy S24, iPhone 15…' }, { key: 'specifications', label: 'Характеристики', placeholder: 'RAM 8GB, 128GB…' }],
+  tech:        [{ key: 'brand', label: 'Бренд', placeholder: 'Samsung, Apple…' }, { key: 'model', label: 'Модель', placeholder: 'Galaxy S24…' }, { key: 'specifications', label: 'Характеристики', placeholder: 'RAM 8GB, 128GB…' }],
+  auto:        [{ key: 'brand', label: 'Марка', placeholder: 'BMW, Toyota…' }, { key: 'model', label: 'Модель', placeholder: 'X5, Camry…' }, { key: 'year', label: 'Год', placeholder: '2022' }],
+  furniture:   [{ key: 'brand', label: 'Бренд', placeholder: 'IKEA, Hoff…' }, { key: 'material', label: 'Материал', placeholder: 'Дерево, МДФ…' }, { key: 'dimensions', label: 'Размеры', placeholder: '100×60×75 см' }],
+}
+
+function getSphereAttrs(category: string): { key: string; label: string; placeholder: string }[] {
+  const cat = (category ?? '').toLowerCase()
+  if (cat.includes('одежд') || cat.includes('cloth') || cat.includes('fashion')) return SPHERE_ATTRS.fashion
+  if (cat.includes('обув') || cat.includes('shoe')) return SPHERE_ATTRS.shoes
+  if (cat.includes('электрон') || cat.includes('electronic')) return SPHERE_ATTRS.electronics
+  if (cat.includes('техник') || cat.includes('tech') || cat.includes('гаджет')) return SPHERE_ATTRS.tech
+  if (cat.includes('авто') || cat.includes('auto')) return SPHERE_ATTRS.auto
+  if (cat.includes('мебел') || cat.includes('furni')) return SPHERE_ATTRS.furniture
+  return [{ key: 'brand', label: 'Бренд', placeholder: 'Название бренда' }]
+}
+
+function ProductForm({ mode, currency, sphere, onSave, onClose }: {
   mode: FormMode
   currency: string
+  sphere?: string
   onSave: (data: any) => void
   onClose: () => void
 }) {
@@ -43,8 +70,15 @@ function ProductForm({ mode, currency, onSave, onClose }: {
   const [sku, setSku] = useState<string>(p?.sku ?? '')
   const [seoTitle, setSeoTitle] = useState<string>(p?.seo_title ?? '')
   const [seoDescription, setSeoDescription] = useState<string>(p?.seo_description ?? '')
+  const [trackInventory, setTrackInventory] = useState<boolean>(p?.track_inventory ?? true)
+  const [lowStockThreshold, setLowStockThreshold] = useState<string>(p?.low_stock_threshold?.toString() ?? '5')
+  const [tagsStr, setTagsStr] = useState<string>((p?.tags ?? []).join(', '))
+  const [attributes, setAttributes] = useState<Record<string, string>>(p?.attributes ?? {})
   const [uploading, setUploading] = useState(false)
+  const [generatingDesc, setGeneratingDesc] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const sphereAttrs = getSphereAttrs(sphere ?? '')
 
   const { data: categories = [] } = useQuery({
     queryKey: ['seller-categories'],
@@ -57,6 +91,10 @@ function ProductForm({ mode, currency, onSave, onClose }: {
     if (!canSave) return
     const sizes = sizesStr.split(',').map(s => s.trim()).filter(Boolean)
     const colors = colorsStr.split(',').map(s => s.trim()).filter(Boolean)
+    const filteredAttrs: Record<string, string> = {}
+    for (const [k, v] of Object.entries(attributes)) {
+      if (v.trim()) filteredAttrs[k] = v.trim()
+    }
     onSave({
       name, price: Number(price),
       compare_at_price: compareAtPrice ? Number(compareAtPrice) : null,
@@ -70,6 +108,10 @@ function ProductForm({ mode, currency, onSave, onClose }: {
       sku: sku.trim() || null,
       seo_title: seoTitle.trim() || null,
       seo_description: seoDescription.trim() || null,
+      track_inventory: trackInventory,
+      low_stock_threshold: lowStockThreshold ? Number(lowStockThreshold) : null,
+      tags: tagsStr.split(',').map(t => t.trim()).filter(Boolean),
+      attributes: Object.keys(filteredAttrs).length > 0 ? filteredAttrs : undefined,
     })
   }
 
@@ -158,7 +200,6 @@ function ProductForm({ mode, currency, onSave, onClose }: {
           </div>
           {[
             { label: 'Название*', val: name, set: setName, placeholder: 'Название товара' },
-            { label: 'Описание', val: description, set: setDescription, placeholder: 'Описание товара (необязательно)' },
           ].map(f => (
             <div key={f.label}>
               <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>{f.label}</label>
@@ -175,6 +216,55 @@ function ProductForm({ mode, currency, onSave, onClose }: {
               />
             </div>
           ))}
+          {/* Description with AI */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)' }}>Описание</label>
+              <button
+                type="button"
+                disabled={!name.trim() || generatingDesc}
+                onClick={async () => {
+                  if (!name.trim() || generatingDesc) return
+                  setGeneratingDesc(true)
+                  try {
+                    const res = await api.seller.generateDescription(name, categoryId || undefined)
+                    setDescription(res.description)
+                  } catch {
+                    // silently fail
+                  } finally {
+                    setGeneratingDesc(false)
+                  }
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '4px 10px', borderRadius: 8,
+                  background: (!name.trim() || generatingDesc) ? 'var(--subtle)' : 'var(--accent-soft)',
+                  border: 'none', cursor: (!name.trim() || generatingDesc) ? 'not-allowed' : 'pointer',
+                  fontSize: 12, fontWeight: 600, color: 'var(--accent)',
+                  opacity: (!name.trim() || generatingDesc) ? 0.6 : 1,
+                }}
+              >
+                {generatingDesc
+                  ? <><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', border: '1.5px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />  Генерирую...</>
+                  : <>🤖 AI-описание</>
+                }
+              </button>
+            </div>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Описание товара (необязательно)"
+              rows={3}
+              style={{
+                width: '100%', padding: '12px',
+                borderRadius: 12, background: 'var(--card)',
+                border: '1px solid var(--border)', outline: 'none',
+                fontSize: 14, color: 'var(--ink)',
+                resize: 'none', fontFamily: 'inherit', lineHeight: 1.5,
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
           <div>
             <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>Категория</label>
             <select
@@ -229,17 +319,50 @@ function ProductForm({ mode, currency, onSave, onClose }: {
             </div>
             <div>
               <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>
-                Себестоимость
+                Порог «мало»
               </label>
               <input
-                value={costPerItem}
-                onChange={e => setCostPerItem(e.target.value)}
-                placeholder="0"
+                value={lowStockThreshold}
+                onChange={e => setLowStockThreshold(e.target.value)}
+                placeholder="5"
                 type="number"
                 style={{ width: '100%', height: 46, padding: '0 12px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }}
               />
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>Скрыто от покупателей</div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>Уведомить при остатке</div>
             </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
+            <div>
+              <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Отслеживать остаток</span>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>Блокировать заказы когда 0</div>
+            </div>
+            <button
+              onClick={() => setTrackInventory(v => !v)}
+              style={{
+                width: 48, height: 28, borderRadius: 999,
+                background: trackInventory ? 'var(--accent)' : 'var(--border)',
+                position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+              }}
+            >
+              <div style={{
+                position: 'absolute', top: 3, width: 22, height: 22,
+                borderRadius: 999, background: 'white',
+                left: trackInventory ? 23 : 3, transition: 'left 0.2s',
+              }}/>
+            </button>
+          </div>
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>
+              Себестоимость
+            </label>
+            <input
+              value={costPerItem}
+              onChange={e => setCostPerItem(e.target.value)}
+              placeholder="0"
+              type="number"
+              style={{ width: '100%', height: 46, padding: '0 12px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }}
+            />
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>Скрыто от покупателей</div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
@@ -280,6 +403,30 @@ function ProductForm({ mode, currency, onSave, onClose }: {
               style={{ width: '100%', height: 46, padding: '0 12px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)', fontFamily: 'JetBrains Mono' }}
             />
           </div>
+          {/* Attributes section (sphere-specific) */}
+          {sphereAttrs.length > 0 && (
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+                Характеристики
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {sphereAttrs.map(attr => (
+                  <div key={attr.key}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>
+                      {attr.label}
+                    </label>
+                    <input
+                      value={attributes[attr.key] ?? ''}
+                      onChange={e => setAttributes(prev => ({ ...prev, [attr.key]: e.target.value }))}
+                      placeholder={attr.placeholder}
+                      style={{ width: '100%', height: 46, padding: '0 12px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* SEO section */}
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>SEO</div>
@@ -306,6 +453,16 @@ function ProductForm({ mode, currency, onSave, onClose }: {
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>{seoDescription.length}/160</div>
               </div>
             </div>
+          </div>
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>Теги</label>
+            <input
+              value={tagsStr}
+              onChange={e => setTagsStr(e.target.value)}
+              placeholder="новинка, скидка, хит"
+              style={{ width: '100%', height: 46, padding: '0 12px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }}
+            />
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>Через запятую, для фильтрации и поиска</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
             <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Активен</span>
@@ -432,6 +589,10 @@ export function CatalogTab({ tenant }: Props) {
   const [form, setForm] = useState<FormMode | null>(null)
   const [showAddSheet, setShowAddSheet] = useState(false)
   const [showAIImport, setShowAIImport] = useState(false)
+  const [showCSVImport, setShowCSVImport] = useState(false)
+  const [showVoiceImport, setShowVoiceImport] = useState(false)
+  const [showChannelImport, setShowChannelImport] = useState(false)
+  const [showPlanPicker, setShowPlanPicker] = useState(false)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive' | 'out_of_stock' | 'featured'>('all')
   const [bulkMode, setBulkMode] = useState(false)
@@ -773,7 +934,7 @@ export function CatalogTab({ tenant }: Props) {
               </span>
               {nearLimit && (
                 <button
-                  onClick={() => {/* TODO: open plan picker */}}
+                  onClick={() => setShowPlanPicker(true)}
                   style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', background: 'none', padding: 0 }}
                 >
                   Upgrade →
@@ -818,13 +979,13 @@ export function CatalogTab({ tenant }: Props) {
             <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 16 }}>
               Добавить товар
             </div>
-            {[
-              { emoji: '✏️', label: 'Добавить вручную', desc: 'Заполните карточку товара', action: () => { setShowAddSheet(false); setForm({ type: 'new' }) } },
-              { emoji: '📸', label: 'AI из фото', desc: 'Загрузите фото — AI заполнит описание', action: () => { setShowAddSheet(false); setShowAIImport(true) }, soon: false },
-              { emoji: '🎙', label: 'AI голосом', desc: 'Опишите товар голосом', action: null, soon: true },
-              { emoji: '📢', label: 'Импорт из канала', desc: 'Загрузить посты из Telegram', action: null, soon: true },
-              { emoji: '📄', label: 'Импорт CSV', desc: 'Загрузить таблицу Excel/CSV', action: null, soon: true },
-            ].map(opt => (
+            {([
+              { emoji: '✏️', label: 'Добавить вручную', desc: 'Заполните карточку товара', action: (() => { setShowAddSheet(false); setForm({ type: 'new' }) }) as (() => void) | null },
+              { emoji: '📸', label: 'AI из фото', desc: 'Загрузите фото — AI заполнит описание', action: (() => { setShowAddSheet(false); setShowAIImport(true) }) as (() => void) | null, soon: false },
+              { emoji: '🎙', label: 'AI голосом', desc: 'Опишите товар голосом', action: (() => { setShowAddSheet(false); setShowVoiceImport(true) }) as (() => void) | null, soon: false },
+              { emoji: '📢', label: 'Импорт из канала', desc: 'Загрузить посты из Telegram', action: (() => { setShowAddSheet(false); setShowChannelImport(true) }) as (() => void) | null, soon: false },
+              { emoji: '📄', label: 'Импорт CSV', desc: 'Загрузить таблицу Excel/CSV', action: (() => { setShowAddSheet(false); setShowCSVImport(true) }) as (() => void) | null, soon: false },
+            ] as { emoji: string; label: string; desc: string; action: (() => void) | null; soon?: boolean }[]).map(opt => (
               <button
                 key={opt.label}
                 onClick={opt.action ?? undefined}
@@ -858,6 +1019,7 @@ export function CatalogTab({ tenant }: Props) {
         <ProductForm
           mode={form}
           currency={tenant.currency}
+          sphere={tenant.category ?? ''}
           onSave={handleSave}
           onClose={() => setForm(null)}
         />
@@ -873,6 +1035,34 @@ export function CatalogTab({ tenant }: Props) {
           }}
         />
       )}
+
+      {showCSVImport && (
+        <CSVImport
+          currency={tenant.currency}
+          onClose={() => setShowCSVImport(false)}
+          onProductsCreated={() => {
+            qc.invalidateQueries({ queryKey: ['seller-products'] })
+            setShowCSVImport(false)
+          }}
+        />
+      )}
+
+      {showVoiceImport && (
+        <VoiceImport
+          currency={tenant.currency}
+          onClose={() => setShowVoiceImport(false)}
+          onProductCreated={() => { qc.invalidateQueries({ queryKey: ['seller-products'] }); setShowVoiceImport(false) }}
+        />
+      )}
+      {showChannelImport && (
+        <ChannelImport
+          currency={tenant.currency}
+          onClose={() => setShowChannelImport(false)}
+          onProductsCreated={() => { qc.invalidateQueries({ queryKey: ['seller-products'] }); setShowChannelImport(false) }}
+        />
+      )}
+
+      {showPlanPicker && <PlanPicker onBack={() => setShowPlanPicker(false)} />}
     </div>
   )
 }

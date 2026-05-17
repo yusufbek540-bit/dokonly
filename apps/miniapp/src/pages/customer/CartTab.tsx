@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState, useRef, useEffect } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCart } from '@/store/cart'
 import { Icon } from '@/components/Icon'
 import { api } from '@/lib/api'
@@ -18,7 +18,116 @@ function fmtPrice(n: number, currency: string) {
   return n.toLocaleString() + ' ' + currency
 }
 
+function EmptyCartView({ tenantId, currency, onShowCatalog, qc }: { tenantId: string; currency: string; onShowCatalog: () => void; qc: any }) {
+  const cachedProducts: any[] = qc.getQueryData(['products', tenantId]) ?? []
+  const activeProducts = cachedProducts.filter((p: any) => p.is_active)
+
+  const recentlyViewedIds: string[] = JSON.parse(
+    localStorage.getItem(`dokonly_viewed_${tenantId}`) ?? '[]'
+  ).slice(0, 6)
+  const recentlyViewed = recentlyViewedIds
+    .map(id => activeProducts.find((p: any) => p.id === id))
+    .filter(Boolean) as any[]
+
+  const { data: wishlistIds = [] } = useQuery<string[]>({
+    queryKey: ['wishlist', tenantId],
+    queryFn: () => api.getWishlist(tenantId),
+    retry: false,
+  })
+  const wishlistProducts = wishlistIds
+    .map(id => activeProducts.find((p: any) => p.id === id))
+    .filter(Boolean) as any[]
+
+  return (
+    <div className="screen-scroll" style={{ flex: 1, paddingBottom: 24 }}>
+      <div style={{ padding: '40px 24px 24px', textAlign: 'center' }}>
+        <div style={{
+          width: 80, height: 80, borderRadius: 999,
+          background: 'var(--subtle)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: 16, margin: '0 auto 16px',
+        }}>
+          <Icon name="cart" size={36} color="var(--muted)"/>
+        </div>
+        <h2 style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 20, color: 'var(--ink)', marginBottom: 8 }}>
+          Корзина пуста
+        </h2>
+        <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 24, lineHeight: 1.6 }}>
+          Найдите что-то интересное в каталоге
+        </p>
+        <button
+          onClick={onShowCatalog}
+          style={{
+            height: 48, padding: '0 28px', borderRadius: 14,
+            background: 'var(--accent)', color: 'white',
+            fontWeight: 700, fontSize: 15,
+          }}
+        >
+          Перейти в каталог
+        </button>
+      </div>
+
+      {recentlyViewed.length > 0 && (
+        <div style={{ padding: '0 16px 20px' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Просмотренные</div>
+          <div style={{ display: 'flex', overflowX: 'auto', gap: 10, scrollbarWidth: 'none', paddingBottom: 4 }}>
+            {recentlyViewed.map((p: any) => (
+              <button
+                key={p.id}
+                onClick={onShowCatalog}
+                style={{
+                  flexShrink: 0, width: 110, background: 'var(--card)',
+                  border: '1px solid var(--border)', borderRadius: 12,
+                  overflow: 'hidden', textAlign: 'left',
+                }}
+              >
+                {p.images?.[0]
+                  ? <img src={p.images[0]} alt={p.name} style={{ width: '100%', height: 80, objectFit: 'cover', display: 'block' }} />
+                  : <div style={{ width: '100%', height: 80, background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🛍</div>
+                }
+                <div style={{ padding: '6px 8px 8px' }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>{p.name}</div>
+                  <div style={{ fontSize: 11, fontFamily: 'JetBrains Mono', fontWeight: 700, color: 'var(--accent)', marginTop: 3 }}>{fmtPrice(Number(p.price), currency)}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {wishlistProducts.length > 0 && (
+        <div style={{ padding: '0 16px 20px' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Избранное</div>
+          <div style={{ display: 'flex', overflowX: 'auto', gap: 10, scrollbarWidth: 'none', paddingBottom: 4 }}>
+            {wishlistProducts.slice(0, 6).map((p: any) => (
+              <button
+                key={p.id}
+                onClick={onShowCatalog}
+                style={{
+                  flexShrink: 0, width: 110, background: 'var(--card)',
+                  border: '1px solid var(--border)', borderRadius: 12,
+                  overflow: 'hidden', textAlign: 'left',
+                }}
+              >
+                {p.images?.[0]
+                  ? <img src={p.images[0]} alt={p.name} style={{ width: '100%', height: 80, objectFit: 'cover', display: 'block' }} />
+                  : <div style={{ width: '100%', height: 80, background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🛍</div>
+                }
+                <div style={{ padding: '6px 8px 8px' }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>{p.name}</div>
+                  <div style={{ fontSize: 11, fontFamily: 'JetBrains Mono', fontWeight: 700, color: 'var(--accent)', marginTop: 3 }}>{fmtPrice(Number(p.price), currency)}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function CartTab({ currency, tenantId, shopSettings, onCheckout, onShowCatalog }: Props) {
+  const qc = useQueryClient()
   const items = useCart((s) => s.items)
   const setQty = useCart((s) => s.setQty)
   const remove = useCart((s) => s.remove)
@@ -26,6 +135,7 @@ export function CartTab({ currency, tenantId, shopSettings, onCheckout, onShowCa
   const couponCode = useCart((s) => s.couponCode)
   const couponDiscount = useCart((s) => s.couponDiscount)
   const setCoupon = useCart((s) => s.setCoupon)
+  const setLoyalty = useCart((s) => s.setLoyalty)
 
   const [couponInput, setCouponInput] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
@@ -40,6 +150,10 @@ export function CartTab({ currency, tenantId, shopSettings, onCheckout, onShowCa
   })
   const loyaltyBalance: number = (profile as any)?.loyalty_points ?? 0
   const loyaltyDiscount = useLoyalty ? Math.min(loyaltyBalance, Math.floor(cartTotal * 0.3)) : 0
+
+  useEffect(() => {
+    setLoyalty(loyaltyDiscount)
+  }, [loyaltyDiscount, setLoyalty])
 
   const swipeStartX = useRef<Record<string, number>>({})
   const [swipeOffset, setSwipeOffset] = useState<Record<string, number>>({})
@@ -105,36 +219,7 @@ export function CartTab({ currency, tenantId, shopSettings, onCheckout, onShowCa
       </div>
 
       {items.length === 0 ? (
-        <div style={{
-          flex: 1, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          padding: 32, textAlign: 'center',
-        }}>
-          <div style={{
-            width: 80, height: 80, borderRadius: 999,
-            background: 'var(--subtle)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            marginBottom: 20,
-          }}>
-            <Icon name="cart" size={36} color="var(--muted)"/>
-          </div>
-          <h2 style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 20, color: 'var(--ink)', marginBottom: 8 }}>
-            Корзина пуста
-          </h2>
-          <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 32, lineHeight: 1.6 }}>
-            Добавьте товары из каталога, чтобы оформить заказ
-          </p>
-          <button
-            onClick={onShowCatalog}
-            style={{
-              height: 50, padding: '0 32px', borderRadius: 14,
-              background: 'var(--accent)', color: 'white',
-              fontWeight: 700, fontSize: 15,
-            }}
-          >
-            Перейти в каталог
-          </button>
-        </div>
+        <EmptyCartView tenantId={tenantId} currency={currency} onShowCatalog={onShowCatalog} qc={qc} />
       ) : (
         <>
           <div className="screen-scroll" style={{ flex: 1, paddingBottom: 100 }}>

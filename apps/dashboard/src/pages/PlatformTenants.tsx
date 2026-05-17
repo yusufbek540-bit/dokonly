@@ -26,10 +26,16 @@ function fmtAgo(iso: string) {
 
 function TenantDetailPanel({ tenant, onClose }: { tenant: any; onClose: () => void }) {
   const qc = useQueryClient()
-  const [activeTab, setActiveTab] = useState<'overview' | 'subscription' | 'products' | 'team' | 'settings' | 'activity' | 'notes'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'subscription' | 'products' | 'team' | 'settings' | 'activity' | 'notes'>('overview')
   const [editTier, setEditTier] = useState(tenant.tier ?? 'trial')
+  const [editCurrency, setEditCurrency] = useState(tenant.currency ?? 'UZS')
+  const [editCountry, setEditCountry] = useState(tenant.country ?? 'UZ')
+  const [editLanguage, setEditLanguage] = useState(tenant.language ?? 'ru')
+  const [editAiBudget, setEditAiBudget] = useState(String(tenant.ai_budget_override ?? ''))
   const [suspendReason, setSuspendReason] = useState('')
   const [showSuspendModal, setShowSuspendModal] = useState(false)
+  const [showImpersonateModal, setShowImpersonateModal] = useState(false)
+  const [impersonateJustification, setImpersonateJustification] = useState('')
   const [noteInput, setNoteInput] = useState('')
 
   const { data: detail } = useQuery({
@@ -70,6 +76,22 @@ function TenantDetailPanel({ tenant, onClose }: { tenant: any; onClose: () => vo
     queryFn: () => api.platform.tenantNotes(tenant.id),
     enabled: activeTab === 'notes',
     retry: false,
+  })
+
+  const { data: tenantOrders } = useQuery({
+    queryKey: ['platform-tenant-orders', tenant.id],
+    queryFn: () => api.platform.tenantOrders(tenant.id),
+    enabled: activeTab === 'orders',
+    retry: false,
+  })
+
+  const impersonateMut = useMutation({
+    mutationFn: () => api.platform.impersonateTenant(tenant.id, impersonateJustification),
+    onSuccess: (data: any) => {
+      setShowImpersonateModal(false)
+      setImpersonateJustification('')
+      if (data?.url) window.open(data.url, '_blank')
+    },
   })
 
   const addNoteMutation = useMutation({
@@ -128,6 +150,7 @@ function TenantDetailPanel({ tenant, onClose }: { tenant: any; onClose: () => vo
         <div className="flex border-b overflow-x-auto scrollbar-hide">
           {([
             { id: 'overview', label: 'Обзор' },
+            { id: 'orders', label: 'Заказы' },
             { id: 'subscription', label: 'Подписка' },
             { id: 'products', label: 'Товары' },
             { id: 'team', label: 'Команда' },
@@ -181,6 +204,12 @@ function TenantDetailPanel({ tenant, onClose }: { tenant: any; onClose: () => vo
 
               {/* Action buttons */}
               <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => setShowImpersonateModal(true)}
+                  className="flex-1 min-w-[120px] h-9 rounded-xl bg-indigo-50 text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
+                >
+                  🎭 Войти как
+                </button>
                 <a
                   href={shopUrl}
                   target="_blank"
@@ -219,19 +248,112 @@ function TenantDetailPanel({ tenant, onClose }: { tenant: any; onClose: () => vo
             </>
           )}
 
+          {activeTab === 'orders' && (
+            <div className="space-y-4">
+              {!tenantOrders ? (
+                <div className="flex justify-center p-8"><div className="animate-spin w-6 h-6 border-2 border-accent border-t-transparent rounded-full" /></div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: 'Всего заказов', value: tenantOrders.total_orders ?? '—' },
+                      { label: 'Завершённых', value: tenantOrders.completed_orders ?? '—' },
+                      { label: 'Отменённых', value: tenantOrders.cancelled_orders ?? '—' },
+                      { label: 'Выручка', value: tenantOrders.total_revenue ? Number(tenantOrders.total_revenue).toLocaleString() : '—' },
+                    ].map(s => (
+                      <div key={s.label} className="bg-gray-50 rounded-xl p-3">
+                        <div className="text-xs text-gray-500 mb-1">{s.label}</div>
+                        <div className="font-mono font-bold text-gray-800">{s.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {tenantOrders.top_products && tenantOrders.top_products.length > 0 && (
+                    <div>
+                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Топ товаров</div>
+                      <div className="space-y-1">
+                        {tenantOrders.top_products.slice(0, 10).map((p: any, i: number) => (
+                          <div key={i} className="flex justify-between items-center py-1.5 border-b border-gray-50 text-sm">
+                            <span className="text-gray-700 truncate flex-1 mr-2">{p.name}</span>
+                            <span className="font-mono text-gray-500 text-xs flex-shrink-0">{p.revenue?.toLocaleString() ?? p.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {tenantOrders.status_distribution && (
+                    <div>
+                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">По статусам</div>
+                      <div className="space-y-1">
+                        {Object.entries(tenantOrders.status_distribution).map(([status, count]: [string, any]) => (
+                          <div key={status} className="flex justify-between text-sm py-1">
+                            <span className="text-gray-600">{status}</span>
+                            <span className="font-mono font-semibold text-gray-800">{count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           {activeTab === 'settings' && (
             <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Тариф</label>
+                  <select
+                    value={editTier}
+                    onChange={e => setEditTier(e.target.value)}
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-accent bg-white"
+                  >
+                    {TIERS.filter(Boolean).map(tier => (
+                      <option key={tier} value={tier}>{tier.charAt(0).toUpperCase() + tier.slice(1)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Валюта</label>
+                  <select
+                    value={editCurrency}
+                    onChange={e => setEditCurrency(e.target.value)}
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-accent bg-white"
+                  >
+                    {['UZS', 'USD', 'KZT', 'RUB', 'EUR'].map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Страна</label>
+                  <select
+                    value={editCountry}
+                    onChange={e => setEditCountry(e.target.value)}
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-accent bg-white"
+                  >
+                    {['UZ', 'KZ', 'RU', 'UA', 'GE'].map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Язык</label>
+                  <select
+                    value={editLanguage}
+                    onChange={e => setEditLanguage(e.target.value)}
+                    className="w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-accent bg-white"
+                  >
+                    {[['ru', 'Русский'], ['uz', "O'zbek"], ['en', 'English']].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Тариф</label>
-                <select
-                  value={editTier}
-                  onChange={e => setEditTier(e.target.value)}
-                  className="w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-accent bg-white"
-                >
-                  {TIERS.filter(Boolean).map(tier => (
-                    <option key={tier} value={tier}>{tier.charAt(0).toUpperCase() + tier.slice(1)}</option>
-                  ))}
-                </select>
+                <label className="block text-xs font-medium text-gray-500 mb-1">AI бюджет (USD/день) — override</label>
+                <input
+                  type="number"
+                  value={editAiBudget}
+                  onChange={e => setEditAiBudget(e.target.value)}
+                  placeholder="По умолчанию по тарифу"
+                  className="w-full border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-accent"
+                />
               </div>
 
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
@@ -248,11 +370,17 @@ function TenantDetailPanel({ tenant, onClose }: { tenant: any; onClose: () => vo
               </div>
 
               <button
-                onClick={() => updateMut.mutate({ tier: editTier })}
-                disabled={updateMut.isPending || editTier === t.tier}
+                onClick={() => updateMut.mutate({
+                  tier: editTier,
+                  currency: editCurrency,
+                  country: editCountry,
+                  language: editLanguage,
+                  ...(editAiBudget ? { ai_budget_override: Number(editAiBudget) } : {}),
+                })}
+                disabled={updateMut.isPending}
                 className="w-full h-10 rounded-xl bg-accent text-white font-semibold text-sm disabled:opacity-50"
               >
-                {updateMut.isPending ? 'Сохранение...' : 'Сохранить тариф'}
+                {updateMut.isPending ? 'Сохранение...' : 'Сохранить настройки'}
               </button>
             </>
           )}
@@ -436,6 +564,37 @@ function TenantDetailPanel({ tenant, onClose }: { tenant: any; onClose: () => vo
               </button>
               <button
                 onClick={() => setShowSuspendModal(false)}
+                className="flex-1 h-10 rounded-xl border text-sm font-semibold"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showImpersonateModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-[60] p-4 bg-black/40" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <h3 className="font-bold text-lg mb-1">🎭 Войти как {t.name}?</h3>
+            <p className="text-sm text-gray-500 mb-4">Это действие будет записано в журнал аудита.</p>
+            <textarea
+              placeholder="Причина (обязательно)"
+              value={impersonateJustification}
+              onChange={e => setImpersonateJustification(e.target.value)}
+              rows={3}
+              className="w-full border rounded-xl px-3 py-2 text-sm outline-none resize-none mb-4"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => impersonateMut.mutate()}
+                disabled={!impersonateJustification.trim() || impersonateMut.isPending}
+                className="flex-1 h-10 rounded-xl bg-indigo-600 text-white font-semibold text-sm disabled:opacity-50"
+              >
+                {impersonateMut.isPending ? '...' : 'Войти'}
+              </button>
+              <button
+                onClick={() => { setShowImpersonateModal(false); setImpersonateJustification('') }}
                 className="flex-1 h-10 rounded-xl border text-sm font-semibold"
               >
                 Отмена

@@ -3,6 +3,23 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
 
+const SEEN_KEY = 'dokonly_seen_achievements'
+
+function getSeenIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(SEEN_KEY)
+    return raw ? new Set(JSON.parse(raw)) : new Set()
+  } catch { return new Set() }
+}
+
+function markSeen(ids: string[]) {
+  try {
+    const seen = getSeenIds()
+    ids.forEach(id => seen.add(id))
+    localStorage.setItem(SEEN_KEY, JSON.stringify([...seen]))
+  } catch {}
+}
+
 interface Achievement {
   id: string
   category: 'milestone' | 'feature' | 'streak' | 'community'
@@ -11,6 +28,7 @@ interface Achievement {
   desc_ru: string
   tier: 'bronze' | 'silver' | 'gold'
   unlocked: boolean
+  unlocked_at?: string
   progress?: number
   target?: number
 }
@@ -42,6 +60,8 @@ const CATEGORY_TABS: { label: string; value: Achievement['category'] | null }[] 
 export function AchievementsPage({ onBack }: Props) {
   const [activeCategory, setActiveCategory] = useState<Achievement['category'] | null>(null)
   const [celebration, setCelebration] = useState<Achievement | null>(null)
+  const [detailAchievement, setDetailAchievement] = useState<Achievement | null>(null)
+  const [seenIds, setSeenIds] = useState<Set<string>>(getSeenIds)
 
   const { data, isLoading, isError } = useQuery<AchievementsResponse>({
     queryKey: ['seller-achievements'],
@@ -52,6 +72,13 @@ export function AchievementsPage({ onBack }: Props) {
   const unlockedCount = data?.unlocked_count ?? 0
   const totalCount = data?.total_count ?? 0
   const pct = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0
+
+  const recentlyUnlocked = achievements
+    .filter(a => a.unlocked)
+    .sort((a, b) => (b.unlocked_at ?? '').localeCompare(a.unlocked_at ?? ''))
+    .slice(0, 1)
+
+  const newAchievements = achievements.filter(a => a.unlocked && !seenIds.has(a.id))
 
   // Detect newly unlocked achievements since last visit
   const prevUnlockedRef = useRef<Set<string> | null>(null)
@@ -68,6 +95,13 @@ export function AchievementsPage({ onBack }: Props) {
       }
     }
     prevUnlockedRef.current = nowUnlocked
+    // Mark all unlocked as seen after a short delay
+    const ids = achievements.filter(a => a.unlocked).map(a => a.id)
+    const timer = setTimeout(() => {
+      markSeen(ids)
+      setSeenIds(new Set(ids))
+    }, 3000)
+    return () => clearTimeout(timer)
   }, [data])
 
   const filtered = achievements
@@ -85,7 +119,10 @@ export function AchievementsPage({ onBack }: Props) {
       background: 'var(--bg)',
       overflow: 'auto',
     }}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.95); } }
+      `}</style>
 
       {/* Sticky header */}
       <div style={{
@@ -171,6 +208,44 @@ export function AchievementsPage({ onBack }: Props) {
             </div>
           </div>
 
+          {/* Recently unlocked highlight */}
+          {recentlyUnlocked.length > 0 && (
+            <div style={{ padding: '0 16px 12px' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                Недавно разблокировано
+              </div>
+              {recentlyUnlocked.map(a => (
+                <button
+                  key={a.id}
+                  onClick={() => setDetailAchievement(a)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
+                    borderRadius: 14, background: 'var(--accent-soft)', border: '2px solid var(--accent)',
+                    cursor: 'pointer', textAlign: 'left',
+                  }}
+                >
+                  <div style={{ width: 48, height: 48, borderRadius: 999, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>
+                    {a.icon}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{a.name_ru}</div>
+                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{a.desc_ru}</div>
+                  </div>
+                  <div style={{ fontSize: 18, flexShrink: 0 }}>🏆</div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* New unseen badge */}
+          {newAchievements.length > 0 && (
+            <div style={{ padding: '0 16px 8px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 999, background: '#FEF3C7', border: '1px solid #F59E0B' }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#92400E' }}>✨ {newAchievements.length} новых достижения!</span>
+              </div>
+            </div>
+          )}
+
           {/* Category filter tabs */}
           <div style={{
             display: 'flex',
@@ -217,18 +292,24 @@ export function AchievementsPage({ onBack }: Props) {
               gap: 10,
               padding: '0 16px 40px',
             }}>
-              {filtered.map(achievement => (
-                <div
+              {filtered.map(achievement => {
+                const isNew = achievement.unlocked && !seenIds.has(achievement.id)
+                return (
+                <button
                   key={achievement.id}
+                  onClick={() => achievement.unlocked && setDetailAchievement(achievement)}
                   style={{
                     background: 'var(--card)',
-                    border: '1px solid var(--border)',
+                    border: isNew ? '2px solid var(--accent)' : '1px solid var(--border)',
                     borderRadius: 16,
                     padding: '14px 12px',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 8,
                     opacity: achievement.unlocked ? 1 : 0.45,
+                    cursor: achievement.unlocked ? 'pointer' : 'default',
+                    textAlign: 'left',
+                    animation: isNew ? 'pulse 2s ease-in-out infinite' : 'none',
                   }}
                 >
                   {/* Top: icon + tier badge */}
@@ -310,11 +391,62 @@ export function AchievementsPage({ onBack }: Props) {
                       🔒 Заблокировано
                     </div>
                   )}
-                </div>
-              ))}
+                </button>
+              )})}
             </div>
           )}
         </>
+      )}
+
+      {/* Achievement detail modal */}
+      {detailAchievement && (
+        <div
+          onClick={() => setDetailAchievement(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '0 0 24px' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: '100%', maxWidth: 480, background: 'var(--card)', borderRadius: '24px 24px 0 0', padding: '28px 24px 32px', textAlign: 'center' }}
+          >
+            <div style={{ width: 72, height: 72, borderRadius: 999, margin: '0 auto 14px', background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>
+              {detailAchievement.icon}
+            </div>
+            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)', marginBottom: 4 }}>
+              {detailAchievement.name_ru}
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', marginBottom: 10 }}>
+              {TIER_LABELS[detailAchievement.tier]}
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.6, marginBottom: 16 }}>
+              {detailAchievement.desc_ru}
+            </div>
+            {detailAchievement.unlocked_at && (
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 20 }}>
+                Разблокировано {new Date(detailAchievement.unlocked_at).toLocaleDateString('ru', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button
+                onClick={() => {
+                  const tg = (window as any).Telegram?.WebApp
+                  const text = `🏆 Я разблокировал достижение «${detailAchievement.name_ru}» в Dokonly!`
+                  const url = `https://t.me/share/url?text=${encodeURIComponent(text)}`
+                  tg?.openLink?.(url) ?? window.open(url, '_blank')
+                  setDetailAchievement(null)
+                }}
+                style={{ width: '100%', height: 46, borderRadius: 12, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer' }}
+              >
+                Поделиться ↗
+              </button>
+              <button
+                onClick={() => setDetailAchievement(null)}
+                style={{ width: '100%', height: 46, borderRadius: 12, background: 'var(--subtle)', color: 'var(--ink)', fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer' }}
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Celebration modal */}

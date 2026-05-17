@@ -50,6 +50,41 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('dokonly_recent_searches') || '[]') } catch { return [] }
   })
+
+  // Full-screen search overlay state
+  const [showSearchScreen, setShowSearchScreen] = useState(false)
+  const [overlaySearch, setOverlaySearch] = useState('')
+  const [debouncedOverlay, setDebouncedOverlay] = useState('')
+  const overlayInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedOverlay(overlaySearch), 300)
+    return () => clearTimeout(t)
+  }, [overlaySearch])
+
+  useEffect(() => {
+    if (showSearchScreen) {
+      setTimeout(() => overlayInputRef.current?.focus(), 50)
+    }
+  }, [showSearchScreen])
+
+  const saveSearch = (term: string) => {
+    const trimmed = term.trim()
+    if (!trimmed) return
+    const updated = [trimmed, ...recentSearches.filter(s => s !== trimmed)].slice(0, 5)
+    setRecentSearches(updated)
+    try { localStorage.setItem('dokonly_recent_searches', JSON.stringify(updated)) } catch {}
+  }
+
+  const closeSearchOverlay = (confirmedSearch?: string) => {
+    if (confirmedSearch !== undefined) {
+      setSearch(confirmedSearch)
+    }
+    setShowSearchScreen(false)
+    setOverlaySearch('')
+    setDebouncedOverlay('')
+  }
+
   const [sort, setSort] = useState<SortOption>('newest')
   const [showSort, setShowSort] = useState(false)
   const [showFilter, setShowFilter] = useState(false)
@@ -64,7 +99,14 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
   const [activeHasDiscount, setActiveHasDiscount] = useState(false)
   const [activeHasVideo, setActiveHasVideo] = useState(false)
 
-  const hasActiveFilters = !!(activeMinPrice || activeMaxPrice || activeInStock || activeHasDiscount || activeHasVideo)
+  // Attribute filters state
+  const [filterAttrs, setFilterAttrs] = useState<Record<string, string[]>>({})
+  const [activeAttrs, setActiveAttrs] = useState<Record<string, string[]>>({})
+
+  const hasActiveFilters = !!(
+    activeMinPrice || activeMaxPrice || activeInStock || activeHasDiscount || activeHasVideo ||
+    Object.values(activeAttrs).some(v => v.length > 0)
+  )
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const qc = useQueryClient()
@@ -103,7 +145,7 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
     setTimeout(() => setJustAdded(null), 1200)
   }
 
-  useEffect(() => { setVisibleCount(PAGE_SIZE) }, [cat, search, sort, activeMinPrice, activeMaxPrice, activeInStock, activeHasDiscount, activeHasVideo])
+  useEffect(() => { setVisibleCount(PAGE_SIZE) }, [cat, search, sort, activeMinPrice, activeMaxPrice, activeInStock, activeHasDiscount, activeHasVideo, activeAttrs])
 
   const loadMore = useCallback(() => {
     setVisibleCount(n => n + PAGE_SIZE)
@@ -145,6 +187,26 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
   for (const c of uniqueCats) catCounts[c] = activeProducts.filter((p: any) => p.category === c).length
   const categories = ['Все', ...uniqueCats]
 
+  // Collect attribute options from all active products
+  const attrOptions: Record<string, string[]> = {}
+  for (const p of activeProducts) {
+    if (p.attributes && typeof p.attributes === 'object') {
+      for (const [k, v] of Object.entries(p.attributes as Record<string, any>)) {
+        if (!attrOptions[k]) attrOptions[k] = []
+        const sv = String(v)
+        if (!attrOptions[k].includes(sv)) attrOptions[k].push(sv)
+      }
+    }
+  }
+  // Only show attributes with 2+ options
+  const filterableAttrs = Object.entries(attrOptions).filter(([, vals]) => vals.length >= 2)
+
+  // Trending searches: top 5 products by order_count
+  const trendingSearches = [...activeProducts]
+    .sort((a: any, b: any) => (Number(b.order_count) || 0) - (Number(a.order_count) || 0))
+    .slice(0, 5)
+    .map((p: any) => p.name as string)
+
   const visible = activeProducts
     .filter((p: any) => {
       if (cat !== 'Все' && p.category !== cat) return false
@@ -155,6 +217,17 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
       if (activeInStock && (p.stock === null || p.stock === undefined || p.stock === 0)) return false
       if (activeHasDiscount && !(p.compare_at_price && Number(p.compare_at_price) > price)) return false
       if (activeHasVideo && !p.video_url) return false
+      // Attribute filters
+      if (Object.keys(activeAttrs).length > 0) {
+        for (const [k, selected] of Object.entries(activeAttrs)) {
+          if (selected.length > 0) {
+            const pVal = (p.attributes as Record<string, any> | null)?.[k] !== undefined
+              ? String((p.attributes as Record<string, any>)[k])
+              : null
+            if (!pVal || !selected.includes(pVal)) return false
+          }
+        }
+      }
       return true
     })
     .sort((a: any, b: any) => {
@@ -178,6 +251,17 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
     if (filterInStock && (p.stock === null || p.stock === undefined || p.stock === 0)) return false
     if (filterHasDiscount && !(p.compare_at_price && Number(p.compare_at_price) > price)) return false
     if (filterHasVideo && !p.video_url) return false
+    // Pending attribute filters
+    if (Object.keys(filterAttrs).length > 0) {
+      for (const [k, selected] of Object.entries(filterAttrs)) {
+        if (selected.length > 0) {
+          const pVal = (p.attributes as Record<string, any> | null)?.[k] !== undefined
+            ? String((p.attributes as Record<string, any>)[k])
+            : null
+          if (!pVal || !selected.includes(pVal)) return false
+        }
+      }
+    }
     return true
   }).length
 
@@ -187,6 +271,7 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
     setActiveInStock(filterInStock)
     setActiveHasDiscount(filterHasDiscount)
     setActiveHasVideo(filterHasVideo)
+    setActiveAttrs(filterAttrs)
     setShowFilter(false)
   }
 
@@ -196,8 +281,222 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
     isVisible: showFilter,
   })
 
+  // Live overlay search results
+  const overlayResults = debouncedOverlay.trim()
+    ? activeProducts
+        .filter((p: any) =>
+          p.name.toLowerCase().includes(debouncedOverlay.toLowerCase()) ||
+          (p.description ?? '').toLowerCase().includes(debouncedOverlay.toLowerCase())
+        )
+        .slice(0, 20)
+    : []
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+      {/* Full-screen search overlay */}
+      {showSearchScreen && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 60,
+          background: 'var(--bg)',
+          display: 'flex', flexDirection: 'column',
+        }}>
+          {/* Top bar */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '10px 16px',
+            borderBottom: '1px solid var(--border)',
+            flexShrink: 0,
+          }}>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <svg
+                width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}
+              >
+                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+              </svg>
+              <input
+                ref={overlayInputRef}
+                placeholder="Поиск товаров..."
+                value={overlaySearch}
+                onChange={e => setOverlaySearch(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && overlaySearch.trim()) {
+                    saveSearch(overlaySearch.trim())
+                    closeSearchOverlay(overlaySearch.trim())
+                  }
+                }}
+                style={{
+                  width: '100%', height: 44, paddingLeft: 38, paddingRight: overlaySearch ? 36 : 12,
+                  borderRadius: 12, background: 'var(--card)',
+                  border: '1px solid var(--border)', outline: 'none',
+                  fontSize: 15, color: 'var(--ink)',
+                  boxSizing: 'border-box',
+                }}
+              />
+              {overlaySearch.length > 0 && (
+                <button
+                  onClick={() => setOverlaySearch('')}
+                  style={{
+                    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+                    background: 'var(--subtle)', border: 'none', borderRadius: 999,
+                    width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', color: 'var(--muted)', fontSize: 14, lineHeight: 1,
+                  }}
+                >×</button>
+              )}
+            </div>
+            <button
+              onClick={() => closeSearchOverlay()}
+              style={{
+                background: 'none', border: 'none', padding: '0 4px',
+                fontSize: 15, fontWeight: 500, color: 'var(--accent)', cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              Отмена
+            </button>
+          </div>
+
+          {/* Overlay body */}
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {overlaySearch.trim() === '' ? (
+              /* Empty state: recent + trending */
+              <div>
+                {recentSearches.length > 0 && (
+                  <div>
+                    <div style={{
+                      padding: '14px 16px 6px',
+                      fontSize: 11, fontWeight: 700, color: 'var(--muted)',
+                      textTransform: 'uppercase', letterSpacing: '0.06em',
+                    }}>
+                      Недавние
+                    </div>
+                    {recentSearches.map(s => (
+                      <button
+                        key={s}
+                        onClick={() => {
+                          saveSearch(s)
+                          closeSearchOverlay(s)
+                        }}
+                        style={{
+                          width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                          padding: '12px 16px', background: 'none', border: 'none',
+                          borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left',
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        <span style={{ flex: 1, fontSize: 15, color: 'var(--ink)' }}>{s}</span>
+                        <button
+                          onClick={e => {
+                            e.stopPropagation()
+                            const updated = recentSearches.filter(r => r !== s)
+                            setRecentSearches(updated)
+                            try { localStorage.setItem('dokonly_recent_searches', JSON.stringify(updated)) } catch {}
+                          }}
+                          style={{
+                            background: 'none', border: 'none', padding: 4, cursor: 'pointer',
+                            fontSize: 18, color: 'var(--muted)', lineHeight: 1,
+                          }}
+                        >×</button>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {trendingSearches.length > 0 && (
+                  <div>
+                    <div style={{
+                      padding: '14px 16px 6px',
+                      fontSize: 11, fontWeight: 700, color: 'var(--muted)',
+                      textTransform: 'uppercase', letterSpacing: '0.06em',
+                    }}>
+                      Популярные
+                    </div>
+                    {trendingSearches.map((name, i) => (
+                      <button
+                        key={name}
+                        onClick={() => {
+                          saveSearch(name)
+                          closeSearchOverlay(name)
+                        }}
+                        style={{
+                          width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                          padding: '12px 16px', background: 'none', border: 'none',
+                          borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left',
+                        }}
+                      >
+                        <span style={{
+                          width: 22, height: 22, borderRadius: 999,
+                          background: 'var(--accent-soft)', color: 'var(--accent)',
+                          fontSize: 12, fontWeight: 700,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0,
+                        }}>{i + 1}</span>
+                        <span style={{ flex: 1, fontSize: 15, color: 'var(--ink)' }}>{name}</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+                        </svg>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : overlayResults.length === 0 ? (
+              /* No results */
+              <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--muted)', fontSize: 15 }}>
+                Ничего не найдено. Попробуйте другие слова.
+              </div>
+            ) : (
+              /* Search results */
+              <div>
+                {overlayResults.map((p: any) => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      saveSearch(overlaySearch.trim())
+                      closeSearchOverlay(overlaySearch.trim())
+                      onProduct(p.id)
+                    }}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '10px 16px', background: 'none', border: 'none',
+                      borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    {p.images?.[0]
+                      ? <img
+                          src={p.images[0]} alt={p.name}
+                          style={{ width: 48, height: 48, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }}
+                        />
+                      : <div style={{
+                          width: 48, height: 48, borderRadius: 10, flexShrink: 0,
+                          background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 11, color: 'var(--muted)', textAlign: 'center', padding: 4,
+                        }}>
+                          {p.name.slice(0, 2)}
+                        </div>
+                    }
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 14, fontWeight: 500, color: 'var(--ink)',
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}>{p.name}</div>
+                      <div style={{ fontFamily: 'JetBrains Mono', fontSize: 13, fontWeight: 700, color: 'var(--accent)', marginTop: 2 }}>
+                        {fmtPrice(Number(p.price), shop.currency)}
+                      </div>
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 18l6-6-6-6"/>
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Sticky top */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 20,
@@ -230,6 +529,7 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
               setFilterInStock(activeInStock)
               setFilterHasDiscount(activeHasDiscount)
               setFilterHasVideo(activeHasVideo)
+              setFilterAttrs(activeAttrs)
               setShowFilter(true)
             }}
             style={{
@@ -301,7 +601,10 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px 32px' }}
+            style={{
+              width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0',
+              padding: '20px 16px 32px', maxHeight: '80vh', overflowY: 'auto',
+            }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)' }}>Фильтры</div>
@@ -309,6 +612,7 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
                 onClick={() => {
                   setFilterMinPrice(''); setFilterMaxPrice('')
                   setFilterInStock(false); setFilterHasDiscount(false); setFilterHasVideo(false)
+                  setFilterAttrs({})
                 }}
                 style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
               >
@@ -409,6 +713,42 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
               </div>
             ))}
 
+            {/* Dynamic attribute filters */}
+            {filterableAttrs.map(([attrKey, attrVals]) => (
+              <div key={attrKey} style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted-strong)', marginBottom: 8, textTransform: 'capitalize' }}>
+                  {attrKey}
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {attrVals.map(val => {
+                    const isSelected = (filterAttrs[attrKey] ?? []).includes(val)
+                    return (
+                      <button
+                        key={val}
+                        onClick={() => {
+                          const current = filterAttrs[attrKey] ?? []
+                          const next = isSelected
+                            ? current.filter(x => x !== val)
+                            : [...current, val]
+                          setFilterAttrs(prev => ({ ...prev, [attrKey]: next }))
+                        }}
+                        style={{
+                          padding: '6px 14px', borderRadius: 999,
+                          background: isSelected ? 'var(--accent)' : 'var(--subtle)',
+                          color: isSelected ? 'white' : 'var(--ink)',
+                          border: `1.5px solid ${isSelected ? 'var(--accent)' : 'var(--border)'}`,
+                          fontSize: 13, fontWeight: isSelected ? 600 : 400,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {val}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+
             {/* Apply */}
             <button
               onClick={handleApplyFilter}
@@ -433,7 +773,10 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
               placeholder="Поиск товаров"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
+              onFocus={() => {
+                setShowSearchScreen(true)
+                setOverlaySearch(search)
+              }}
               onBlur={() => setTimeout(() => setSearchFocused(false), 150)}
               onKeyDown={e => {
                 if (e.key === 'Enter' && search.trim()) {
@@ -524,6 +867,24 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
                 Есть видео 🎬
                 <button onClick={() => setActiveHasVideo(false)} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontWeight: 700, fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
               </span>
+            )}
+            {/* Active attribute filter chips */}
+            {Object.entries(activeAttrs).flatMap(([k, vals]) =>
+              vals.map(val => (
+                <span
+                  key={`${k}:${val}`}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}
+                >
+                  {val}
+                  <button
+                    onClick={() => {
+                      const updated = { ...activeAttrs, [k]: activeAttrs[k].filter(v => v !== val) }
+                      setActiveAttrs(updated)
+                    }}
+                    style={{ background: 'none', border: 'none', color: 'var(--accent)', fontWeight: 700, fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                  >×</button>
+                </span>
+              ))
             )}
           </div>
         )}

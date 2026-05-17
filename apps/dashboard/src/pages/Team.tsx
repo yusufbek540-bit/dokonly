@@ -21,12 +21,18 @@ function fmtDate(iso: string) {
   return `${days} дней назад`
 }
 
+type NotifPrefs = { new_orders: boolean; payment_failures: boolean; low_stock: boolean; daily_summary: boolean }
+
+const DEFAULT_PREFS: NotifPrefs = { new_orders: true, payment_failures: true, low_stock: false, daily_summary: false }
+
 export function TeamPage() {
   const qc = useQueryClient()
   const [showInvite, setShowInvite] = useState(false)
   const [inviteUsername, setInviteUsername] = useState('')
   const [inviteRole, setInviteRole] = useState('manager')
   const [error, setError] = useState('')
+  const [selectedMember, setSelectedMember] = useState<any | null>(null)
+  const [memberPrefs, setMemberPrefs] = useState<NotifPrefs>(DEFAULT_PREFS)
 
   const { data: team = [], isLoading } = useQuery({
     queryKey: ['merchant-team'],
@@ -159,22 +165,72 @@ export function TeamPage() {
                       </span>
                     </td>
                     <td className="px-5 py-3">
-                      {m.role !== 'owner' && (
+                      <div className="flex items-center gap-3">
                         <button
-                          onClick={() => {
-                            if (window.confirm(`Удалить ${name} из команды?`)) remove.mutate(m.id)
-                          }}
-                          className="text-xs text-red-400 hover:text-red-600"
+                          onClick={() => { setSelectedMember(m); setMemberPrefs({ ...DEFAULT_PREFS, ...(m.notification_prefs ?? {}) }) }}
+                          className="text-gray-400 hover:text-accent transition-colors"
+                          title="Настроить уведомления"
                         >
-                          Удалить
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                          </svg>
                         </button>
-                      )}
+                        {m.role !== 'owner' && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Удалить ${name} из команды?`)) remove.mutate(m.id)
+                            }}
+                            className="text-xs text-red-400 hover:text-red-600"
+                          >
+                            Удалить
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {selectedMember && (
+        <div className="fixed inset-0 z-50 bg-black/20 flex items-center justify-center p-4" onClick={() => setSelectedMember(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-gray-900 mb-1">Уведомления</h3>
+            <p className="text-sm text-gray-400 mb-5">{selectedMember.username ?? selectedMember.email}</p>
+            <div className="space-y-3">
+              {([
+                { key: 'new_orders', label: 'Новые заказы' },
+                { key: 'payment_failures', label: 'Ошибки оплаты' },
+                { key: 'low_stock', label: 'Низкий остаток' },
+                { key: 'daily_summary', label: 'Ежедневный отчёт' },
+              ] as const).map(item => (
+                <div key={item.key} className="flex items-center justify-between">
+                  <span className="text-sm text-gray-800">{item.label}</span>
+                  <button
+                    onClick={() => setMemberPrefs(p => ({ ...p, [item.key]: !p[item.key] }))}
+                    className={`relative w-11 h-6 rounded-full transition-colors ${memberPrefs[item.key] ? 'bg-accent' : 'bg-gray-200'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${memberPrefs[item.key] ? 'left-6' : 'left-1'}`} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setSelectedMember(null)} className="flex-1 py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-medium">Отмена</button>
+              <button
+                onClick={async () => {
+                  await api.merchant.updateTeamNotifications(selectedMember.id, memberPrefs).catch(() => {})
+                  setSelectedMember(null)
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-accent text-white text-sm font-semibold"
+              >
+                Сохранить
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -18,12 +18,15 @@ import { PlatformAuditLogPage } from '@/pages/PlatformAuditLog'
 import { PlatformStatusPage } from '@/pages/PlatformStatus'
 import { PlatformSupportPage } from '@/pages/PlatformSupport'
 import { PlatformContentPage } from '@/pages/PlatformContent'
+import { PlatformConfigPage } from '@/pages/PlatformConfig'
 import { MerchantHome } from '@/pages/MerchantHome'
 import { AnalyticsPage } from '@/pages/Analytics'
 import { SettingsPage } from '@/pages/Settings'
 import { CustomersPage } from '@/pages/Customers'
 import { MarketingPage } from '@/pages/Marketing'
 import { TeamPage } from '@/pages/Team'
+import { BillingPage } from '@/pages/Billing'
+import { TwoFactorSetupPage } from '@/pages/TwoFactorSetup'
 
 export default function App() {
   const { token, setToken } = useAuth()
@@ -49,6 +52,13 @@ export default function App() {
     retry: false,
   })
 
+  const { data: twoFaStatus } = useQuery({
+    queryKey: ['2fa-status'],
+    queryFn: api.platform.auth.status2fa,
+    enabled: !!token && !!tenant && !tenantLoading,
+    retry: false,
+  })
+
   if (!authReady) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -69,9 +79,20 @@ export default function App() {
 
   if (!tenant) return <SetupPage />
 
+  if (twoFaStatus?.required && !twoFaStatus.enabled) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="*" element={<TwoFactorSetupPage />} />
+        </Routes>
+      </BrowserRouter>
+    )
+  }
+
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/setup-2fa" element={<TwoFactorSetupPage />} />
         <Route element={<Layout />}>
           <Route path="/" element={<MerchantHome tenant={tenant} />} />
           <Route path="/products" element={<ProductsPage />} />
@@ -81,6 +102,7 @@ export default function App() {
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/marketing" element={<MarketingPage />} />
           <Route path="/team" element={<TeamPage />} />
+          <Route path="/billing" element={<BillingPage />} />
           <Route path="/platform" element={<PlatformOverviewPage />} />
           <Route path="/platform/tenants" element={<PlatformTenantsPage />} />
           <Route path="/platform/subscriptions" element={<PlatformSubscriptionsPage />} />
@@ -90,6 +112,7 @@ export default function App() {
           <Route path="/platform/status" element={<PlatformStatusPage />} />
           <Route path="/platform/support" element={<PlatformSupportPage />} />
           <Route path="/platform/content" element={<PlatformContentPage />} />
+          <Route path="/platform/config" element={<PlatformConfigPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

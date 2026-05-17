@@ -14,6 +14,7 @@ const PERIODS = [
   { id: 'today', label: 'Сегодня' },
   { id: 'week',  label: '7 дней' },
   { id: 'month', label: '30 дней' },
+  { id: 'year',  label: 'Год' },
   { id: 'all',   label: 'Всё время' },
 ]
 
@@ -73,6 +74,11 @@ export function AnalyticsTab({ tenant }: Props) {
   const { data: orders = [] } = useQuery({
     queryKey: ['seller-orders'],
     queryFn: () => api.seller.orders(),
+  })
+  const { data: viral } = useQuery({
+    queryKey: ['seller-viral-analytics'],
+    queryFn: () => api.seller.viralAnalytics(),
+    retry: false,
   })
 
   const statusCounts = (orders as any[]).reduce((acc: Record<string, number>, o: any) => {
@@ -424,6 +430,94 @@ export function AnalyticsTab({ tenant }: Props) {
               )
             })()}
           </div>
+
+          {/* Viral & Referrals (Business+) */}
+          {isBusinessPlus && (
+            <div style={{ borderRadius:14, background:'var(--card)', border:'1px solid var(--border)', padding:'16px', marginBottom:16 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:'var(--muted-strong)', marginBottom:12 }}>🔗 Виральность и рефералы</div>
+              {viral ? (
+                <>
+                  {viral.top_shared_products?.length > 0 && (
+                    <div style={{ marginBottom:14 }}>
+                      <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>Топ товаров по шерам</div>
+                      <div style={{ display:'flex', flexDirection:'column', gap:0, borderRadius:10, overflow:'hidden', border:'1px solid var(--border)' }}>
+                        {(viral.top_shared_products as any[]).slice(0, 5).map((p: any, i: number, arr: any[]) => (
+                          <div key={p.product_id ?? i} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'var(--bg)', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                            <span style={{ fontSize:11, fontWeight:700, color:'var(--muted)', width:16 }}>{i + 1}</span>
+                            <span style={{ flex:1, fontSize:13, color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.name}</span>
+                            <span style={{ fontSize:12, color:'var(--accent)', fontWeight:700 }}>{p.share_count} шер</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
+                    {[
+                      { label:'Всего шеров', value: viral.total_shares ?? 0 },
+                      { label:'Конверсия шер→заказ', value: `${(viral.share_to_order_conversion ?? 0).toFixed(1)}%` },
+                    ].map(s => (
+                      <div key={s.label} style={{ padding:'10px 12px', borderRadius:10, background:'var(--subtle)', border:'1px solid var(--border)' }}>
+                        <div style={{ fontSize:10, color:'var(--muted)', marginBottom:4, lineHeight:1.3 }}>{s.label}</div>
+                        <div style={{ fontFamily:'JetBrains Mono', fontWeight:700, fontSize:16, color:'var(--ink)' }}>{s.value}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {viral.top_sharers?.length > 0 && (
+                    <div>
+                      <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>Топ шерщики</div>
+                      <div style={{ display:'flex', flexDirection:'column', gap:0, borderRadius:10, overflow:'hidden', border:'1px solid var(--border)' }}>
+                        {(viral.top_sharers as any[]).slice(0, 5).map((s: any, i: number, arr: any[]) => (
+                          <div key={s.customer_id ?? i} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'var(--bg)', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                            <span style={{ fontSize:11, fontWeight:700, color:'var(--muted)', width:16 }}>{i + 1}</span>
+                            <span style={{ flex:1, fontSize:13, color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.name ?? 'Покупатель'}</span>
+                            <span style={{ fontSize:12, color:'#8B5CF6', fontWeight:700 }}>{s.share_count} шер</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ padding:'20px', textAlign:'center', color:'var(--muted)', fontSize:13 }}>
+                  Нет данных о вирусном распространении
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Customer geography */}
+          {(summary?.customer_locations ?? summary?.top_cities ?? summary?.locations) && (
+            <div style={{ background: 'var(--card)', borderRadius: 16, border: '1px solid var(--border)', padding: '16px', marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+                🗺 География покупателей
+              </div>
+              {((summary?.customer_locations ?? summary?.top_cities ?? summary?.locations) as any[]).slice(0, 5).map((loc: any, i: number, arr: any[]) => {
+                const city = loc.city ?? loc.name ?? loc.location ?? 'Неизвестно'
+                const count = loc.count ?? loc.customers ?? loc.orders ?? 0
+                const total = arr.reduce((s: number, x: any) => s + (x.count ?? x.customers ?? x.orders ?? 0), 0)
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0
+                return (
+                  <div key={i} style={{ marginBottom: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 13, color: 'var(--ink)' }}>{city}</span>
+                      <span style={{ fontSize: 12, color: 'var(--muted)', fontFamily: 'JetBrains Mono' }}>{count} · {pct}%</span>
+                    </div>
+                    <div style={{ height: 6, borderRadius: 999, background: 'var(--border)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${pct}%`, background: 'var(--accent)', borderRadius: 999, transition: 'width 0.4s' }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          {!summary?.customer_locations && !summary?.top_cities && !summary?.locations && period !== 'today' && (
+            <div style={{ background: 'var(--card)', borderRadius: 16, border: '1px solid var(--border)', padding: 16, textAlign: 'center', marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+                🗺 География покупателей
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--muted)' }}>Данные появятся по мере накопления заказов</p>
+            </div>
+          )}
 
           {/* Export button (Business+) */}
           <div style={{ borderRadius:14, background:'var(--card)', border:'1px solid var(--border)', padding:'16px', display:'flex', alignItems:'center', gap:14 }}>

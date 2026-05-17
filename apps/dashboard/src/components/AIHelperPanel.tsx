@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
 interface Message {
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'system'
   content: string
 }
 
@@ -42,19 +42,17 @@ export function AIHelperPanel({ onClose }: AIHelperPanelProps) {
     setInput('')
     setLoading(true)
     try {
-      // Use analytics context to enrich prompt
-      const contextMsg: Message = {
-        role: 'user',
-        content: analytics
-          ? `Контекст магазина: выручка сегодня — ${analytics.revenue_today ?? 'н/д'}, заказов сегодня — ${analytics.orders_today ?? 'н/д'}. Вопрос: ${text}`
-          : text,
-      }
-      const tenantId = ''
-      const data = await api.merchant.analytics() // just a placeholder: real call below
-      void data
-      // Simulate AI response for now if no tenant context
-      const reply = `Я ИИ-помощник Dokonly. Ваш вопрос: "${text}". Для полноценных ответов откройте магазин через Mini App.`
-      setMessages([...next, { role: 'assistant', content: reply }])
+      const enrichedMessages: Message[] = analytics
+        ? [
+            {
+              role: 'system' as const,
+              content: `Ты ИИ-помощник продавца в Dokonly. Контекст: выручка сегодня — ${analytics.revenue_today ?? 'н/д'}, заказов — ${analytics.orders_today ?? 'н/д'}. Отвечай кратко и по делу на русском.`,
+            },
+            ...next,
+          ]
+        : next
+      const data = await api.merchant.aiChat(enrichedMessages)
+      setMessages([...next, { role: 'assistant', content: data.reply }])
     } catch {
       setMessages([...next, { role: 'assistant', content: 'Ошибка при обращении к ИИ. Попробуйте ещё раз.' }])
     } finally {

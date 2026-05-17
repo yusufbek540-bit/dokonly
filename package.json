@@ -6,6 +6,8 @@
     "dev:dashboard": "pnpm --filter dashboard dev",
     "build:miniapp": "pnpm --filter miniapp build",
     "build:dashboard": "pnpm --filter dashboard build",
+    "dev:web-storefront": "pnpm --filter web-storefront dev",
+    "build:web-storefront": "pnpm --filter web-storefront build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck"
   },

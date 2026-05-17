@@ -18,11 +18,13 @@ function timeAgo(iso: string) {
 }
 
 const STATUSES = [
+  { id: '', label: 'Все' },
   { id: 'new', label: 'Новые', next: 'confirmed' },
   { id: 'confirmed', label: 'Готовятся', next: 'shipping' },
   { id: 'shipping', label: 'Доставка', next: 'delivered' },
   { id: 'delivered', label: 'Доставлено', next: 'completed' },
   { id: 'completed', label: 'Завершено', next: null },
+  { id: 'cancelled', label: 'Отмена' },
   { id: 'archive', label: 'Архив', next: null },
 ]
 
@@ -150,6 +152,22 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
                 }}
               >
                 💬 Написать
+              </button>
+            )}
+            {order.customer_telegram_id && (
+              <button
+                onClick={() => {
+                  const url = `tg://user?id=${order.customer_telegram_id}`;
+                  (window as any).Telegram?.WebApp?.openLink?.(url) ?? window.open(`https://t.me/${order.customer_telegram_id}`, '_blank')
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '7px 12px', borderRadius: 999,
+                  background: 'var(--subtle)', border: '1px solid var(--border)',
+                  fontSize: 13, fontWeight: 500, color: 'var(--ink)',
+                }}
+              >
+                👤 Профиль
               </button>
             )}
             {(order.items ?? []).length > 0 && (
@@ -619,14 +637,211 @@ function OrderCard({ order, currency, onAdvance, onCancel, onTap }: { order: any
   )
 }
 
+const RETURN_STATUS_LABELS: Record<string, string> = {
+  requested: 'Запрошен', approved: 'Одобрен', rejected: 'Отклонён',
+  received: 'Получен', completed: 'Завершён',
+}
+const RETURN_STATUS_COLORS: Record<string, string> = {
+  requested: '#F59E0B', approved: '#8B5CF6', rejected: '#EF4444',
+  received: '#3B82F6', completed: '#10B981',
+}
+
+function ReturnsView({ currency }: { currency: string }) {
+  const qc = useQueryClient()
+  const [rejectId, setRejectId] = useState<string | null>(null)
+  const [rejectReason, setRejectReason] = useState('')
+
+  const { data: returns = [], isLoading } = useQuery({
+    queryKey: ['seller-returns'],
+    queryFn: () => api.seller.returns(),
+    refetchInterval: 30_000,
+  })
+
+  const approveMut = useMutation({
+    mutationFn: (id: string) => api.seller.approveReturn(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['seller-returns'] }),
+  })
+  const rejectMut = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) => api.seller.rejectReturn(id, reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['seller-returns'] })
+      setRejectId(null)
+      setRejectReason('')
+    },
+  })
+  const refundMut = useMutation({
+    mutationFn: (id: string) => api.seller.markReturnRefunded(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['seller-returns'] }),
+  })
+
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
+        <div style={{ width: 24, height: 24, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }}/>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    )
+  }
+
+  if ((returns as any[]).length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--muted)' }}>
+        <div style={{ fontSize: 36, marginBottom: 12 }}>🔄</div>
+        <div style={{ fontSize: 14 }}>Возвратов нет</div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {(returns as any[]).map((r: any) => (
+        <div key={r.id} style={{
+          background: 'var(--card)', borderRadius: 16, padding: 16,
+          border: '1px solid var(--border)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                Заказ #{String(r.order_id ?? '').slice(-6).toUpperCase()}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                {r.customer_name ?? 'Покупатель'}
+              </div>
+            </div>
+            <span style={{
+              fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999,
+              background: (RETURN_STATUS_COLORS[r.status] ?? '#888') + '22',
+              color: RETURN_STATUS_COLORS[r.status] ?? '#888',
+            }}>
+              {RETURN_STATUS_LABELS[r.status] ?? r.status}
+            </span>
+          </div>
+
+          <div style={{ fontSize: 13, color: 'var(--text)', marginBottom: 6 }}>
+            <span style={{ color: 'var(--muted)', marginRight: 4 }}>Причина:</span>
+            {r.reason ?? '—'}
+          </div>
+
+          {r.refund_amount && (
+            <div style={{ fontSize: 13, color: 'var(--text)', marginBottom: 6 }}>
+              <span style={{ color: 'var(--muted)', marginRight: 4 }}>Сумма:</span>
+              <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>
+                {Number(r.refund_amount).toLocaleString()} {currency}
+              </span>
+            </div>
+          )}
+
+          {r.photos?.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+              {r.photos.map((photo: string, i: number) => (
+                <img key={i} src={photo} alt="" style={{ width: 56, height: 56, borderRadius: 8, objectFit: 'cover' }} />
+              ))}
+            </div>
+          )}
+
+          {r.status === 'requested' && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <button
+                onClick={() => approveMut.mutate(r.id)}
+                disabled={approveMut.isPending}
+                style={{
+                  flex: 1, padding: '9px 0', borderRadius: 12, fontSize: 13, fontWeight: 600,
+                  background: 'var(--accent)', color: 'white', border: 'none', cursor: 'pointer',
+                  opacity: approveMut.isPending ? 0.6 : 1,
+                }}
+              >
+                ✓ Одобрить
+              </button>
+              <button
+                onClick={() => setRejectId(r.id)}
+                style={{
+                  flex: 1, padding: '9px 0', borderRadius: 12, fontSize: 13, fontWeight: 600,
+                  background: 'var(--subtle)', color: '#EF4444', border: 'none', cursor: 'pointer',
+                }}
+              >
+                ✕ Отклонить
+              </button>
+            </div>
+          )}
+
+          {r.status === 'received' && (
+            <button
+              onClick={() => refundMut.mutate(r.id)}
+              disabled={refundMut.isPending}
+              style={{
+                width: '100%', marginTop: 10, padding: '9px 0', borderRadius: 12, fontSize: 13, fontWeight: 600,
+                background: '#10B98122', color: '#10B981', border: 'none', cursor: 'pointer',
+                opacity: refundMut.isPending ? 0.6 : 1,
+              }}
+            >
+              💳 Подтвердить возврат средств
+            </button>
+          )}
+        </div>
+      ))}
+
+      {rejectId && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50,
+          display: 'flex', alignItems: 'flex-end',
+        }}>
+          <div style={{ background: 'var(--card)', borderRadius: '20px 20px 0 0', padding: 24, width: '100%' }}>
+            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Причина отклонения</div>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              rows={3}
+              placeholder="Укажите причину..."
+              style={{
+                width: '100%', border: '1px solid var(--border)', borderRadius: 12,
+                padding: '10px 12px', fontSize: 14, resize: 'none',
+                background: 'var(--subtle)', color: 'var(--text)',
+                boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+              <button
+                onClick={() => { setRejectId(null); setRejectReason('') }}
+                style={{
+                  flex: 1, padding: 12, borderRadius: 12, fontSize: 14,
+                  background: 'var(--subtle)', border: 'none', cursor: 'pointer',
+                }}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={() => rejectMut.mutate({ id: rejectId, reason: rejectReason })}
+                disabled={!rejectReason.trim() || rejectMut.isPending}
+                style={{
+                  flex: 1, padding: 12, borderRadius: 12, fontSize: 14, fontWeight: 600,
+                  background: '#EF4444', color: 'white', border: 'none', cursor: 'pointer',
+                  opacity: !rejectReason.trim() || rejectMut.isPending ? 0.5 : 1,
+                }}
+              >
+                {rejectMut.isPending ? 'Отклоняем...' : 'Отклонить'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function OrdersTab({ tenant }: Props) {
-  const [activeStatus, setActiveStatus] = useState('new')
+  const [activeStatus, setActiveStatus] = useState('')
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null)
   const qc = useQueryClient()
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['seller-orders'],
     queryFn: () => api.seller.orders(),
+  })
+
+  const { data: returns = [] } = useQuery({
+    queryKey: ['seller-returns'],
+    queryFn: () => api.seller.returns(),
+    refetchInterval: 30_000,
   })
 
   const advanceMutation = useMutation({
@@ -644,19 +859,25 @@ export function OrdersTab({ tenant }: Props) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['seller-orders'] }),
   })
 
-  const filteredOrders = orders.filter((o: any) =>
-    activeStatus === 'archive'
-      ? ARCHIVE_STATUSES.includes(o.status)
-      : o.status === activeStatus
-  )
+  const filteredOrders = orders.filter((o: any) => {
+    if (activeStatus === '') return true // All orders
+    if (activeStatus === 'archive') return ARCHIVE_STATUSES.includes(o.status)
+    if (activeStatus === 'cancelled') return o.status === 'cancelled'
+    return o.status === activeStatus
+  })
   const countsByStatus = Object.fromEntries(
     STATUSES.map(s => [
       s.id,
-      s.id === 'archive'
+      s.id === ''
+        ? orders.length // All
+        : s.id === 'archive'
         ? orders.filter((o: any) => ARCHIVE_STATUSES.includes(o.status)).length
+        : s.id === 'cancelled'
+        ? orders.filter((o: any) => o.status === 'cancelled').length
         : orders.filter((o: any) => o.status === s.id).length,
     ])
   )
+  const pendingReturnsCount = (returns as any[]).filter((r: any) => r.status === 'requested').length
 
   if (selectedOrder) {
     return (
@@ -698,10 +919,29 @@ export function OrdersTab({ tenant }: Props) {
             )}
           </button>
         ))}
+        <button onClick={() => setActiveStatus('returns')} style={{
+          flexShrink: 0, padding: '8px 14px',
+          borderBottom: `2px solid ${activeStatus === 'returns' ? 'var(--accent)' : 'transparent'}`,
+          color: activeStatus === 'returns' ? 'var(--accent)' : 'var(--muted)',
+          fontSize: 13, fontWeight: activeStatus === 'returns' ? 700 : 500,
+          transition: 'all 0.15s', whiteSpace: 'nowrap',
+        }}>
+          🔄 Возвраты
+          {pendingReturnsCount > 0 && (
+            <span style={{
+              marginLeft: 6, fontSize: 11, fontWeight: 700,
+              padding: '1px 6px', borderRadius: 999,
+              background: activeStatus === 'returns' ? 'var(--accent)' : '#EF444422',
+              color: activeStatus === 'returns' ? 'white' : '#EF4444',
+            }}>{pendingReturnsCount}</span>
+          )}
+        </button>
       </div>
 
       <div className="screen-scroll" style={{ flex: 1, padding: '12px 16px 100px' }}>
-        {isLoading ? (
+        {activeStatus === 'returns' ? (
+          <ReturnsView currency={tenant.currency} />
+        ) : isLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
             <div style={{ width: 24, height: 24, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }}/>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

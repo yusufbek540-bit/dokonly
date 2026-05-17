@@ -64,6 +64,84 @@ const RETURN_STATUS_COLORS: Record<string, string> = {
   rejected: '#EF4444', refunded: '#10B981', exchanged: '#8B5CF6',
 }
 
+function SellerHelpView({ onBack }: { onBack: () => void }) {
+  const { data: articles = [], isLoading } = useQuery({
+    queryKey: ['help-articles'],
+    queryFn: () => api.getHelpArticles(),
+    retry: false,
+  })
+  const [expanded, setExpanded] = useState<string | null>(null)
+
+  const grouped = (articles as { id: string; category: string; title: string; content: string; slug: string }[]).reduce(
+    (acc, a) => {
+      if (!acc[a.category]) acc[a.category] = []
+      acc[a.category].push(a)
+      return acc
+    },
+    {} as Record<string, typeof articles>
+  )
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: 'var(--card)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 10 }}>
+        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+          <Icon name="chevronLeft" size={22} color="var(--ink)" />
+        </button>
+        <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)' }}>FAQ и помощь</span>
+      </div>
+      <div style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {isLoading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+            <div style={{ width: 28, height: 28, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+          </div>
+        ) : (articles as any[]).length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 16px', color: 'var(--muted)', fontSize: 14 }}>
+            Статьи пока не добавлены
+          </div>
+        ) : Object.entries(grouped).map(([category, cats]) => (
+          <div key={category}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>{category}</div>
+            <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)' }}>
+              {(cats as any[]).map((a: any, i: number, arr: any[]) => (
+                <div key={a.id}>
+                  <button
+                    onClick={() => setExpanded(expanded === a.id ? null : a.id)}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: 'var(--card)', borderBottom: i < arr.length - 1 || expanded === a.id ? '1px solid var(--border)' : 'none', cursor: 'pointer', textAlign: 'left' }}
+                  >
+                    <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{a.title}</span>
+                    <Icon name={expanded === a.id ? 'chevronDown' : 'chevronRight'} size={15} color="var(--muted)" />
+                  </button>
+                  {expanded === a.id && (
+                    <div style={{ padding: '14px 16px', background: 'var(--subtle)', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                      <p style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.6, margin: 0 }}>{a.content}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {/* Contact support link */}
+        <button
+          onClick={() => (window.Telegram?.WebApp as any)?.openTelegramLink('https://t.me/dokonly_support')}
+          style={{
+            width: '100%', padding: '14px 16px', borderRadius: 14, background: 'var(--card)',
+            border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', textAlign: 'left',
+          }}
+        >
+          <span style={{ fontSize: 20 }}>💬</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Написать в поддержку</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>@dokonly_support_bot</div>
+          </div>
+          <Icon name="chevronRight" size={15} color="var(--muted)" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function SellerReturnsView({ onBack }: { onBack: () => void }) {
   const qc = useQueryClient()
   const { data: returns = [], isLoading } = useQuery({
@@ -237,11 +315,35 @@ export function HomeTab({ tenant, onTabChange }: Props) {
   const [showTeam, setShowTeam] = useState(false)
   const [showAbandonedCarts, setShowAbandonedCarts] = useState(false)
   const [showReturns, setShowReturns] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
+  const [showNewOrderSheet, setShowNewOrderSheet] = useState(false)
+  const [newOrderName, setNewOrderName] = useState('')
+  const [newOrderPhone, setNewOrderPhone] = useState('')
+  const [newOrderNote, setNewOrderNote] = useState('')
+  const [newOrderTotal, setNewOrderTotal] = useState('')
+  const [creatingOrder, setCreatingOrder] = useState(false)
   const { data: summary } = useQuery({ queryKey: ['seller-analytics', 'all'], queryFn: () => api.seller.analytics('all') })
+  const { data: weekSummary } = useQuery({
+    queryKey: ['seller-analytics', 'week'],
+    queryFn: () => api.seller.analytics('week'),
+    staleTime: 5 * 60 * 1000,
+  })
+  const { data: monthSummary } = useQuery({
+    queryKey: ['seller-analytics', 'month'],
+    queryFn: () => api.seller.analytics('month'),
+    staleTime: 5 * 60 * 1000,
+  })
   const { data: orders = [] } = useQuery({ queryKey: ['seller-orders'], queryFn: () => api.seller.orders() })
   const recentOrders = orders.slice(0, 3)
 
   const { data: achievements } = useQuery({ queryKey: ['seller-achievements'], queryFn: api.seller.achievements })
+
+  const { data: aiInsightsData } = useQuery({
+    queryKey: ['seller-ai-insights'],
+    queryFn: api.seller.aiInsights,
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  })
 
   // Subscription state machine
   const isTrial = !tenant.tier || tenant.tier === 'trial' || tenant.tier === 'start'
@@ -273,17 +375,29 @@ export function HomeTab({ tenant, onTabChange }: Props) {
     { label: 'Товары', value: summary?.product_count ?? '—', icon: 'cart' },
   ]
 
-  const quickActions = [
+  // Dynamic quick action ordering: prioritize based on merchant state
+  const hasProducts = (summary?.product_count ?? 0) > 0
+  const hasOrders = (summary?.total_orders ?? 0) > 0
+  const hasMailings = false // mailings not in summary
+  const allQuickActions = [
     {
       label: '+ Товар',
+      priority: hasProducts ? 3 : 1,
       onPress: () => onTabChange?.('catalog'),
     },
     {
       label: '📋 Заказы',
+      priority: hasOrders ? 2 : 4,
       onPress: () => onTabChange?.('orders'),
     },
     {
+      label: '📣 Рассылка',
+      priority: hasProducts && hasOrders ? 3 : 2,
+      onPress: () => onTabChange?.('more'),
+    },
+    {
       label: '👁 Магазин',
+      priority: 4,
       onPress: () => {
         if ((window as any).Telegram?.WebApp?.openLink) {
           (window as any).Telegram.WebApp.openLink(shopUrl)
@@ -294,9 +408,17 @@ export function HomeTab({ tenant, onTabChange }: Props) {
     },
     {
       label: '🔗 Скопировать',
+      priority: 5,
       onPress: () => navigator.clipboard?.writeText(shopUrl),
     },
+    {
+      label: '➕ Новый заказ',
+      priority: 6,
+      onPress: () => setShowNewOrderSheet(true),
+    },
   ]
+  const quickActions = [...allQuickActions].sort((a, b) => a.priority - b.priority).slice(0, 5)
+  void hasMailings
 
   if (showMailings) return <MailingsView onBack={() => setShowMailings(false)} />
   if (showCoupons) return <CouponsView onBack={() => setShowCoupons(false)} />
@@ -307,6 +429,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
   if (showTeam) return <TeamView onBack={() => setShowTeam(false)} />
   if (showAbandonedCarts) return <AbandonedCartsView onBack={() => setShowAbandonedCarts(false)} />
   if (showReturns) return <SellerReturnsView onBack={() => setShowReturns(false)} />
+  if (showHelp) return <SellerHelpView onBack={() => setShowHelp(false)} />
   if (showStreak) return <StreakDetailPage onBack={() => setShowStreak(false)} daysPassed={daysPassed} />
 
   return (
@@ -336,14 +459,25 @@ export function HomeTab({ tenant, onTabChange }: Props) {
           position: 'absolute',
           bottom: 16,
           left: 16,
-          fontFamily: 'Sora',
-          fontWeight: 700,
-          fontSize: 24,
-          color: 'white',
-          textShadow: '0 2px 8px rgba(0,0,0,0.5)',
           zIndex: 1,
         }}>
-          {tenant.name}
+          {(() => {
+            const firstName = (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name
+            return firstName ? (
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 4 }}>
+                Привет, {firstName}! 👋
+              </div>
+            ) : null
+          })()}
+          <div style={{
+            fontFamily: 'Sora',
+            fontWeight: 700,
+            fontSize: 24,
+            color: 'white',
+            textShadow: '0 2px 8px rgba(0,0,0,0.5)',
+          }}>
+            {tenant.name}
+          </div>
         </div>
 
         {/* Top-right actions */}
@@ -609,52 +743,89 @@ export function HomeTab({ tenant, onTabChange }: Props) {
               )}
             </div>
           )
-        })() : (
-          /* Active subscription card */
-          <div style={{
-            padding: '16px',
-            borderRadius: 16,
-            border: '1px solid var(--border)',
-            background: 'var(--card)',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-              <div>
-                <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 15, color: 'var(--ink)', marginBottom: 2 }}>
-                  Подписка
+        })() : (() => {
+          const subStatus = tenant.subscription_status as string | undefined
+          const isPastDue = subStatus === 'past_due'
+          const isCancelled = subStatus === 'cancelled'
+          const cancelledDaysAgo = tenant.cancelled_at
+            ? Math.floor((Date.now() - new Date(tenant.cancelled_at).getTime()) / 86400000)
+            : 0
+
+          if (isPastDue) {
+            return (
+              <div style={{ padding: '16px', borderRadius: 16, border: '2px solid #EF4444', background: '#FEF2F2' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <span style={{ fontSize: 20 }}>⚠️</span>
+                  <div>
+                    <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 15, color: '#991B1B' }}>Проблема с оплатой</div>
+                    <div style={{ fontSize: 12, color: '#EF4444', marginTop: 2 }}>Обновите способ оплаты, чтобы не потерять доступ</div>
+                  </div>
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--muted)' }}>
-                  Следующее списание: не указано
-                </div>
+                <button
+                  onClick={() => setShowPlanPicker(true)}
+                  style={{ width: '100%', height: 44, borderRadius: 12, background: '#EF4444', color: 'white', fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer' }}
+                >
+                  🔧 Обновить способ оплаты
+                </button>
               </div>
-              <span style={{
-                background: 'var(--accent)',
-                color: 'white',
-                fontSize: 11,
-                fontWeight: 700,
-                padding: '3px 10px',
-                borderRadius: 999,
-              }}>
-                {(tenant.tier ?? 'Business').charAt(0).toUpperCase() + (tenant.tier ?? 'Business').slice(1)}
-              </span>
+            )
+          }
+
+          if (isCancelled) {
+            const hasWinback = cancelledDaysAgo <= 30
+            return (
+              <div style={{ padding: '16px', borderRadius: 16, border: '2px solid #F59E0B', background: '#FFFBEB' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <span style={{ fontSize: 20 }}>{hasWinback ? '💛' : '😔'}</span>
+                  <div>
+                    <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 15, color: '#92400E' }}>
+                      {hasWinback ? 'Подписка отменена' : 'Подписка завершена'}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#B45309', marginTop: 2 }}>
+                      {hasWinback
+                        ? `Ещё ${30 - cancelledDaysAgo} дн. для возобновления со скидкой 20%`
+                        : 'Возобновите подписку для доступа к функциям'}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowPlanPicker(true)}
+                  style={{ width: '100%', height: 44, borderRadius: 12, background: '#F59E0B', color: 'white', fontWeight: 700, fontSize: 14, border: 'none', cursor: 'pointer' }}
+                >
+                  {hasWinback ? '🎉 Возобновить со скидкой 20%' : '↩ Возобновить подписку'}
+                </button>
+              </div>
+            )
+          }
+
+          /* Active subscription card */
+          const nextBilling = tenant.next_billing_at
+            ? new Date(tenant.next_billing_at).toLocaleDateString('ru', { day: 'numeric', month: 'short' })
+            : null
+          return (
+            <div style={{ padding: '16px', borderRadius: 16, border: '1px solid var(--border)', background: 'var(--card)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <div>
+                  <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 15, color: 'var(--ink)', marginBottom: 2 }}>
+                    Подписка
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--muted)' }}>
+                    {nextBilling ? `Следующее списание: ${nextBilling}` : 'Активна'}
+                  </div>
+                </div>
+                <span style={{ background: 'var(--accent)', color: 'white', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999 }}>
+                  {(tenant.tier ?? 'Business').charAt(0).toUpperCase() + (tenant.tier ?? 'Business').slice(1)}
+                </span>
+              </div>
+              <button
+                onClick={() => setShowPlanPicker(true)}
+                style={{ width: '100%', height: 44, borderRadius: 12, background: 'var(--subtle)', color: 'var(--ink)', fontWeight: 700, fontSize: 14, cursor: 'pointer', border: '1px solid var(--border)' }}
+              >
+                Управление подпиской
+              </button>
             </div>
-            <button
-              onClick={() => setShowPlanPicker(true)}
-              style={{
-                width: '100%',
-                height: 44,
-                borderRadius: 12,
-                background: 'var(--subtle)',
-                color: 'var(--ink)',
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: 'pointer',
-                border: '1px solid var(--border)',
-              }}
-            >
-              Управление подпиской
-            </button>
-          </div>
-        )}
+          )
+        })()}
 
         {/* ── Status Badges Row (Plan / Achievements / Streak) ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
@@ -722,6 +893,62 @@ export function HomeTab({ tenant, onTabChange }: Props) {
         {/* ── AI Insights ── */}
         {summary && (() => {
           const s = summary as any
+
+          // Use LLM-generated insights from backend when available, fall back to rule-based
+          const aiInsights = aiInsightsData?.insights
+          if (aiInsights && aiInsights.length > 0) {
+            const typeToIcon: Record<string, string> = {
+              inventory: '⚠️',
+              revenue: '📈',
+              customer: '🎁',
+              product: '💡',
+            }
+            return (
+              <div style={{
+                borderRadius: 16,
+                border: '1px solid var(--border)',
+                background: 'var(--card)',
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  borderBottom: '1px solid var(--border)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 16 }}>💡</span>
+                    <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>AI Insights</span>
+                  </div>
+                </div>
+                {aiInsights.slice(0, 3).map((ins, i, arr) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: 'transparent',
+                      borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
+                    }}
+                  >
+                    <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>
+                      {typeToIcon[ins.type] ?? '💡'}
+                    </span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, color: 'var(--ink)', marginBottom: 2, lineHeight: 1.4 }}>{ins.message}</div>
+                      {ins.action && <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>{ins.action}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          }
+
+          // Rule-based fallback
           const insights: { icon: string; text: string; action: string; onPress?: () => void }[] = []
 
           if (s.out_of_stock_count > 0) {
@@ -833,6 +1060,23 @@ export function HomeTab({ tenant, onTabChange }: Props) {
             </div>
           ))}
         </div>
+
+        {/* Revenue breakdown: today / week / month */}
+        {(summary || weekSummary || monthSummary) && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            {[
+              { label: 'Сегодня', value: summary?.today_revenue != null ? fmtPrice(summary.today_revenue, tenant.currency) : '—', orders: summary?.today_orders },
+              { label: 'Неделя', value: weekSummary?.total_revenue != null ? fmtPrice(weekSummary.total_revenue, tenant.currency) : '—', orders: weekSummary?.total_orders },
+              { label: 'Месяц', value: monthSummary?.total_revenue != null ? fmtPrice(monthSummary.total_revenue, tenant.currency) : '—', orders: monthSummary?.total_orders },
+            ].map(s => (
+              <div key={s.label} style={{ padding: '12px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)', textAlign: 'center' }}>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>{s.label}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.3 }}>{s.value}</div>
+                {s.orders != null && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{s.orders} заказ{s.orders === 1 ? '' : s.orders < 5 ? 'а' : 'ов'}</div>}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* ── Today's Pulse Strip ── */}
         {summary && (() => {
@@ -1332,7 +1576,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
             </div>
           </button>
           <button
-            onClick={() => (window.Telegram?.WebApp as any)?.openTelegramLink('https://t.me/dokonly_support')}
+            onClick={() => setShowHelp(true)}
             style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
           >
             <div style={{
@@ -1358,6 +1602,38 @@ export function HomeTab({ tenant, onTabChange }: Props) {
 
       {showPlanPicker && <PlanPicker onBack={() => setShowPlanPicker(false)} />}
       {showAchievements && <AchievementsPage onBack={() => setShowAchievements(false)} />}
+
+      {showNewOrderSheet && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}>
+          <div style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 20px 40px' }}>
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }} />
+            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', marginBottom: 16 }}>Новый заказ</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <input value={newOrderName} onChange={e => setNewOrderName(e.target.value)} placeholder="Имя покупателя*" style={{ height: 46, padding: '0 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }} />
+              <input value={newOrderPhone} onChange={e => setNewOrderPhone(e.target.value)} placeholder="Телефон" type="tel" style={{ height: 46, padding: '0 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }} />
+              <input value={newOrderTotal} onChange={e => setNewOrderTotal(e.target.value)} placeholder="Сумма заказа*" type="number" style={{ height: 46, padding: '0 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }} />
+              <textarea value={newOrderNote} onChange={e => setNewOrderNote(e.target.value)} placeholder="Заметка (необязательно)" rows={2} style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)', resize: 'none', fontFamily: 'inherit' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button onClick={() => setShowNewOrderSheet(false)} style={{ flex: 1, height: 48, borderRadius: 12, background: 'var(--subtle)', border: 'none', fontSize: 15, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }}>Отмена</button>
+              <button
+                disabled={!newOrderName.trim() || !newOrderTotal.trim() || creatingOrder}
+                onClick={async () => {
+                  if (!newOrderName.trim() || !newOrderTotal.trim()) return
+                  setCreatingOrder(true)
+                  try {
+                    await api.seller.createOrderManually({ customer_name: newOrderName.trim(), customer_phone: newOrderPhone.trim(), items: [], total: Number(newOrderTotal), note: newOrderNote.trim() || undefined })
+                    setShowNewOrderSheet(false); setNewOrderName(''); setNewOrderPhone(''); setNewOrderTotal(''); setNewOrderNote('')
+                  } catch { /* silently fail */ } finally { setCreatingOrder(false) }
+                }}
+                style={{ flex: 2, height: 48, borderRadius: 12, background: 'var(--accent)', border: 'none', fontSize: 15, fontWeight: 700, color: 'white', cursor: 'pointer', opacity: (!newOrderName.trim() || !newOrderTotal.trim() || creatingOrder) ? 0.6 : 1 }}
+              >
+                {creatingOrder ? 'Создание...' : 'Создать заказ'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

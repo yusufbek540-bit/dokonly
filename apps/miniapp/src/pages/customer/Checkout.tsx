@@ -42,6 +42,7 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
   const clear = useCart((s) => s.clear)
   const cartCouponCode = useCart((s) => s.couponCode)
   const cartCouponDiscount = useCart((s) => s.couponDiscount)
+  const cartLoyaltyDiscount = useCart((s) => s.loyaltyDiscount)
 
   // Build delivery options from shop settings, fall back to defaults
   const deliveryOptions: { id: string; label: string; icon: string; price: number }[] =
@@ -107,10 +108,18 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
   const [screenshotUploading, setScreenshotUploading] = useState(false)
   const [screenshotDone, setScreenshotDone] = useState(false)
   const [summaryOpen, setSummaryOpen] = useState(false)
+  const [shareLinkCopied, setShareLinkCopied] = useState(false)
+
+  const { data: referralData } = useQuery({
+    queryKey: ['my-referral', tenantId],
+    queryFn: () => api.getMyReferral(tenantId),
+    retry: false,
+    enabled: !!orderId,
+  })
 
   const deliveryCost = deliveryOptions.find(d => d.id === delivery)?.price ?? 0
   const discount = couponApplied?.discountAmount ?? 0
-  const grandTotal = Math.max(cartTotal - discount, 0) + deliveryCost
+  const grandTotal = Math.max(cartTotal - discount - cartLoyaltyDiscount, 0) + deliveryCost
 
   const requiredFields: string[] = shopSettings?.required_checkout_fields ?? ['name', 'phone']
   const isRequired = (field: string) => requiredFields.includes(field)
@@ -148,6 +157,7 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
       delivery_type: delivery,
       payment_method: payment,
       coupon_code: couponApplied?.code || null,
+      loyalty_discount: cartLoyaltyDiscount > 0 ? cartLoyaltyDiscount : null,
       customer_note: customerNote.trim() || null,
     }),
     onSuccess: (data: any) => {
@@ -158,6 +168,16 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
       setOrderId(data.id?.slice(0, 8).toUpperCase() ?? 'НОВЫЙ')
       setOrderIdFull(data.id ?? null)
       clear()
+      // Redirect to payment provider if URL provided (Click, Payme, Uzum, card)
+      if (data.payment_url || data.redirect_url) {
+        const url = data.payment_url ?? data.redirect_url
+        const tg = (window as any).Telegram?.WebApp
+        if (tg?.openLink) {
+          tg.openLink(url)
+        } else {
+          window.location.href = url
+        }
+      }
     },
   })
 
@@ -366,40 +386,64 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
           </div>
         )}
 
-        {/* Share with friends */}
-        <div style={{
-          width: '100%', maxWidth: 320, borderRadius: 16,
-          border: '1px solid var(--border)', background: 'var(--card)',
-          padding: '16px', marginBottom: 24, textAlign: 'left',
-        }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
-            💚 Расскажите друзьям
+        {/* Share with friends — only if referral program active */}
+        {referralData?.is_active && (
+          <div style={{
+            width: '100%', maxWidth: 320, borderRadius: 16,
+            border: '1.5px solid var(--accent)', background: 'var(--accent-soft)',
+            padding: '16px', marginBottom: 24, textAlign: 'left',
+          }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
+              💚 Поделитесь с друзьями
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14, lineHeight: 1.5 }}>
+              Ваш друг тоже оформит заказ — вы получите вознаграждение
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button
+                onClick={() => {
+                  const tg = (window as any).Telegram?.WebApp
+                  const link = referralData.link || window.location.href.split('?')[0]
+                  const storeName = shopSettings?.store_name ?? 'магазине'
+                  const msg = `Только что купил(а) в ${storeName}! Используй мою ссылку и получи скидку: ${link}`
+                  const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(msg)}`
+                  tg?.openTelegramLink?.(url) ?? window.open(url, '_blank')
+                }}
+                style={{ width: '100%', height: 42, borderRadius: 10, background: 'var(--accent)', color: 'white', fontWeight: 600, fontSize: 13 }}
+              >
+                Поделиться в Telegram ↗
+              </button>
+              <button
+                onClick={() => {
+                  const tg = (window as any).Telegram?.WebApp
+                  const link = referralData.link || window.location.href.split('?')[0]
+                  const storeName = shopSettings?.store_name ?? 'магазин'
+                  if (tg?.shareToStory) {
+                    tg.shareToStory(link, { text: `Купил(а) в ${storeName}! 🛍️` })
+                  } else {
+                    const url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(`Купил(а) в ${storeName}! 🛍️`)}`
+                    tg?.openTelegramLink?.(url) ?? window.open(url, '_blank')
+                  }
+                }}
+                style={{ width: '100%', height: 42, borderRadius: 10, background: 'var(--subtle)', border: '1px solid var(--border)', color: 'var(--ink)', fontWeight: 600, fontSize: 13 }}
+              >
+                Поделиться в сторис 🎬
+              </button>
+              <button
+                onClick={() => {
+                  const link = referralData.link || window.location.href.split('?')[0]
+                  navigator.clipboard.writeText(link).catch(() => {})
+                  ;(window as any).Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('light')
+                  setShareLinkCopied(true)
+                  setTimeout(() => setShareLinkCopied(false), 1500)
+                }}
+                style={{ width: '100%', height: 42, borderRadius: 10, background: shareLinkCopied ? '#10B981' : 'var(--subtle)', border: '1px solid var(--border)', color: shareLinkCopied ? 'white' : 'var(--ink)', fontWeight: 600, fontSize: 13 }}
+              >
+                {shareLinkCopied ? '✓ Скопировано' : '📋 Копировать ссылку'}
+              </button>
+            </div>
           </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12, lineHeight: 1.5 }}>
-            Поделитесь магазином — пусть друзья тоже оценят!
-          </div>
-          <button
-            onClick={() => {
-              const tg = (window as any).Telegram?.WebApp
-              const shopUrl = window.location.href.split('?')[0]
-              const msg = `Заказал(а) здесь, советую: ${shopUrl}`
-              if (tg?.shareUrl) {
-                tg.shareUrl(shopUrl, msg)
-              } else if (tg?.openTelegramLink) {
-                tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(shopUrl)}&text=${encodeURIComponent(msg)}`)
-              } else {
-                window.open(`https://t.me/share/url?url=${encodeURIComponent(shopUrl)}&text=${encodeURIComponent(msg)}`, '_blank')
-              }
-            }}
-            style={{
-              width: '100%', height: 42, borderRadius: 10,
-              background: 'var(--accent)', color: 'white',
-              fontWeight: 600, fontSize: 13,
-            }}
-          >
-            Поделиться в Telegram ↗
-          </button>
-        </div>
+        )}
 
         {/* Buttons */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%', maxWidth: 320 }}>
@@ -803,6 +847,12 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--accent)' }}>
                   <span>Скидка ({couponApplied.code})</span>
                   <span style={{ fontFamily: 'JetBrains Mono' }}>−{fmtPrice(discount, currency)}</span>
+                </div>
+              )}
+              {cartLoyaltyDiscount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#10B981' }}>
+                  <span>🎁 Баллы лояльности</span>
+                  <span style={{ fontFamily: 'JetBrains Mono' }}>−{fmtPrice(cartLoyaltyDiscount, currency)}</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--muted)' }}>

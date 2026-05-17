@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Icon } from '@/components/Icon'
 import { api } from '@/lib/api'
 import { useTelegramMainButton } from '@/hooks/useTelegram'
+import { PlanPicker } from '../PlanPicker'
 
 interface Props { tenant: any }
 
@@ -177,6 +178,7 @@ export function MailingsView({ onBack }: { onBack: () => void }) {
   const [showForm, setShowForm] = useState(false)
   const [sendingId, setSendingId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [generatingAI, setGeneratingAI] = useState(false)
 
   const { data: mailings = [], isLoading } = useQuery({
     queryKey: ['seller-mailings'],
@@ -205,6 +207,20 @@ export function MailingsView({ onBack }: { onBack: () => void }) {
     mutationFn: (id: string) => api.seller.deleteMailing(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['seller-mailings'] }),
   })
+
+  async function generateWithAI() {
+    if (!title.trim() || generatingAI) return
+    setGeneratingAI(true)
+    try {
+      const res = await api.seller.generateMailing(title)
+      setText(res.text)
+      if (!title.trim() && res.title) setTitle(res.title)
+    } catch {
+      setError('Не удалось сгенерировать текст')
+    } finally {
+      setGeneratingAI(false)
+    }
+  }
 
   const STATUS_LABELS: Record<string, string> = { draft: 'Черновик', sending: 'Отправка', sent: 'Отправлено', failed: 'Ошибка' }
   const STATUS_COLORS: Record<string, string> = { draft: 'var(--muted)', sending: '#F59E0B', sent: 'var(--accent)', failed: 'var(--danger)' }
@@ -319,13 +335,36 @@ export function MailingsView({ onBack }: { onBack: () => void }) {
               onChange={e => setTitle(e.target.value)}
               style={{ height: 46, padding: '0 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }}
             />
-            <textarea
-              placeholder="Текст сообщения"
-              value={text}
-              onChange={e => setText(e.target.value)}
-              rows={5}
-              style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)', resize: 'none', fontFamily: 'inherit' }}
-            />
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)' }}>Текст сообщения</label>
+                <button
+                  type="button"
+                  disabled={!title.trim() || generatingAI}
+                  onClick={generateWithAI}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '4px 10px', borderRadius: 8,
+                    background: (!title.trim() || generatingAI) ? 'var(--subtle)' : 'var(--accent-soft)',
+                    border: 'none', cursor: (!title.trim() || generatingAI) ? 'not-allowed' : 'pointer',
+                    fontSize: 12, fontWeight: 600, color: 'var(--accent)',
+                    opacity: (!title.trim() || generatingAI) ? 0.6 : 1,
+                  }}
+                >
+                  {generatingAI
+                    ? <><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', border: '1.5px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} />  Генерирую...</>
+                    : <>🤖 Написать AI</>
+                  }
+                </button>
+              </div>
+              <textarea
+                placeholder="Текст сообщения"
+                value={text}
+                onChange={e => setText(e.target.value)}
+                rows={5}
+                style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)', resize: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' }}
+              />
+            </div>
             {error && <div style={{ fontSize: 13, color: 'var(--danger)' }}>{error}</div>}
           </div>
         </BottomSheet>
@@ -815,13 +854,13 @@ function LocalizationSheet({ tenant, onClose }: { tenant: any; onClose: () => vo
 export function AbandonedCartsView({ onBack }: { onBack: () => void }) {
   const { data: carts = [], isLoading } = useQuery({
     queryKey: ['seller-abandoned-carts'],
-    queryFn: () => api.seller.mailings(), // placeholder — uses mailings endpoint; backend filters abandoned
-    staleTime: 60000,
+    queryFn: () => api.seller.abandonedCarts(),
+    retry: false,
   })
 
   const sendMutation = useMutation({
-    mutationFn: (customerId: string) =>
-      api.seller.createMailing({ type: 'abandoned_cart', customer_id: customerId, auto: false }),
+    mutationFn: (cartId: string) =>
+      api.seller.sendAbandonedCartReminder(cartId),
   })
 
   function fmtTime(iso: string) {
@@ -832,7 +871,7 @@ export function AbandonedCartsView({ onBack }: { onBack: () => void }) {
     return `${Math.floor(hours / 24)} дн назад`
   }
 
-  const abandonedCarts = (carts as any[]).filter((m: any) => m.type === 'abandoned_cart' || m.abandoned_at)
+  const abandonedCarts = carts as any[]
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
@@ -884,7 +923,7 @@ export function AbandonedCartsView({ onBack }: { onBack: () => void }) {
                   </div>
                 )}
                 <button
-                  onClick={() => sendMutation.mutate(cart.customer_id)}
+                  onClick={() => sendMutation.mutate(cart.id)}
                   disabled={sendMutation.isPending}
                   style={{ width: '100%', height: 38, borderRadius: 10, background: 'var(--accent)', color: 'white', fontWeight: 600, fontSize: 13, border: 'none', cursor: 'pointer', opacity: sendMutation.isPending ? 0.7 : 1 }}
                 >
@@ -1386,6 +1425,8 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
   const [autoPost, setAutoPost] = useState(tenant.settings?.auto_crosspost ?? false)
   const [template, setTemplate] = useState(tenant.settings?.crosspost_template ?? '🛍 {product_name}\n\n{description}\n\n💰 {price}\n\n[Купить]({url})')
   const [saving, setSaving] = useState(false)
+  const [verifyStatus, setVerifyStatus] = useState<'idle' | 'loading' | 'ok' | 'fail'>('idle')
+  const [verifyChannelTitle, setVerifyChannelTitle] = useState<string | null>(null)
 
   const { data: posts = [] } = useQuery({
     queryKey: ['seller-channel-posts'],
@@ -1396,6 +1437,23 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
     mutationFn: (body: object) => api.seller.createChannelPost(body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['seller-channel-posts'] }),
   })
+
+  async function handleVerifyAdmin() {
+    if (!channelUsername.trim()) return
+    setVerifyStatus('loading')
+    setVerifyChannelTitle(null)
+    try {
+      const res = await api.seller.verifyChannelAdmin(channelUsername.trim().replace(/^@/, ''))
+      if (res.bot_is_admin) {
+        setVerifyStatus('ok')
+        setVerifyChannelTitle(res.channel_title ?? null)
+      } else {
+        setVerifyStatus('fail')
+      }
+    } catch {
+      setVerifyStatus('fail')
+    }
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -1419,12 +1477,37 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
         <div style={{ borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)', padding: '14px 16px', marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', marginBottom: 6 }}>Username канала</div>
-            <input
-              value={channelUsername}
-              onChange={e => setChannelUsername(e.target.value)}
-              placeholder="@channel_name"
-              style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--subtle)', fontSize: 14, color: 'var(--ink)' }}
-            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                value={channelUsername}
+                onChange={e => { setChannelUsername(e.target.value); setVerifyStatus('idle') }}
+                placeholder="@channel_name"
+                style={{ flex: 1, height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--subtle)', fontSize: 14, color: 'var(--ink)' }}
+              />
+              <button
+                onClick={handleVerifyAdmin}
+                disabled={!channelUsername.trim() || verifyStatus === 'loading'}
+                style={{
+                  height: 44, padding: '0 14px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                  background: verifyStatus === 'ok' ? '#D1FAE5' : verifyStatus === 'fail' ? '#FEE2E2' : 'var(--accent)',
+                  color: verifyStatus === 'ok' ? '#065F46' : verifyStatus === 'fail' ? '#991B1B' : 'white',
+                  fontWeight: 700, fontSize: 13, flexShrink: 0,
+                  opacity: (!channelUsername.trim() || verifyStatus === 'loading') ? 0.6 : 1,
+                }}
+              >
+                {verifyStatus === 'loading' ? '...' : verifyStatus === 'ok' ? '✓ Бот-админ' : verifyStatus === 'fail' ? '✗ Нет доступа' : 'Проверить'}
+              </button>
+            </div>
+            {verifyStatus === 'ok' && verifyChannelTitle && (
+              <div style={{ marginTop: 6, fontSize: 12, color: '#065F46', fontWeight: 600 }}>
+                ✅ Бот имеет права администратора в «{verifyChannelTitle}»
+              </div>
+            )}
+            {verifyStatus === 'fail' && (
+              <div style={{ marginTop: 6, fontSize: 12, color: '#991B1B' }}>
+                ❌ Бот не является администратором канала. Добавьте @DokOnly_bot как администратора и повторите.
+              </div>
+            )}
           </div>
           <div style={{ padding: '12px 0', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
@@ -1495,6 +1578,75 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
   )
 }
 
+// ─── InvoicesView ─────────────────────────────────────────────────────────────
+
+function InvoicesView({ onBack }: { onBack: () => void }) {
+  const { data: invoices = [], isLoading } = useQuery({
+    queryKey: ['seller-invoices'],
+    queryFn: api.seller.invoices,
+    retry: false,
+  })
+
+  function fmtDate(iso: string) {
+    return new Date(iso).toLocaleDateString('ru', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
+
+  function fmtInvoicePrice(n: number, currency: string) {
+    if (currency === 'UZS') return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' сум'
+    return n.toLocaleString() + ' ' + currency
+  }
+
+  const STATUS_LABELS: Record<string, string> = { paid: 'Оплачено', pending: 'Ожидает', failed: 'Ошибка', refunded: 'Возврат' }
+  const STATUS_COLORS: Record<string, string> = { paid: 'var(--accent)', pending: '#F59E0B', failed: 'var(--danger)', refunded: 'var(--muted)' }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 10, padding: '16px 16px 12px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid var(--border)' }}>
+        <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 15, cursor: 'pointer', padding: 0 }}>← Назад</button>
+        <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)' }}>История платежей</span>
+      </div>
+      <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
+        {isLoading ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+          </div>
+        ) : (invoices as any[]).length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--muted)' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🧾</div>
+            <p style={{ fontSize: 14 }}>Платежей пока нет</p>
+          </div>
+        ) : (
+          <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)' }}>
+            {(invoices as any[]).map((inv: any, i: number, arr: any[]) => (
+              <div key={inv.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', background: 'var(--card)', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', fontFamily: 'JetBrains Mono' }}>
+                    {fmtInvoicePrice(inv.amount, inv.currency ?? 'UZS')}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{fmtDate(inv.created_at)}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: STATUS_COLORS[inv.status] ?? 'var(--muted)' }}>
+                    {STATUS_LABELS[inv.status] ?? inv.status}
+                  </span>
+                  {inv.pdf_url && (
+                    <button
+                      onClick={() => window.open(inv.pdf_url, '_blank')}
+                      style={{ background: 'var(--subtle)', border: 'none', borderRadius: 8, padding: '4px 10px', fontSize: 12, color: 'var(--ink)', cursor: 'pointer' }}
+                    >
+                      PDF
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── TeamView ─────────────────────────────────────────────────────────────────
 
 export function TeamView({ onBack }: { onBack: () => void }) {
@@ -1502,6 +1654,8 @@ export function TeamView({ onBack }: { onBack: () => void }) {
   const [showInvite, setShowInvite] = useState(false)
   const [inviteUsername, setInviteUsername] = useState('')
   const [inviteRole, setInviteRole] = useState<'manager' | 'operator'>('operator')
+  const [selectedMember, setSelectedMember] = useState<any | null>(null)
+  const [memberPrefs, setMemberPrefs] = useState<{ new_orders: boolean; payment_failures: boolean; low_stock: boolean; daily_summary: boolean }>({ new_orders: true, payment_failures: true, low_stock: false, daily_summary: false })
   const ROLES = [
     { id: 'owner', label: 'Владелец', color: '#8B5CF6' },
     { id: 'manager', label: 'Менеджер', color: '#3B82F6' },
@@ -1568,6 +1722,19 @@ export function TeamView({ onBack }: { onBack: () => void }) {
                   <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 999, background: `${roleInfo.color}20`, color: roleInfo.color }}>
                     {roleInfo.label}
                   </span>
+                  <button
+                    onClick={() => {
+                      const np = m.notification_preferences ?? {}
+                      setMemberPrefs({
+                        new_orders: np.new_orders ?? true,
+                        payment_failures: np.payment_failures ?? true,
+                        low_stock: np.low_stock ?? false,
+                        daily_summary: np.daily_summary ?? false,
+                      })
+                      setSelectedMember(m)
+                    }}
+                    style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', flexShrink: 0, fontSize: 15 }}
+                  >⚙</button>
                   {m.role !== 'owner' && (
                     <button
                       onClick={() => confirm(`Удалить ${m.name ?? m.username ?? 'участника'} из команды?`) && removeMutation.mutate(m.id)}
@@ -1590,6 +1757,55 @@ export function TeamView({ onBack }: { onBack: () => void }) {
           </div>
         </div>
       </div>
+
+      {selectedMember && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}>
+          <div style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 20px 40px' }}>
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }} />
+            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
+              Уведомления — {selectedMember.username ?? selectedMember.name ?? 'Участник'}
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>Выберите события для получения уведомлений</p>
+            {([
+              { key: 'new_orders' as const, label: 'Новые заказы' },
+              { key: 'payment_failures' as const, label: 'Ошибки оплаты' },
+              { key: 'low_stock' as const, label: 'Низкий остаток' },
+              { key: 'daily_summary' as const, label: 'Ежедневный отчёт' },
+            ]).map(item => (
+              <div key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+                <span style={{ fontSize: 15, color: 'var(--ink)' }}>{item.label}</span>
+                <button
+                  onClick={() => setMemberPrefs(p => ({ ...p, [item.key]: !p[item.key] }))}
+                  style={{
+                    width: 44, height: 26, borderRadius: 999, border: 'none', cursor: 'pointer',
+                    background: memberPrefs[item.key] ? 'var(--accent)' : 'var(--border)',
+                    position: 'relative', transition: 'background 0.2s',
+                  }}
+                >
+                  <div style={{
+                    width: 20, height: 20, borderRadius: 999, background: 'white',
+                    position: 'absolute', top: 3,
+                    left: memberPrefs[item.key] ? 'calc(100% - 23px)' : 3,
+                    transition: 'left 0.2s',
+                  }} />
+                </button>
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              <button onClick={() => setSelectedMember(null)} style={{ flex: 1, height: 48, borderRadius: 12, background: 'var(--subtle)', border: 'none', fontSize: 15, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }}>Отмена</button>
+              <button
+                onClick={async () => {
+                  await api.seller.updateTeamMemberNotifications(selectedMember.id, memberPrefs).catch(() => {})
+                  setSelectedMember(null)
+                }}
+                style={{ flex: 2, height: 48, borderRadius: 12, background: 'var(--accent)', border: 'none', fontSize: 15, fontWeight: 700, color: 'white', cursor: 'pointer' }}
+              >
+                Сохранить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showInvite && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }}>
@@ -1634,6 +1850,13 @@ export function TeamView({ onBack }: { onBack: () => void }) {
 export function SettingsTab({ tenant }: Props) {
   const queryClient = useQueryClient()
 
+  const { data: meData } = useQuery({
+    queryKey: ['seller-me'],
+    queryFn: api.seller.me,
+    staleTime: 5 * 60 * 1000,
+  })
+  const tgUser = (meData as any)?.tg_user
+
   // UI state
   const [editProfile, setEditProfile]   = useState(false)
   const [editBot, setEditBot]           = useState(false)
@@ -1653,6 +1876,7 @@ export function SettingsTab({ tenant }: Props) {
   })
   const [showCoupons, setShowCoupons]   = useState(false)
   const [showMailings, setShowMailings] = useState(false)
+  const [showInvoices, setShowInvoices] = useState(false)
   const [editOrderSettings, setEditOrderSettings] = useState(false)
   const [editNotifications, setEditNotifications] = useState(false)
   const [editLocalization, setEditLocalization] = useState(false)
@@ -1724,6 +1948,25 @@ export function SettingsTab({ tenant }: Props) {
   const [groupChatId, setGroupChatId] = useState<string>(
     tenant.settings?.notify_group_chat_id ? String(tenant.settings.notify_group_chat_id) : '',
   )
+
+  // Bot menu button state
+  const [editBotMenu, setEditBotMenu] = useState(false)
+  const [botMenuText, setBotMenuText] = useState(tenant.settings?.bot_menu_text ?? '🛍 Открыть магазин')
+
+  // Bot commands state
+  const [editBotCommands, setEditBotCommands] = useState(false)
+  const [botCommands, setBotCommands] = useState<{ command: string; description: string }[]>(
+    () => tenant.settings?.bot_commands ?? []
+  )
+  const [newCmdCommand, setNewCmdCommand] = useState('')
+  const [newCmdDesc, setNewCmdDesc] = useState('')
+
+  // Plan picker state
+  const [showPlanPicker, setShowPlanPicker] = useState(false)
+
+  // Delete store confirmation state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteText, setDeleteText] = useState('')
 
   // ── Mutations ────────────────────────────────────────────────────────────────
 
@@ -1947,6 +2190,8 @@ export function SettingsTab({ tenant }: Props) {
 
   const [showTeam, setShowTeam] = useState(false)
   const [editBlocks, setEditBlocks] = useState(false)
+  const [showPresets, setShowPresets] = useState(false)
+  const [presetConfirm, setPresetConfirm] = useState<string | null>(null)
   const [blocksConfig, setBlocksConfig] = useState(() => ({
     stories_enabled: tenant.settings?.stories_enabled ?? true,
     stories_style: tenant.settings?.stories_style ?? 'instagram',
@@ -1971,11 +2216,50 @@ export function SettingsTab({ tenant }: Props) {
     },
   })
 
+  const THEME_PRESETS = [
+    { id: 'fashion_rose', label: 'Fashion Rose', emoji: '🌸', accent: 'rose', typography: 'editorial', layout: 'boutique' },
+    { id: 'tech_blue', label: 'Tech Blue', emoji: '💎', accent: 'blue', typography: 'modern', layout: 'catalog' },
+    { id: 'nature_green', label: 'Nature Green', emoji: '🌿', accent: 'emerald', typography: 'warm', layout: 'boutique' },
+    { id: 'luxury_dark', label: 'Luxury Dark', emoji: '✨', accent: 'amber', typography: 'editorial', layout: 'lookbook' },
+    { id: 'sport_orange', label: 'Sport Orange', emoji: '🏆', accent: 'orange', typography: 'bold', layout: 'catalog' },
+    { id: 'minimal_bw', label: 'Minimal B&W', emoji: '⬜', accent: 'zinc', typography: 'minimal', layout: 'boutique' },
+    { id: 'kids_bright', label: 'Kids Bright', emoji: '🎨', accent: 'pink', typography: 'bold', layout: 'marketplace' },
+    { id: 'food_warm', label: 'Food Warm', emoji: '🍊', accent: 'orange', typography: 'warm', layout: 'bento' },
+    { id: 'beauty_peach', label: 'Beauty Peach', emoji: '🍑', accent: 'pink', typography: 'editorial', layout: 'lookbook' },
+    { id: 'market_purple', label: 'Market Purple', emoji: '🛍', accent: 'violet', typography: 'modern', layout: 'marketplace' },
+  ]
+
+  const presetMutation = useMutation({
+    mutationFn: (preset: typeof THEME_PRESETS[0]) => api.seller.updateSettings({
+      accent_color: preset.accent,
+      typography_bundle: preset.typography,
+      layout: preset.layout,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['seller-me'] })
+      setShowPresets(false)
+      setPresetConfirm(null)
+    },
+  })
+
   const [showAbandonedCarts, setShowAbandonedCarts] = useState(false)
   const [showStories, setShowStories] = useState(false)
   const [showLoyaltyProgram, setShowLoyaltyProgram] = useState(false)
   const [showReferralProgram, setShowReferralProgram] = useState(false)
   const [showChannelCrossposting, setShowChannelCrossposting] = useState(false)
+
+  // ── Theme picker state ────────────────────────────────────────────────────────
+  const [showThemeSheet, setShowThemeSheet] = useState(false)
+  const [adminTheme, setAdminTheme] = useState<'system' | 'light' | 'dark'>(
+    () => (localStorage.getItem('dokonly_admin_theme') ?? 'system') as 'system' | 'light' | 'dark'
+  )
+  const applyAdminTheme = (pref: 'system' | 'light' | 'dark') => {
+    localStorage.setItem('dokonly_admin_theme', pref)
+    const tgScheme = (window as any).Telegram?.WebApp?.colorScheme ?? 'light'
+    const resolved = pref === 'system' ? tgScheme : pref
+    document.documentElement.dataset.theme = resolved
+    setAdminTheme(pref)
+  }
 
   if (showCoupons) return <CouponsView onBack={() => setShowCoupons(false)} />
   if (showMailings) return <MailingsView onBack={() => setShowMailings(false)} />
@@ -1988,6 +2272,47 @@ export function SettingsTab({ tenant }: Props) {
 
   return (
     <div className="screen-scroll" style={{ flex: 1, padding: '16px 16px 100px' }}>
+
+      {/* ── Telegram user identity card ────────────────────────────────────── */}
+      {tgUser && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
+          borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)',
+          marginBottom: 12,
+        }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: 999, flexShrink: 0,
+            background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: 700, fontSize: 18, color: 'white',
+          }}>
+            {tgUser.photo_url
+              ? <img src={tgUser.photo_url} style={{ width: 48, height: 48, borderRadius: 999, objectFit: 'cover' }} />
+              : (tgUser.first_name?.[0] ?? '?')}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 15, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {[tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ')}
+            </div>
+            {tgUser.username && (
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 1 }}>@{tgUser.username}</div>
+            )}
+          </div>
+          <button
+            onClick={() => {
+              if ((window as any).Telegram?.WebApp?.close) {
+                (window as any).Telegram.WebApp.close()
+              }
+            }}
+            style={{
+              padding: '6px 12px', borderRadius: 10, border: '1px solid var(--border)',
+              background: 'var(--subtle)', fontSize: 12, fontWeight: 600, color: 'var(--muted)', cursor: 'pointer',
+            }}
+          >
+            Выйти
+          </button>
+        </div>
+      )}
 
       {/* ── Profile header card ─────────────────────────────────────────────── */}
       <div style={{
@@ -2126,6 +2451,22 @@ export function SettingsTab({ tenant }: Props) {
             />
             <Row
               icon="sparkles"
+              label="Кнопка меню бота"
+              value={tenant.settings?.bot_menu_text ?? '🛍 Открыть магазин'}
+              onPress={() => { setBotMenuText(tenant.settings?.bot_menu_text ?? '🛍 Открыть магазин'); setEditBotMenu(true) }}
+            />
+            <Row
+              icon="star"
+              label="Команды бота"
+              value={`${(tenant.settings?.bot_commands ?? []).length} команд`}
+              onPress={() => {
+                setBotCommands(tenant.settings?.bot_commands ?? [])
+                setNewCmdCommand(''); setNewCmdDesc('')
+                setEditBotCommands(true)
+              }}
+            />
+            <Row
+              icon="sparkles"
               label="Изменить бота"
               onPress={() => { setBotToken(''); setBotError(''); setEditBot(true) }}
               noBorder
@@ -2225,13 +2566,27 @@ export function SettingsTab({ tenant }: Props) {
             icon="box"
             label="Блоки витрины"
             value="Настроить"
-            noBorder
             onPress={() => setEditBlocks(true)}
           />
         ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', background: 'var(--card)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', background: 'var(--card)', borderBottom: '1px solid var(--border)' }}>
             <Icon name="box" size={16} color="var(--muted)" />
             <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--muted)' }}>Блоки витрины</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #00B5E2 0%, #0066CC 100%)', padding: '2px 7px', borderRadius: 999 }}>Business+</span>
+          </div>
+        )}
+        {(tier === 'business' || tier === 'premium') ? (
+          <Row
+            icon="sparkles"
+            label="Быстрый пресет темы"
+            value="Выбрать"
+            noBorder
+            onPress={() => setShowPresets(true)}
+          />
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', background: 'var(--card)' }}>
+            <Icon name="sparkles" size={16} color="var(--muted)" />
+            <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--muted)' }}>Быстрый пресет темы</span>
             <span style={{ fontSize: 10, fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #00B5E2 0%, #0066CC 100%)', padding: '2px 7px', borderRadius: 999 }}>Business+</span>
           </div>
         )}
@@ -2485,6 +2840,44 @@ export function SettingsTab({ tenant }: Props) {
         </BottomSheet>
       )}
 
+      {/* ── Theme picker bottom sheet ────────────────────────────────────────── */}
+      {showThemeSheet && (
+        <BottomSheet onClose={() => setShowThemeSheet(false)}>
+          <div style={{ padding: '20px 16px 32px' }}>
+            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 16 }}>
+              Тема интерфейса
+            </div>
+            {([
+              { id: 'system', label: '⚙️ Системная', hint: 'Следует теме Telegram' },
+              { id: 'light',  label: '☀️ Светлая',  hint: 'Всегда светлая тема' },
+              { id: 'dark',   label: '🌙 Тёмная',   hint: 'Всегда тёмная тема' },
+            ] as { id: 'system'|'light'|'dark'; label: string; hint: string }[]).map(opt => (
+              <button
+                key={opt.id}
+                onClick={() => { applyAdminTheme(opt.id); setShowThemeSheet(false) }}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  width: '100%', padding: '13px 16px', borderRadius: 12, marginBottom: 8,
+                  background: adminTheme === opt.id ? 'var(--accent-soft)' : 'var(--card)',
+                  border: `1.5px solid ${adminTheme === opt.id ? 'var(--accent)' : 'var(--border)'}`,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--ink)', textAlign: 'left' }}>{opt.label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'left', marginTop: 2 }}>{opt.hint}</div>
+                </div>
+                {adminTheme === opt.id && (
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <circle cx="9" cy="9" r="9" fill="var(--accent)"/>
+                    <path d="M5 9l3 3 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+        </BottomSheet>
+      )}
+
       {/* ── Section 5: Маркетинг ────────────────────────────────────────────── */}
       <Section title="Маркетинг">
         <Row
@@ -2556,13 +2949,33 @@ export function SettingsTab({ tenant }: Props) {
         />
       </Section>
 
+      {/* ── Section 5c: Интерфейс ───────────────────────────────────────────── */}
+      <Section title="Интерфейс">
+        <Row
+          icon="sparkles"
+          label="Тема интерфейса"
+          value={adminTheme === 'system' ? 'Системная' : adminTheme === 'dark' ? 'Тёмная' : 'Светлая'}
+          onPress={() => setShowThemeSheet(true)}
+        />
+      </Section>
+
+      {/* ── Section 5d: Аналитика ────────────────────────────────────────────── */}
+      <Section title="Аналитика">
+        <ToggleRow
+          icon="starFilled"
+          label="Еженедельный отчёт на email"
+          value={tenant.settings?.analytics_weekly_email ?? false}
+          onChange={(val) => updateSettingsMutation.mutate({ analytics_weekly_email: val })}
+        />
+      </Section>
+
       {/* ── Section 6: Подписка ─────────────────────────────────────────────── */}
       <Section title="Подписка">
         <Row
           icon="starFilled"
           label="Тарифный план"
           value={tierLabel}
-          noBorder={!isOnTrial}
+          noBorder={false}
         />
         {isOnTrial && (
           <Row
@@ -2570,9 +2983,21 @@ export function SettingsTab({ tenant }: Props) {
             label="Срок пробного периода"
             value={daysLeft > 0 ? `${daysLeft} дн. осталось` : 'Истёк'}
             valueColor={daysLeft <= 3 ? 'var(--danger)' : 'var(--muted)'}
-            noBorder
+            noBorder={false}
           />
         )}
+        <Row
+          icon="starFilled"
+          label="Изменить тариф"
+          noBorder={false}
+          onPress={() => setShowPlanPicker(true)}
+        />
+        <Row
+          icon="creditCard"
+          label="История платежей"
+          noBorder
+          onPress={() => setShowInvoices(true)}
+        />
       </Section>
 
       {/* ── Section 6: Аккаунт ─────────────────────────────────────────────── */}
@@ -2582,7 +3007,7 @@ export function SettingsTab({ tenant }: Props) {
           label="Удалить магазин"
           danger
           noBorder
-          onPress={() => alert('Функция будет доступна в следующей версии')}
+          onPress={() => setShowDeleteConfirm(true)}
         />
       </Section>
 
@@ -2606,10 +3031,39 @@ export function SettingsTab({ tenant }: Props) {
         />
         <Row
           icon="info"
+          label="Что нового"
+          onPress={() => {
+            const tg = (window as any).Telegram?.WebApp
+            tg?.openTelegramLink?.('https://t.me/dokonly') ?? window.open('https://t.me/dokonly', '_blank')
+          }}
+        />
+        <Row
+          icon="info"
           label="Закрыть приложение"
           noBorder
           onPress={() => {
             (window as any).Telegram?.WebApp?.close?.()
+          }}
+        />
+      </Section>
+
+      {/* ── Section 8: Юридическое ─────────────────────────────────────────── */}
+      <Section title="Юридическое">
+        <Row
+          icon="info"
+          label="Условия использования"
+          onPress={() => {
+            const tg = (window as any).Telegram?.WebApp
+            tg?.openLink?.('https://dokonly.com/terms') ?? window.open('https://dokonly.com/terms', '_blank')
+          }}
+        />
+        <Row
+          icon="info"
+          label="Политика конфиденциальности"
+          noBorder
+          onPress={() => {
+            const tg = (window as any).Telegram?.WebApp
+            tg?.openLink?.('https://dokonly.com/privacy') ?? window.open('https://dokonly.com/privacy', '_blank')
           }}
         />
       </Section>
@@ -3453,6 +3907,256 @@ export function SettingsTab({ tenant }: Props) {
             </button>
           </div>
         </BottomSheet>
+      )}
+
+      {/* ── Theme Presets Sheet ─────────────────────────────────────────────── */}
+      {showPresets && (
+        <BottomSheet onClose={() => { setShowPresets(false); setPresetConfirm(null) }}>
+          <div style={{ padding: '20px 16px 8px' }}>
+            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 4 }}>
+              Готовые пресеты темы
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
+              Выберите пресет — он заменит цвет, типографику и макет
+            </p>
+
+            {presetConfirm && (() => {
+              const preset = THEME_PRESETS.find(p => p.id === presetConfirm)
+              if (!preset) return null
+              return (
+                <div style={{ padding: '16px', borderRadius: 14, background: 'var(--accent-soft)', border: '1px solid var(--accent)', marginBottom: 16 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
+                    Применить пресет «{preset.label}»?
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 14 }}>
+                    Это заменит текущие настройки цвета, типографики и макета.
+                  </div>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                      onClick={() => setPresetConfirm(null)}
+                      style={{ flex: 1, height: 44, borderRadius: 12, background: 'var(--subtle)', border: 'none', fontWeight: 600, fontSize: 14, color: 'var(--ink)', cursor: 'pointer' }}
+                    >
+                      Отмена
+                    </button>
+                    <button
+                      onClick={() => presetMutation.mutate(preset)}
+                      disabled={presetMutation.isPending}
+                      style={{ flex: 2, height: 44, borderRadius: 12, background: 'var(--accent)', border: 'none', fontWeight: 700, fontSize: 14, color: 'white', cursor: 'pointer', opacity: presetMutation.isPending ? 0.7 : 1 }}
+                    >
+                      {presetMutation.isPending ? '...' : 'Применить'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })()}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+              {THEME_PRESETS.map(preset => (
+                <button
+                  key={preset.id}
+                  onClick={() => setPresetConfirm(preset.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 14,
+                    padding: '14px 16px', borderRadius: 14,
+                    background: 'var(--card)', border: `2px solid ${presetConfirm === preset.id ? 'var(--accent)' : 'var(--border)'}`,
+                    cursor: 'pointer', textAlign: 'left',
+                  }}
+                >
+                  <span style={{ fontSize: 28, flexShrink: 0 }}>{preset.emoji}</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{preset.label}</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                      {preset.typography} · {preset.layout}
+                    </div>
+                  </div>
+                  <Icon name="chevronRight" size={16} color="var(--muted)" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </BottomSheet>
+      )}
+
+      {/* ── Bot menu button modal ───────────────────────────────────────────── */}
+      {editBotMenu && (
+        <div onClick={() => setEditBotMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px calc(32px + env(safe-area-inset-bottom))' }}>
+            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 16 }}>Кнопка меню бота</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>Текст кнопки, которую видит покупатель при открытии бота</div>
+            <input
+              value={botMenuText}
+              onChange={e => setBotMenuText(e.target.value)}
+              placeholder="🛍 Открыть магазин"
+              maxLength={40}
+              style={{ width: '100%', height: 48, borderRadius: 12, border: '1.5px solid var(--border)', background: 'var(--card)', padding: '0 14px', fontSize: 15, color: 'var(--ink)', boxSizing: 'border-box', marginBottom: 8 }}
+            />
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 16 }}>{botMenuText.length}/40 символов</div>
+            {/* Preview */}
+            <div style={{ background: 'var(--subtle)', borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>Предпросмотр</div>
+              <div style={{ display: 'inline-block', background: 'var(--accent)', color: 'white', borderRadius: 8, padding: '8px 16px', fontSize: 14, fontWeight: 600 }}>
+                {botMenuText || '🛍 Открыть магазин'}
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                updateSettingsMutation.mutate({ bot_menu_text: botMenuText })
+                setEditBotMenu(false)
+              }}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer' }}
+            >
+              Сохранить
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Bot commands modal ──────────────────────────────────────────────── */}
+      {editBotCommands && (
+        <div onClick={() => setEditBotCommands(false)} style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px calc(32px + env(safe-area-inset-bottom))', maxHeight: '80vh', overflowY: 'auto' }}>
+            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 4 }}>Команды бота</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>Пользователи могут вызывать эти команды в чате с ботом</div>
+
+            {/* Default commands (read-only) */}
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted-strong)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Стандартные</div>
+            {[
+              { command: '/start', description: 'Открыть магазин' },
+              { command: '/orders', description: 'Мои заказы' },
+              { command: '/help', description: 'Помощь' },
+            ].map(cmd => (
+              <div key={cmd.command} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 10, background: 'var(--subtle)', marginBottom: 6 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', minWidth: 80 }}>{cmd.command}</span>
+                <span style={{ fontSize: 13, color: 'var(--muted)', flex: 1 }}>{cmd.description}</span>
+                <span style={{ fontSize: 10, color: 'var(--muted)', background: 'var(--border)', borderRadius: 999, padding: '2px 8px' }}>обязательная</span>
+              </div>
+            ))}
+
+            {/* Custom commands */}
+            {botCommands.length > 0 && (
+              <>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted-strong)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 12, marginBottom: 8 }}>Пользовательские</div>
+                {botCommands.map((cmd, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 10, background: 'var(--card)', border: '1px solid var(--border)', marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', minWidth: 80 }}>{cmd.command}</span>
+                    <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1 }}>{cmd.description}</span>
+                    <button
+                      onClick={() => setBotCommands(prev => prev.filter((_, j) => j !== i))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--muted)', padding: '0 4px' }}
+                    >×</button>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {/* Add new command */}
+            <div style={{ marginTop: 16, marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Добавить команду</div>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <input
+                  value={newCmdCommand}
+                  onChange={e => setNewCmdCommand(e.target.value.replace(/[^a-z0-9_]/g, '').toLowerCase())}
+                  placeholder="/команда"
+                  style={{ width: '40%', height: 40, borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--card)', padding: '0 12px', fontSize: 14, color: 'var(--ink)', boxSizing: 'border-box' }}
+                />
+                <input
+                  value={newCmdDesc}
+                  onChange={e => setNewCmdDesc(e.target.value)}
+                  placeholder="Описание команды"
+                  style={{ flex: 1, height: 40, borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--card)', padding: '0 12px', fontSize: 14, color: 'var(--ink)', boxSizing: 'border-box' }}
+                />
+              </div>
+              <button
+                onClick={() => {
+                  if (!newCmdCommand || !newCmdDesc) return
+                  const cmd = newCmdCommand.startsWith('/') ? newCmdCommand : `/${newCmdCommand}`
+                  setBotCommands(prev => [...prev, { command: cmd, description: newCmdDesc }])
+                  setNewCmdCommand(''); setNewCmdDesc('')
+                }}
+                disabled={!newCmdCommand || !newCmdDesc}
+                style={{ width: '100%', height: 44, borderRadius: 12, background: newCmdCommand && newCmdDesc ? 'var(--accent-soft)' : 'var(--subtle)', color: newCmdCommand && newCmdDesc ? 'var(--accent)' : 'var(--muted)', fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer' }}
+              >
+                + Добавить
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                updateSettingsMutation.mutate({ bot_commands: botCommands })
+                setEditBotCommands(false)
+              }}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, marginTop: 8, border: 'none', cursor: 'pointer' }}
+            >
+              Сохранить команды
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showPlanPicker && <PlanPicker onBack={() => setShowPlanPicker(false)} />}
+
+      {showInvoices && <InvoicesView onBack={() => setShowInvoices(false)} />}
+
+      {showDeleteConfirm && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(0,0,0,0.6)',
+          display: 'flex', alignItems: 'flex-end',
+        }}>
+          <div style={{
+            width: '100%', background: 'var(--bg)',
+            borderRadius: '20px 20px 0 0',
+            padding: '24px 20px 40px',
+          }}>
+            <div style={{ fontSize: 22, marginBottom: 12 }}>⚠️</div>
+            <p style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>
+              Удалить магазин?
+            </p>
+            <p style={{ fontSize: 14, color: 'var(--muted)', marginBottom: 20, lineHeight: 1.5 }}>
+              Все товары, заказы и настройки будут удалены без возможности восстановления. Введите <strong>УДАЛИТЬ</strong> для подтверждения.
+            </p>
+            <input
+              value={deleteText}
+              onChange={e => setDeleteText(e.target.value)}
+              placeholder="Введите УДАЛИТЬ"
+              style={{
+                width: '100%', height: 48, borderRadius: 12,
+                border: '1.5px solid var(--border)', background: 'var(--card)',
+                paddingLeft: 14, fontSize: 15, color: 'var(--ink)',
+                outline: 'none', boxSizing: 'border-box', marginBottom: 16,
+              }}
+            />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => { setShowDeleteConfirm(false); setDeleteText('') }}
+                style={{
+                  flex: 1, height: 48, borderRadius: 12,
+                  background: 'var(--subtle)', border: 'none',
+                  fontSize: 15, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
+                }}
+              >
+                Отмена
+              </button>
+              <button
+                disabled={deleteText !== 'УДАЛИТЬ'}
+                onClick={() => {
+                  if (deleteText !== 'УДАЛИТЬ') return
+                  alert('Запрос на удаление отправлен. Магазин будет удалён в течение 24 часов.')
+                  setShowDeleteConfirm(false)
+                  setDeleteText('')
+                }}
+                style={{
+                  flex: 1, height: 48, borderRadius: 12,
+                  background: deleteText === 'УДАЛИТЬ' ? 'var(--danger)' : '#ccc',
+                  border: 'none', fontSize: 15, fontWeight: 600,
+                  color: 'white', cursor: deleteText === 'УДАЛИТЬ' ? 'pointer' : 'not-allowed',
+                }}
+              >
+                Удалить
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

@@ -181,16 +181,47 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
   const [screenshotUploading, setScreenshotUploading] = useState(false)
   const [screenshotDone, setScreenshotDone] = useState(false)
   const [showReturnWizard, setShowReturnWizard] = useState(false)
+  const [returnStep, setReturnStep] = useState(1)
+  const [returnItems, setReturnItems] = useState<Set<string>>(new Set())
   const [returnReason, setReturnReason] = useState('')
   const [returnDesc, setReturnDesc] = useState('')
+  const [returnPhotos, setReturnPhotos] = useState<string[]>([])
+  const [returnPhotoUploading, setReturnPhotoUploading] = useState(false)
+  const [returnType, setReturnType] = useState<'refund' | 'exchange'>('refund')
   const [returnSubmitted, setReturnSubmitted] = useState(false)
   const qcReturn = useQueryClient()
 
+  function resetReturnWizard() {
+    setReturnStep(1)
+    setReturnItems(new Set())
+    setReturnReason('')
+    setReturnDesc('')
+    setReturnPhotos([])
+    setReturnType('refund')
+    setShowReturnWizard(false)
+  }
+
+  async function handleReturnPhotoUpload(file: File) {
+    setReturnPhotoUploading(true)
+    try {
+      const res = await api.seller.uploadFile(file)
+      setReturnPhotos(prev => [...prev, res.url])
+    } catch { /* ignore */ }
+    setReturnPhotoUploading(false)
+  }
+
   const returnMutation = useMutation({
-    mutationFn: () => api.createReturn(tenantId, { order_id: order.id, reason: returnReason, description: returnDesc }),
+    mutationFn: () => api.createReturn(tenantId, {
+      order_id: order.id,
+      item_ids: Array.from(returnItems),
+      reason: returnReason,
+      description: returnDesc,
+      photos: returnPhotos,
+      resolution_type: returnType,
+    }),
     onSuccess: () => {
       setReturnSubmitted(true)
-      setShowReturnWizard(false)
+      resetReturnWizard()
       qcReturn.invalidateQueries({ queryKey: ['my-returns', tenantId] })
     },
   })
@@ -662,48 +693,234 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
 
       {showReturnWizard && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ width: '100%', background: 'var(--card)', borderRadius: '20px 20px 0 0', padding: '24px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ width: '100%', maxHeight: '90vh', overflowY: 'auto', background: 'var(--card)', borderRadius: '20px 20px 0 0', padding: '24px 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>Запрос на возврат</span>
-              <button onClick={() => setShowReturnWizard(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
-            </div>
-            <div>
-              <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10 }}>Причина возврата</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {['Брак / дефект', 'Не соответствует описанию', 'Передумал(а)', 'Не подошёл размер', 'Пришло не то'].map(r => (
-                  <button
-                    key={r}
-                    onClick={() => setReturnReason(r)}
-                    style={{
-                      padding: '11px 14px', borderRadius: 12, textAlign: 'left',
-                      background: returnReason === r ? 'var(--accent-soft)' : 'var(--subtle)',
-                      border: `1.5px solid ${returnReason === r ? 'var(--accent)' : 'var(--border)'}`,
-                      color: returnReason === r ? 'var(--accent)' : 'var(--ink)',
-                      fontWeight: returnReason === r ? 600 : 400, fontSize: 14, cursor: 'pointer',
-                    }}
-                  >
-                    {r}
-                  </button>
-                ))}
+              <div>
+                <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)' }}>Запрос на возврат</span>
+                <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+                  {[1,2,3,4,5].map(s => (
+                    <div key={s} style={{ height: 3, flex: 1, borderRadius: 2, background: s <= returnStep ? 'var(--accent)' : 'var(--border)', transition: 'background 0.2s' }} />
+                  ))}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>Шаг {returnStep} из 5</div>
               </div>
+              <button onClick={resetReturnWizard} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
-            <textarea
-              placeholder="Опишите проблему подробнее (необязательно)..."
-              value={returnDesc}
-              onChange={e => setReturnDesc(e.target.value)}
-              rows={3}
-              style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--subtle)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)', resize: 'none', fontFamily: 'inherit' }}
-            />
-            {returnMutation.isError && (
-              <p style={{ fontSize: 13, color: 'var(--danger)' }}>Ошибка. Попробуйте ещё раз.</p>
+
+            {/* Step 1: Select items */}
+            {returnStep === 1 && (
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 10 }}>Выберите товары для возврата</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {(order.items ?? []).map((item: any) => {
+                    const selected = returnItems.has(item.id ?? item.product_id)
+                    return (
+                      <button
+                        key={item.id ?? item.product_id}
+                        onClick={() => {
+                          const id = item.id ?? item.product_id
+                          setReturnItems(prev => {
+                            const next = new Set(prev)
+                            if (next.has(id)) next.delete(id)
+                            else next.add(id)
+                            return next
+                          })
+                        }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px',
+                          borderRadius: 12, textAlign: 'left', cursor: 'pointer',
+                          background: selected ? 'var(--accent-soft)' : 'var(--subtle)',
+                          border: `1.5px solid ${selected ? 'var(--accent)' : 'var(--border)'}`,
+                        }}
+                      >
+                        {item.image && <img src={item.image} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />}
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: selected ? 'var(--accent)' : 'var(--ink)' }}>{item.name ?? item.product_name}</div>
+                          {item.variant && <div style={{ fontSize: 12, color: 'var(--muted)' }}>{item.variant}</div>}
+                          <div style={{ fontSize: 13, color: 'var(--muted)' }}>{item.quantity} шт.</div>
+                        </div>
+                        <div style={{ width: 22, height: 22, borderRadius: 6, background: selected ? 'var(--accent)' : 'transparent', border: `2px solid ${selected ? 'var(--accent)' : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          {selected && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+                <button
+                  onClick={() => setReturnStep(2)}
+                  disabled={returnItems.size === 0}
+                  style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 16, border: 'none', cursor: 'pointer', marginTop: 16, opacity: returnItems.size === 0 ? 0.5 : 1 }}
+                >
+                  Далее →
+                </button>
+              </div>
             )}
-            <button
-              onClick={() => returnMutation.mutate()}
-              disabled={!returnReason || returnMutation.isPending}
-              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 16, border: 'none', cursor: 'pointer', opacity: (!returnReason || returnMutation.isPending) ? 0.6 : 1 }}
-            >
-              {returnMutation.isPending ? 'Отправляем...' : 'Отправить заявку'}
-            </button>
+
+            {/* Step 2: Reason */}
+            {returnStep === 2 && (
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 10 }}>Причина возврата</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[
+                    { id: 'wrong_size', label: 'Не подошёл размер' },
+                    { id: 'defective', label: 'Брак / дефект' },
+                    { id: 'not_as_described', label: 'Не соответствует описанию' },
+                    { id: 'changed_mind', label: 'Передумал(а)' },
+                    { id: 'other', label: 'Другое' },
+                  ].map(r => (
+                    <button
+                      key={r.id}
+                      onClick={() => setReturnReason(r.id)}
+                      style={{
+                        padding: '12px 14px', borderRadius: 12, textAlign: 'left',
+                        background: returnReason === r.id ? 'var(--accent-soft)' : 'var(--subtle)',
+                        border: `1.5px solid ${returnReason === r.id ? 'var(--accent)' : 'var(--border)'}`,
+                        color: returnReason === r.id ? 'var(--accent)' : 'var(--ink)',
+                        fontWeight: returnReason === r.id ? 600 : 400, fontSize: 14, cursor: 'pointer',
+                      }}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  placeholder="Дополнительные детали (необязательно)..."
+                  value={returnDesc}
+                  onChange={e => setReturnDesc(e.target.value)}
+                  rows={3}
+                  style={{ width: '100%', marginTop: 10, padding: '12px 14px', borderRadius: 12, background: 'var(--subtle)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+                <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                  <button onClick={() => setReturnStep(1)} style={{ flex: 1, height: 48, borderRadius: 14, background: 'var(--subtle)', color: 'var(--ink)', fontWeight: 600, fontSize: 15, border: 'none', cursor: 'pointer' }}>← Назад</button>
+                  <button
+                    onClick={() => setReturnStep(3)}
+                    disabled={!returnReason}
+                    style={{ flex: 2, height: 48, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', opacity: !returnReason ? 0.5 : 1 }}
+                  >
+                    Далее →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Photos */}
+            {returnStep === 3 && (
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>
+                  Фотографии {returnReason === 'defective' ? <span style={{ color: 'var(--danger)', fontSize: 12 }}>* обязательно</span> : <span style={{ color: 'var(--muted)', fontSize: 12 }}>(необязательно)</span>}
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>Загрузите 1-5 фото, подтверждающих проблему</p>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {returnPhotos.map((url, i) => (
+                    <div key={i} style={{ position: 'relative' }}>
+                      <img src={url} alt="" style={{ width: 72, height: 72, borderRadius: 10, objectFit: 'cover' }} />
+                      <button
+                        onClick={() => setReturnPhotos(prev => prev.filter((_, j) => j !== i))}
+                        style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 999, background: '#EF4444', color: 'white', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >✕</button>
+                    </div>
+                  ))}
+                  {returnPhotos.length < 5 && (
+                    <label style={{ width: 72, height: 72, borderRadius: 10, border: '2px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexDirection: 'column', gap: 4 }}>
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleReturnPhotoUpload(f) }} />
+                      {returnPhotoUploading ? <div style={{ width: 20, height: 20, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }}/> : <span style={{ fontSize: 24, color: 'var(--muted)' }}>+</span>}
+                    </label>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                  <button onClick={() => setReturnStep(2)} style={{ flex: 1, height: 48, borderRadius: 14, background: 'var(--subtle)', color: 'var(--ink)', fontWeight: 600, fontSize: 15, border: 'none', cursor: 'pointer' }}>← Назад</button>
+                  <button
+                    onClick={() => setReturnStep(4)}
+                    disabled={returnReason === 'defective' && returnPhotos.length === 0}
+                    style={{ flex: 2, height: 48, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', opacity: (returnReason === 'defective' && returnPhotos.length === 0) ? 0.5 : 1 }}
+                  >
+                    Далее →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Refund vs Exchange */}
+            {returnStep === 4 && (
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 12 }}>Что вы хотите?</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {[
+                    { id: 'refund' as const, label: 'Вернуть деньги', icon: '💳', desc: 'Возврат на карту или кошелёк в течение 3-5 дней' },
+                    { id: 'exchange' as const, label: 'Обменять товар', icon: '🔄', desc: 'Замена на аналогичный или другой товар' },
+                  ].map(opt => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setReturnType(opt.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
+                        borderRadius: 14, textAlign: 'left', cursor: 'pointer',
+                        background: returnType === opt.id ? 'var(--accent-soft)' : 'var(--subtle)',
+                        border: `2px solid ${returnType === opt.id ? 'var(--accent)' : 'var(--border)'}`,
+                      }}
+                    >
+                      <span style={{ fontSize: 28 }}>{opt.icon}</span>
+                      <div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: returnType === opt.id ? 'var(--accent)' : 'var(--ink)' }}>{opt.label}</div>
+                        <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{opt.desc}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                  <button onClick={() => setReturnStep(3)} style={{ flex: 1, height: 48, borderRadius: 14, background: 'var(--subtle)', color: 'var(--ink)', fontWeight: 600, fontSize: 15, border: 'none', cursor: 'pointer' }}>← Назад</button>
+                  <button onClick={() => setReturnStep(5)} style={{ flex: 2, height: 48, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer' }}>Далее →</button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 5: Review & Submit */}
+            {returnStep === 5 && (
+              <div>
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 12 }}>Проверьте заявку</p>
+                <div style={{ background: 'var(--subtle)', borderRadius: 14, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'var(--muted)' }}>Товаров</span>
+                    <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{returnItems.size} шт.</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'var(--muted)' }}>Причина</span>
+                    <span style={{ fontWeight: 600, color: 'var(--ink)' }}>
+                      {{ wrong_size: 'Не подошёл размер', defective: 'Брак', not_as_described: 'Не как описано', changed_mind: 'Передумал(а)', other: 'Другое' }[returnReason] ?? returnReason}
+                    </span>
+                  </div>
+                  {returnPhotos.length > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                      <span style={{ color: 'var(--muted)' }}>Фото</span>
+                      <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{returnPhotos.length} шт.</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'var(--muted)' }}>Решение</span>
+                    <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{returnType === 'refund' ? 'Возврат денег' : 'Обмен'}</span>
+                  </div>
+                </div>
+                {returnPhotos.length > 0 && (
+                  <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+                    {returnPhotos.map((url, i) => <img key={i} src={url} alt="" style={{ width: 56, height: 56, borderRadius: 8, objectFit: 'cover' }} />)}
+                  </div>
+                )}
+                {returnMutation.isError && (
+                  <p style={{ fontSize: 13, color: 'var(--danger)', marginTop: 8 }}>Ошибка. Попробуйте ещё раз.</p>
+                )}
+                <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                  <button onClick={() => setReturnStep(4)} style={{ flex: 1, height: 50, borderRadius: 14, background: 'var(--subtle)', color: 'var(--ink)', fontWeight: 600, fontSize: 15, border: 'none', cursor: 'pointer' }}>← Назад</button>
+                  <button
+                    onClick={() => returnMutation.mutate()}
+                    disabled={returnMutation.isPending}
+                    style={{ flex: 2, height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 16, border: 'none', cursor: 'pointer', opacity: returnMutation.isPending ? 0.6 : 1 }}
+                  >
+                    {returnMutation.isPending ? 'Отправляем...' : '✓ Отправить заявку'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1530,6 +1747,12 @@ function LoyaltyPage({ tenantId, currency, onBack }: { tenantId: string; currenc
     retry: false,
   })
 
+  const { data: loyaltyHistory = [] } = useQuery({
+    queryKey: ['loyalty-history', tenantId],
+    queryFn: () => api.getLoyaltyHistory(tenantId),
+    retry: false,
+  })
+
   const points: number = (profile as any)?.loyalty_points ?? 0
   const cashbackBalance: number = (profile as any)?.cashback_balance ?? 0
 
@@ -1644,6 +1867,37 @@ function LoyaltyPage({ tenantId, currency, onBack }: { tenantId: string; currenc
               ))}
             </div>
           </div>
+
+          {/* Recent activity */}
+          {(loyaltyHistory as any[]).length > 0 && (
+            <div style={{ borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)', padding: '16px' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+                Последние операции
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {(loyaltyHistory as any[]).slice(0, 20).map((tx: any, i: number, arr: any[]) => (
+                  <div key={tx.id} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '10px 0',
+                    borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 500, lineHeight: 1.3 }}>{tx.description}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                        {new Date(tx.created_at).toLocaleDateString('ru', { day: 'numeric', month: 'short' })}
+                      </div>
+                    </div>
+                    <div style={{
+                      fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 14,
+                      color: tx.points > 0 ? 'var(--accent)' : '#EF4444',
+                    }}>
+                      {tx.points > 0 ? '+' : ''}{tx.points} пт
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Footer info */}
           <div style={{ padding: '12px 14px', borderRadius: 12, background: 'var(--subtle)', border: '1px solid var(--border)' }}>
@@ -1950,9 +2204,13 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
   const [wishlistSort, setWishlistSort] = useState<'recent' | 'price_asc' | 'price_desc'>('recent')
   const [wishlistShareProd, setWishlistShareProd] = useState<any>(null)
   const [wishlistCopied, setWishlistCopied] = useState(false)
+  const [wishlistFilterAvailable, setWishlistFilterAvailable] = useState(false)
+  const [wishlistFilterOnSale, setWishlistFilterOnSale] = useState(false)
 
   const wishlistProducts = (allProducts as any[])
     .filter(p => wishlistIds.includes(p.id))
+    .filter(p => !wishlistFilterAvailable || (p.stock == null || p.stock > 0))
+    .filter(p => !wishlistFilterOnSale || (p.compare_price != null && Number(p.compare_price) > Number(p.price)))
     .sort((a: any, b: any) => {
       if (wishlistSort === 'price_asc') return Number(a.price) - Number(b.price)
       if (wishlistSort === 'price_desc') return Number(b.price) - Number(a.price)
@@ -2036,11 +2294,32 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
             <option value="price_desc">Дороже</option>
           </select>
         </div>
+        {/* Filter chips */}
+        <div style={{ display: 'flex', gap: 8, padding: '8px 16px 0', overflowX: 'auto', scrollbarWidth: 'none' }}>
+          {[
+            { label: 'В наличии', active: wishlistFilterAvailable, toggle: () => setWishlistFilterAvailable(v => !v) },
+            { label: 'Со скидкой', active: wishlistFilterOnSale, toggle: () => setWishlistFilterOnSale(v => !v) },
+          ].map(f => (
+            <button
+              key={f.label}
+              onClick={f.toggle}
+              style={{
+                flexShrink: 0, padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
+                background: f.active ? 'var(--accent)' : 'var(--subtle)',
+                color: f.active ? 'white' : 'var(--muted)',
+              }}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
         <div className="screen-scroll" style={{ flex: 1, padding: 16, paddingBottom: 40 }}>
           {wishlistProducts.length === 0 ? (
             <div style={{ textAlign: 'center', paddingTop: 60, color: 'var(--muted)' }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>❤</div>
-              <p style={{ fontSize: 14 }}>Нажмите ❤ на товаре чтобы сохранить</p>
+              <p style={{ fontSize: 14 }}>
+                {wishlistFilterAvailable || wishlistFilterOnSale ? 'Нет товаров по выбранным фильтрам' : 'Нажмите ❤ на товаре чтобы сохранить'}
+              </p>
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

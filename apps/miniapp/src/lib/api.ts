@@ -22,7 +22,8 @@ export const api = {
   getShop: (slug: string) =>
     request<{
       id: string; name: string; currency: string; logo_url: string | null;
-      cover_url?: string | null; accent_color?: string; typography_bundle?: string; settings?: any
+      cover_url?: string | null; accent_color?: string; typography_bundle?: string; settings?: any;
+      layout?: string
     }>(
       `/api/v1/shop/${slug}`,
     ),
@@ -83,6 +84,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ rating, text }),
     }),
+  getLoyaltyHistory: (tenantId: string) =>
+    request<{ id: string; type: string; points: number; description: string; created_at: string }[]>(
+      `/api/v1/shop/${tenantId}/my-loyalty-history`,
+    ),
   getMyReferral: (tenantId: string) =>
     request<{
       is_active: boolean; code: string; link: string;
@@ -131,6 +136,13 @@ export const api = {
   },
   resetBuyerAvatar: (tenantId: string) =>
     request<{ ok: boolean }>(`/api/v1/shop/${tenantId}/profile/avatar`, { method: 'DELETE' }),
+  createShareIntent: (tenantId: string, productId: string) =>
+    request<{ share_id: string; referral_code: string | null; deep_link: string }>(
+      `/api/v1/shop/${tenantId}/products/${productId}/share-intent`,
+      { method: 'POST' },
+    ),
+  getRecommendations: (tenantId: string, productId: string) =>
+    request<any[]>(`/api/v1/shop/${tenantId}/products/${productId}/recommendations`),
 
   // Seller Mini App endpoints (Telegram initData auth)
   seller: {
@@ -169,7 +181,12 @@ export const api = {
     updateSettings: (body: object) =>
       request<any>('/api/v1/miniapp/settings', { method: 'PATCH', body: JSON.stringify(body) }),
     analytics: (period?: string) => request<any>(`/api/v1/miniapp/analytics/summary${period ? `?period=${period}` : ''}`),
+    viralAnalytics: () => request<any>('/api/v1/miniapp/analytics/viral'),
+    abandonedCarts: () => request<{ id: string; customer_name: string; customer_telegram_id?: number; total: number; items_count: number; abandoned_at: string }[]>('/api/v1/miniapp/abandoned-carts'),
+    sendAbandonedCartReminder: (cartId: string) =>
+      request<{ ok: boolean }>(`/api/v1/miniapp/abandoned-carts/${cartId}/remind`, { method: 'POST' }),
     achievements: () => request<any>('/api/v1/miniapp/achievements'),
+    invoices: () => request<{ id: string; amount: number; currency: string; status: string; created_at: string; pdf_url?: string }[]>('/api/v1/miniapp/invoices'),
     streak: () => request<{ current_streak: number; best_streak: number; today_at_risk: boolean; calendar: { date: string; has_orders: boolean }[] }>('/api/v1/miniapp/streak'),
     categories: () => request<any[]>('/api/v1/miniapp/categories'),
     createCategory: (body: object) =>
@@ -198,6 +215,8 @@ export const api = {
       request<any>('/api/v1/miniapp/team/invite', { method: 'POST', body: JSON.stringify(body) }),
     removeTeamMember: (id: string) =>
       request<void>(`/api/v1/miniapp/team/${id}`, { method: 'DELETE' }),
+    updateTeamMemberNotifications: (id: string, prefs: { new_orders?: boolean; payment_failures?: boolean; low_stock?: boolean; daily_summary?: boolean }) =>
+      request<any>(`/api/v1/miniapp/team/${id}/notifications`, { method: 'PATCH', body: JSON.stringify(prefs) }),
     channelPosts: () => request<any[]>('/api/v1/miniapp/channel-posts'),
     createChannelPost: (body: object) =>
       request<any>('/api/v1/miniapp/channel-posts', { method: 'POST', body: JSON.stringify(body) }),
@@ -207,6 +226,9 @@ export const api = {
     referralConfig: () => request<any>('/api/v1/miniapp/referral-config'),
     updateReferralConfig: (body: object) =>
       request<any>('/api/v1/miniapp/referral-config', { method: 'PATCH', body: JSON.stringify(body) }),
+    badges: () => request<{
+      products?: number; orders?: number; subscription?: boolean; achievements?: boolean;
+    }>('/api/v1/miniapp/dashboard/badges'),
     returns: () => request<any[]>('/api/v1/miniapp/returns'),
     approveReturn: (id: string) =>
       request<any>(`/api/v1/miniapp/returns/${id}/approve`, { method: 'POST' }),
@@ -225,6 +247,27 @@ export const api = {
         products: { name: string; description: string; price: number; category: string; images: string[] }[];
         error?: string;
       }>(`/api/v1/miniapp/ai-imports/${id}`),
+    generateDescription: (name: string, category?: string) =>
+      request<{ description: string }>('/api/v1/miniapp/ai/generate-description', {
+        method: 'POST',
+        body: JSON.stringify({ name, category }),
+      }),
+    generateMailing: (topic: string, audience?: string) =>
+      request<{ text: string; title: string }>('/api/v1/miniapp/ai/generate-mailing', {
+        method: 'POST',
+        body: JSON.stringify({ topic, audience: audience ?? 'all' }),
+      }),
+    aiInsights: () =>
+      request<{ insights: { type: string; message: string; action?: string }[] }>('/api/v1/miniapp/ai/insights'),
+    useStreakFreeze: () =>
+      request<{ ok: boolean; freezes_remaining: number }>('/api/v1/miniapp/streak/freeze', { method: 'POST' }),
+    createOrderManually: (body: { customer_name: string; customer_phone: string; items: { product_id: string; qty: number; price: number }[]; total: number; payment_method?: string; note?: string }) =>
+      request<any>('/api/v1/miniapp/orders/manual', { method: 'POST', body: JSON.stringify(body) }),
+    verifyChannelAdmin: (channel_username: string) =>
+      request<{ ok: boolean; bot_is_admin: boolean; channel_title?: string }>('/api/v1/miniapp/channel/verify-admin', {
+        method: 'POST',
+        body: JSON.stringify({ channel_username }),
+      }),
     pendingTour: () =>
       request<{ id: string; tour_id: string; current_step: number; total_steps: number } | null>('/api/v1/miniapp/tours/pending'),
     skipTour: (tourId: string) =>

@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
 
@@ -15,15 +16,28 @@ const STREAK_REWARDS = [
 ]
 
 export function StreakDetailPage({ onBack, daysPassed }: Props) {
+  const qc = useQueryClient()
+  const [freezeSuccess, setFreezeSuccess] = useState(false)
+
   const { data, isLoading } = useQuery({
     queryKey: ['seller-streak'],
     queryFn: api.seller.streak,
+  })
+
+  const freezeMutation = useMutation({
+    mutationFn: () => api.seller.useStreakFreeze(),
+    onSuccess: () => {
+      setFreezeSuccess(true)
+      qc.invalidateQueries({ queryKey: ['seller-streak'] })
+      setTimeout(() => setFreezeSuccess(false), 4000)
+    },
   })
 
   const currentStreak = data?.current_streak ?? daysPassed
   const bestStreak = data?.best_streak ?? daysPassed
   const todayAtRisk = data?.today_at_risk ?? false
   const calendar = data?.calendar ?? []
+  const freezesRemaining = (data as any)?.freezes_remaining ?? 1
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'var(--bg)', overflow: 'auto' }}>
@@ -84,13 +98,14 @@ export function StreakDetailPage({ onBack, daysPassed }: Props) {
                   const today = new Date()
                   const firstDay = new Date(today)
                   firstDay.setDate(today.getDate() - 29)
-                  // pad to align with Monday start
                   const dayOfWeek = (firstDay.getDay() + 6) % 7
                   const pads = Array(dayOfWeek).fill(null)
                   return [
                     ...pads.map((_, i) => <div key={`pad-${i}`}/>),
-                    ...calendar.map(entry => {
+                    ...calendar.map((entry: any) => {
                       const isToday = entry.date === today.toISOString().slice(0, 10)
+                      const isFrozen = entry.frozen === true
+                      const bg = isFrozen ? '#BFDBFE' : entry.has_orders ? 'var(--accent)' : 'var(--subtle)'
                       return (
                         <div
                           key={entry.date}
@@ -98,20 +113,20 @@ export function StreakDetailPage({ onBack, daysPassed }: Props) {
                           style={{
                             aspectRatio: '1',
                             borderRadius: 6,
-                            background: entry.has_orders ? 'var(--accent)' : 'var(--subtle)',
+                            background: bg,
                             border: isToday ? '2px solid var(--accent)' : '2px solid transparent',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             fontSize: 9,
                           }}
                         >
-                          {isToday ? '•' : ''}
+                          {isFrozen ? '❄' : isToday ? '•' : ''}
                         </div>
                       )
                     }),
                   ]
                 })()}
               </div>
-              <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
+              <div style={{ display: 'flex', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--muted)' }}>
                   <div style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--accent)' }}/>
                   Есть заказы
@@ -119,6 +134,10 @@ export function StreakDetailPage({ onBack, daysPassed }: Props) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--muted)' }}>
                   <div style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--subtle)', border: '1px solid var(--border)' }}/>
                   Нет заказов
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--muted)' }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 3, background: '#BFDBFE', fontSize: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>❄</div>
+                  Заморожен
                 </div>
               </div>
             </div>
@@ -159,18 +178,61 @@ export function StreakDetailPage({ onBack, daysPassed }: Props) {
             </div>
           </div>
 
-          {/* Freeze info */}
+          {/* Freeze section */}
           <div style={{ padding: '16px', borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
               ❄ Заморозка стрика
             </div>
-            <div style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.6, marginBottom: 10 }}>
+            <div style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.6, marginBottom: 6 }}>
               1 бесплатная заморозка в месяц. Замороженный день не прервёт стрик, даже без заказов.
             </div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>
-              Функция заморозки будет доступна в следующем обновлении.
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>
+              Осталось заморозок: <strong style={{ color: 'var(--ink)' }}>{freezesRemaining}</strong>
+            </div>
+            {freezeSuccess && (
+              <div style={{ padding: '8px 12px', borderRadius: 10, background: '#D1FAE5', fontSize: 13, color: '#065F46', fontWeight: 600, marginBottom: 10 }}>
+                ✅ Заморозка применена! Сегодняшний день защищён.
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => freezeMutation.mutate()}
+                disabled={freezesRemaining <= 0 || freezeMutation.isPending || freezeSuccess}
+                style={{
+                  flex: 1, height: 42, borderRadius: 12,
+                  background: freezesRemaining > 0 && !freezeSuccess ? '#EFF6FF' : 'var(--subtle)',
+                  color: freezesRemaining > 0 && !freezeSuccess ? '#2563EB' : 'var(--muted)',
+                  fontWeight: 700, fontSize: 14, border: 'none', cursor: freezesRemaining > 0 && !freezeSuccess ? 'pointer' : 'not-allowed',
+                  opacity: freezeMutation.isPending ? 0.7 : 1,
+                }}
+              >
+                {freezeMutation.isPending ? '...' : '❄ Использовать заморозку'}
+              </button>
             </div>
           </div>
+
+          {/* Other streaks section */}
+          {(data as any)?.other_streaks && (data as any).other_streaks.length > 0 && (
+            <div style={{ padding: '16px', borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+                Другие стрики
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {((data as any).other_streaks as any[]).map((s: any) => (
+                  <div key={s.type} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                      {s.type === 'daily_active' ? '⚡' : '📊'}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{s.label ?? s.type}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>Текущий: {s.current} · Лучший: {s.best}</div>
+                    </div>
+                    <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 16, color: 'var(--accent)' }}>{s.current}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
         </div>
       )}

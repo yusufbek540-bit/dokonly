@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
@@ -45,6 +45,65 @@ function SparkLine({ data, color = '#6366F1' }: { data: number[]; color?: string
   )
 }
 
+function DualLineChart({
+  primary,
+  compare,
+  primaryColor = '#6366F1',
+  compareColor = '#F59E0B',
+}: {
+  primary: number[]
+  compare?: number[]
+  primaryColor?: string
+  compareColor?: string
+}) {
+  const allValues = [...primary, ...(compare ?? [])]
+  const max = Math.max(...allValues, 1)
+  const min = Math.min(...allValues, 0)
+  const range = max - min || 1
+  const W = 600, H = 80
+
+  const toPts = (data: number[]) =>
+    data.map((v, i) => `${(i / Math.max(data.length - 1, 1)) * W},${H - ((v - min) / range) * H}`).join(' ')
+
+  return (
+    <div>
+      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: 'visible' }} preserveAspectRatio="none">
+        <polyline
+          points={toPts(primary)}
+          fill="none"
+          stroke={primaryColor}
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {compare && compare.length > 1 && (
+          <polyline
+            points={toPts(compare)}
+            fill="none"
+            stroke={compareColor}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeDasharray="6 3"
+          />
+        )}
+      </svg>
+      {compare && compare.length > 1 && (
+        <div className="flex items-center gap-4 mt-2">
+          <div className="flex items-center gap-1.5">
+            <span style={{ color: primaryColor }} className="text-base">●</span>
+            <span className="text-xs text-gray-500">Период 1</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span style={{ color: compareColor }} className="text-base">●</span>
+            <span className="text-xs text-gray-500">Период 2</span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function StatCard({
   label,
   value,
@@ -52,6 +111,7 @@ function StatCard({
   trend,
   data,
   color,
+  compareValue,
 }: {
   label: string
   value: string
@@ -59,8 +119,30 @@ function StatCard({
   trend?: number
   data?: number[]
   color?: string
+  compareValue?: string
 }) {
   const trendPos = trend !== undefined && trend >= 0
+
+  // Calculate delta % between main value and compareValue
+  let deltaLine: React.ReactNode = null
+  if (compareValue !== undefined) {
+    const mainNum = parseFloat(value.replace(/\s/g, '').replace(/[^\d.-]/g, ''))
+    const compareNum = parseFloat(compareValue.replace(/\s/g, '').replace(/[^\d.-]/g, ''))
+    if (!isNaN(mainNum) && !isNaN(compareNum) && compareNum !== 0) {
+      const delta = ((mainNum - compareNum) / compareNum) * 100
+      const deltaPos = delta >= 0
+      deltaLine = (
+        <p className={`text-xs mt-1 font-medium ${deltaPos ? 'text-green-600' : 'text-red-500'}`}>
+          vs {compareValue} ({deltaPos ? '+' : ''}{delta.toFixed(1)}%)
+        </p>
+      )
+    } else {
+      deltaLine = (
+        <p className="text-xs mt-1 text-gray-400">vs {compareValue}</p>
+      )
+    }
+  }
+
   return (
     <div className="bg-white rounded-2xl border p-5">
       <div className="flex items-start justify-between mb-3">
@@ -68,6 +150,7 @@ function StatCard({
           <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">{label}</p>
           <p className="text-2xl font-bold font-mono mt-1">{value}</p>
           {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+          {deltaLine}
         </div>
         {trend !== undefined && (
           <span className={`text-xs font-semibold px-2 py-1 rounded-full ${trendPos ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
@@ -89,11 +172,20 @@ function fmtCurrency(n: number, currency = 'UZS') {
 
 export function AnalyticsPage() {
   const [period, setPeriod] = useState('30d')
+  const [compareMode, setCompareMode] = useState(false)
+  const [comparePeriod, setComparePeriod] = useState('7d')
 
   const { data: analytics, isLoading } = useQuery({
     queryKey: ['merchant-analytics', period],
     queryFn: () => api.merchant.analytics(period),
     staleTime: 60_000,
+  })
+
+  const { data: compareAnalytics } = useQuery({
+    queryKey: ['merchant-analytics-compare', comparePeriod],
+    queryFn: () => api.merchant.analytics(comparePeriod),
+    enabled: compareMode,
+    retry: false,
   })
 
   const { data: orders = [] } = useQuery({
@@ -103,6 +195,7 @@ export function AnalyticsPage() {
   })
 
   const a = analytics as any
+  const ca = compareAnalytics as any
 
   const totalRevenue: number = a?.total_revenue ?? orders.reduce((s: number, o: any) => s + Number(o.total ?? 0), 0)
   const totalOrders: number = a?.total_orders ?? orders.length
@@ -110,6 +203,21 @@ export function AnalyticsPage() {
   const currency: string = a?.currency ?? orders[0]?.currency ?? 'UZS'
   const conversionRate: number = a?.conversion_rate ?? 0
   const newCustomers: number = a?.new_customers ?? 0
+
+  // Comparison values
+  const cmpRevenue: number | undefined = compareMode && ca ? (ca.total_revenue ?? 0) : undefined
+  const cmpOrders: number | undefined = compareMode && ca ? (ca.total_orders ?? 0) : undefined
+  const cmpAov: number | undefined = compareMode && ca && (ca.total_orders ?? 0) > 0
+    ? Math.round((ca.total_revenue ?? 0) / ca.total_orders)
+    : undefined
+  const cmpNewCustomers: number | undefined = compareMode && ca ? (ca.new_customers ?? 0) : undefined
+
+  const compareRevenueByDay: number[] = useMemo(() => {
+    if (!compareMode) return []
+    if (ca?.revenue_by_day) return ca.revenue_by_day
+    const days = comparePeriod === '7d' ? 7 : comparePeriod === '1d' ? 24 : comparePeriod === '30d' ? 30 : 12
+    return Array.from({ length: days }, () => 0)
+  }, [ca, comparePeriod, compareMode])
 
   const revenueByDay: number[] = useMemo(() => {
     if (a?.revenue_by_day) return a.revenue_by_day
@@ -139,7 +247,7 @@ export function AnalyticsPage() {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-bold font-display">Аналитика</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="flex bg-white border rounded-xl overflow-hidden">
             {PERIODS.map((p) => (
               <button
@@ -154,6 +262,26 @@ export function AnalyticsPage() {
             ))}
           </div>
           <button
+            onClick={() => setCompareMode(m => !m)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-xl border transition-colors ${
+              compareMode ? 'bg-accent text-white border-accent' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <span>⚖️</span> Сравнить
+          </button>
+          {compareMode && (
+            <div className="flex bg-white border rounded-xl overflow-hidden">
+              {PERIODS.map(p => (
+                <button key={p.value} onClick={() => setComparePeriod(p.value)}
+                  className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                    comparePeriod === p.value ? 'bg-amber-500 text-white' : 'text-gray-500 hover:bg-gray-50'
+                  }`}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <button
             onClick={exportPDF}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-white border rounded-xl hover:bg-gray-50 transition-colors"
           >
@@ -161,6 +289,18 @@ export function AnalyticsPage() {
           </button>
         </div>
       </div>
+
+      {compareMode && (
+        <div className="flex items-center gap-3 px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl text-sm mb-4">
+          <span>⚖️</span>
+          <span className="font-medium text-amber-800">
+            Режим сравнения: {PERIODS.find(p => p.value === period)?.label} vs {PERIODS.find(p => p.value === comparePeriod)?.label}
+          </span>
+          <button onClick={() => setCompareMode(false)} className="ml-auto text-amber-600 hover:text-amber-800 font-semibold text-xs">
+            Выключить
+          </button>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex justify-center pt-16">
@@ -176,6 +316,7 @@ export function AnalyticsPage() {
               trend={a?.revenue_trend ?? 12}
               data={revenueByDay}
               color="#6366F1"
+              compareValue={cmpRevenue !== undefined ? fmtCurrency(cmpRevenue, currency) : undefined}
             />
             <StatCard
               label="Заказы"
@@ -183,18 +324,21 @@ export function AnalyticsPage() {
               trend={a?.orders_trend ?? 8}
               data={ordersByDay}
               color="#10B981"
+              compareValue={cmpOrders !== undefined ? cmpOrders.toString() : undefined}
             />
             <StatCard
               label="Средний чек"
               value={fmtCurrency(aov, currency)}
               sub="на один заказ"
               trend={a?.aov_trend ?? 3}
+              compareValue={cmpAov !== undefined ? fmtCurrency(cmpAov, currency) : undefined}
             />
             <StatCard
               label="Новых клиентов"
               value={newCustomers.toString()}
               sub={conversionRate ? `Конверсия ${conversionRate}%` : undefined}
               trend={a?.customers_trend ?? 15}
+              compareValue={cmpNewCustomers !== undefined ? cmpNewCustomers.toString() : undefined}
             />
           </div>
 
@@ -206,7 +350,16 @@ export function AnalyticsPage() {
                 <h3 className="font-semibold text-sm">Выручка по дням</h3>
                 <span className="text-xs text-gray-400">{period === '7d' ? 'последние 7 дней' : period === '30d' ? 'последние 30 дней' : period === '1d' ? 'сегодня по часам' : 'по месяцам'}</span>
               </div>
-              <MiniBarChart data={revenueByDay} color="#6366F1" />
+              {compareMode ? (
+                <DualLineChart
+                  primary={revenueByDay}
+                  compare={compareRevenueByDay.length > 1 ? compareRevenueByDay : undefined}
+                  primaryColor="#6366F1"
+                  compareColor="#F59E0B"
+                />
+              ) : (
+                <MiniBarChart data={revenueByDay} color="#6366F1" />
+              )}
               <div className="flex justify-between mt-2">
                 <span className="text-xs text-gray-400">
                   {period === '7d' ? 'Пн' : '1'}

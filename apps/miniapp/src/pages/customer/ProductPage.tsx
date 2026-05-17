@@ -37,6 +37,8 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
   const [descExpanded, setDescExpanded] = useState(false)
   const [showShare, setShowShare] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [reviewSort, setReviewSort] = useState<'recent' | 'highest' | 'lowest'>('recent')
+  const [showImageViewer, setShowImageViewer] = useState(false)
 
   const add = useCart((s) => s.add)
   const cartCount = useCart((s) => s.count)()
@@ -82,6 +84,13 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
     retry: false,
   })
 
+  const { data: recommendations = [] } = useQuery({
+    queryKey: ['product-recommendations', tenantId, productId],
+    queryFn: () => api.getRecommendations(tenantId, productId),
+    retry: false,
+    enabled: !!tenantId && !!productId,
+  })
+
   const product = (allProducts as any[]).find(p => p.id === productId)
   const isAvailable = !!product && product.stock > 0
   const totalPrice = product ? Number(product.price) * qty : 0
@@ -110,9 +119,10 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
     color: added ? '#059669' : null,
   })
 
-  const similar = (allProducts as any[])
+  const clientSideSimilar = (allProducts as any[])
     .filter(p => p.id !== productId && p.is_active && p.category && p.category === product?.category)
     .slice(0, 4)
+  const similar = (recommendations as any[]).length > 0 ? (recommendations as any[]) : clientSideSimilar
 
   if (isLoading) {
     return (
@@ -135,7 +145,10 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
       ? `https://t.me/${shopSlug}bot/store?startapp=p_${productId}`
       : window.location.href
 
-  const handleShare = () => setShowShare(true)
+  const handleShare = () => {
+    api.createShareIntent(tenantId, productId).catch(() => {})
+    setShowShare(true)
+  }
 
   const handleTelegramShare = () => {
     const tg = (window as any).Telegram?.WebApp
@@ -209,7 +222,8 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
             <img
               src={images[imgIdx]}
               alt={product.name}
-              style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block' }}
+              onClick={() => setShowImageViewer(true)}
+              style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block', cursor: 'zoom-in' }}
             />
           ) : (
             <div className="img-ph" data-tone={t} style={{ width: '100%', borderRadius: 0, fontSize: 16 }}>
@@ -435,10 +449,44 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
           </div>
         )}
 
+        {/* Specifications */}
+        {product.attributes && Object.keys(product.attributes).length > 0 && (() => {
+          const ATTR_LABELS: Record<string, string> = {
+            brand: 'Бренд', material: 'Материал', model: 'Модель',
+            specifications: 'Характеристики', year: 'Год', dimensions: 'Размеры',
+          }
+          const entries = Object.entries(product.attributes as Record<string, string>).filter(([, v]) => v)
+          if (!entries.length) return null
+          return (
+            <div style={{ padding: '24px 16px 0' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted-strong)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+                Характеристики
+              </div>
+              <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                {entries.map(([key, value], i) => (
+                  <div key={key} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                    padding: '11px 14px',
+                    borderBottom: i < entries.length - 1 ? '1px solid var(--border)' : 'none',
+                    background: 'var(--card)',
+                  }}>
+                    <span style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 500 }}>
+                      {ATTR_LABELS[key] ?? key}
+                    </span>
+                    <span style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 500, textAlign: 'right', maxWidth: '60%' }}>
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
+
         {/* Reviews section */}
         {reviewData && reviewData.count > 0 && (
           <div style={{ padding: '24px 16px 0' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted-strong)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 Отзывы ({reviewData.count})
               </div>
@@ -451,8 +499,30 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
                 </button>
               )}
             </div>
+            {/* Sort selector */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 12, overflowX: 'auto', scrollbarWidth: 'none' }}>
+              {([['recent', 'Новые'], ['highest', 'Высокие ⭐'], ['lowest', 'Низкие']] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  onClick={() => setReviewSort(val)}
+                  style={{
+                    flexShrink: 0, padding: '5px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+                    background: reviewSort === val ? 'var(--accent)' : 'var(--subtle)',
+                    color: reviewSort === val ? 'white' : 'var(--muted)',
+                    border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                  }}
+                >{label}</button>
+              ))}
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {(showAllReviews ? reviewData.reviews : reviewData.reviews.slice(0, 3)).map((r, i) => (
+              {(showAllReviews
+                ? [...reviewData.reviews]
+                : [...reviewData.reviews].slice(0, 3)
+              ).sort((a: any, b: any) =>
+                reviewSort === 'recent' ? new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                : reviewSort === 'highest' ? b.rating - a.rating
+                : a.rating - b.rating
+              ).map((r, i) => (
                 <div key={i} style={{
                   padding: '12px 14px', borderRadius: 12,
                   background: 'var(--card)', border: '1px solid var(--border)',
@@ -624,6 +694,68 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
               </div>
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Image viewer overlay */}
+      {showImageViewer && images.length > 0 && (
+        <div
+          onClick={() => setShowImageViewer(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(0,0,0,0.95)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <img
+            src={images[imgIdx]}
+            alt={product.name}
+            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', touchAction: 'pinch-zoom' }}
+            onClick={e => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setShowImageViewer(false)}
+            style={{
+              position: 'absolute', top: 16, right: 16,
+              width: 36, height: 36, borderRadius: 999,
+              background: 'rgba(255,255,255,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: 'none', cursor: 'pointer',
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+          {images.length > 1 && (
+            <>
+              <div style={{ position: 'absolute', bottom: 20, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 6 }}>
+                {images.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={e => { e.stopPropagation(); setImgIdx(i) }}
+                    style={{ width: i === imgIdx ? 20 : 6, height: 6, borderRadius: 999, background: i === imgIdx ? 'white' : 'rgba(255,255,255,0.4)', border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                  />
+                ))}
+              </div>
+              {imgIdx > 0 && (
+                <button
+                  onClick={e => { e.stopPropagation(); setImgIdx(i => i - 1) }}
+                  style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: 999, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer' }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+              )}
+              {imgIdx < images.length - 1 && (
+                <button
+                  onClick={e => { e.stopPropagation(); setImgIdx(i => i + 1) }}
+                  style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: 999, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer' }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>

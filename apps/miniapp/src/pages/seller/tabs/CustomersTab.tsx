@@ -3,6 +3,25 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
 
+const NOTES_KEY = 'dokonly_seller_customer_notes'
+interface CustomerMeta { note: string; tags: string[] }
+
+function loadMeta(key: string): CustomerMeta {
+  try {
+    const raw = localStorage.getItem(NOTES_KEY)
+    const all = raw ? JSON.parse(raw) : {}
+    return all[key] ?? { note: '', tags: [] }
+  } catch { return { note: '', tags: [] } }
+}
+
+function saveMeta(key: string, meta: CustomerMeta) {
+  try {
+    const raw = localStorage.getItem(NOTES_KEY)
+    const all = raw ? JSON.parse(raw) : {}
+    localStorage.setItem(NOTES_KEY, JSON.stringify({ ...all, [key]: meta }))
+  } catch {}
+}
+
 function fmtPrice(n: number, currency: string) {
   if (currency === 'UZS') return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' сум'
   return n.toLocaleString() + ' ' + currency
@@ -41,9 +60,11 @@ const STATUS_COLORS: Record<string, string> = {
 
 function CustomerDetail({ customer, currency, onBack }: { customer: CustomerData; currency: string; onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'notes'>('overview')
-  const [note, setNote] = useState('')
-  const [tags, setTags] = useState<string[]>([])
+  const storageKey = customer.telegramId ? `tg_${customer.telegramId}` : `phone_${customer.phone}`
+  const [note, setNote] = useState(() => loadMeta(storageKey).note)
+  const [tags, setTags] = useState<string[]>(() => loadMeta(storageKey).tags)
   const [tagInput, setTagInput] = useState('')
+  const [noteSaved, setNoteSaved] = useState(false)
 
   const aov = customer.orderCount > 0 ? customer.totalSpent / customer.orderCount : 0
   const segment = customer.orderCount >= 5 ? 'VIP' : customer.orderCount >= 2 ? 'Постоянный' : 'Новый'
@@ -223,7 +244,11 @@ function CustomerDetail({ customer, currency, onBack }: { customer: CustomerData
                 {tags.map(tag => (
                   <div key={tag} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 999, background: 'var(--accent-soft)', border: '1px solid var(--accent)' }}>
                     <span style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 500 }}>{tag}</span>
-                    <button onClick={() => setTags(t => t.filter(x => x !== tag))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                    <button onClick={() => {
+                      const newTags = tags.filter(x => x !== tag)
+                      setTags(newTags)
+                      saveMeta(storageKey, { note, tags: newTags })
+                    }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
                   </div>
                 ))}
               </div>
@@ -233,15 +258,24 @@ function CustomerDetail({ customer, currency, onBack }: { customer: CustomerData
                   onChange={e => setTagInput(e.target.value)}
                   onKeyDown={e => {
                     if (e.key === 'Enter' && tagInput.trim()) {
-                      setTags(t => [...t, tagInput.trim()])
+                      const newTags = [...tags, tagInput.trim()]
+                      setTags(newTags)
                       setTagInput('')
+                      saveMeta(storageKey, { note, tags: newTags })
                     }
                   }}
                   placeholder="Добавить тег..."
                   style={{ flex: 1, height: 40, padding: '0 12px', borderRadius: 10, background: 'var(--card)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--ink)', outline: 'none' }}
                 />
                 <button
-                  onClick={() => { if (tagInput.trim()) { setTags(t => [...t, tagInput.trim()]); setTagInput('') } }}
+                  onClick={() => {
+                    if (tagInput.trim()) {
+                      const newTags = [...tags, tagInput.trim()]
+                      setTags(newTags)
+                      setTagInput('')
+                      saveMeta(storageKey, { note, tags: newTags })
+                    }
+                  }}
                   style={{ height: 40, padding: '0 14px', borderRadius: 10, background: 'var(--accent)', color: 'white', fontSize: 13, fontWeight: 600 }}
                 >
                   +
@@ -266,10 +300,14 @@ function CustomerDetail({ customer, currency, onBack }: { customer: CustomerData
               />
               {note && (
                 <button
-                  onClick={() => alert('Заметка сохранена (функция в разработке)')}
-                  style={{ marginTop: 10, height: 40, padding: '0 20px', borderRadius: 10, background: 'var(--accent)', color: 'white', fontSize: 14, fontWeight: 600 }}
+                  onClick={() => {
+                    saveMeta(storageKey, { note, tags })
+                    setNoteSaved(true)
+                    setTimeout(() => setNoteSaved(false), 2000)
+                  }}
+                  style={{ marginTop: 10, height: 40, padding: '0 20px', borderRadius: 10, background: 'var(--accent)', color: 'white', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}
                 >
-                  Сохранить
+                  {noteSaved ? '✓ Сохранено' : 'Сохранить'}
                 </button>
               )}
             </div>
@@ -284,6 +322,7 @@ interface Props { tenant: any }
 
 export function CustomersTab({ tenant }: Props) {
   const [search, setSearch] = useState('')
+  const [segmentFilter, setSegmentFilter] = useState<'' | 'new' | 'returning' | 'vip'>('')
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerData | null>(null)
 
   const { data: orders = [], isLoading } = useQuery({
@@ -327,12 +366,18 @@ export function CustomersTab({ tenant }: Props) {
   }
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return customers
-    const q = search.toLowerCase()
-    return customers.filter(c =>
-      c.name.toLowerCase().includes(q) || c.phone.includes(q)
-    )
-  }, [customers, search])
+    return customers.filter(c => {
+      if (search.trim()) {
+        const q = search.toLowerCase()
+        if (!c.name.toLowerCase().includes(q) && !c.phone.includes(q)) return false
+      }
+      if (segmentFilter) {
+        const seg = c.orderCount >= 5 ? 'vip' : c.orderCount >= 2 ? 'returning' : 'new'
+        if (seg !== segmentFilter) return false
+      }
+      return true
+    })
+  }, [customers, search, segmentFilter])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -373,6 +418,30 @@ export function CustomersTab({ tenant }: Props) {
               color: 'var(--ink)',
             }}
           />
+        </div>
+
+        {/* Segment filter chips */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 10, overflowX: 'auto' }}>
+          {([
+            { id: '' as const, label: 'Все' },
+            { id: 'new' as const, label: 'Новые' },
+            { id: 'returning' as const, label: 'Постоянные' },
+            { id: 'vip' as const, label: 'VIP' },
+          ]).map(seg => (
+            <button
+              key={seg.id}
+              onClick={() => setSegmentFilter(seg.id)}
+              style={{
+                flexShrink: 0, height: 32, padding: '0 14px', borderRadius: 999,
+                background: segmentFilter === seg.id ? 'var(--accent)' : 'var(--card)',
+                border: `1px solid ${segmentFilter === seg.id ? 'var(--accent)' : 'var(--border)'}`,
+                color: segmentFilter === seg.id ? 'white' : 'var(--ink)',
+                fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+              }}
+            >
+              {seg.label}
+            </button>
+          ))}
         </div>
       </div>
 

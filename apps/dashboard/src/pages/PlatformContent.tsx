@@ -2,6 +2,83 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
+function renderMarkdown(text: string): string {
+  if (!text) return ''
+
+  // Escape HTML entities first to prevent XSS from raw content
+  const escape = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+  // Process line by line for block elements, then inline
+  const lines = text.split('\n')
+  const output: string[] = []
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]
+
+    // Headings
+    if (/^### /.test(line)) {
+      output.push(`<h3>${applyInline(escape(line.slice(4)))}</h3>`)
+      i++; continue
+    }
+    if (/^## /.test(line)) {
+      output.push(`<h2>${applyInline(escape(line.slice(3)))}</h2>`)
+      i++; continue
+    }
+    if (/^# /.test(line)) {
+      output.push(`<h1>${applyInline(escape(line.slice(2)))}</h1>`)
+      i++; continue
+    }
+
+    // Unordered list
+    if (/^[-*] /.test(line)) {
+      const items: string[] = []
+      while (i < lines.length && /^[-*] /.test(lines[i])) {
+        items.push(`<li>${applyInline(escape(lines[i].slice(2)))}</li>`)
+        i++
+      }
+      output.push(`<ul>${items.join('')}</ul>`)
+      continue
+    }
+
+    // Ordered list
+    if (/^\d+\. /.test(line)) {
+      const items: string[] = []
+      while (i < lines.length && /^\d+\. /.test(lines[i])) {
+        items.push(`<li>${applyInline(escape(lines[i].replace(/^\d+\. /, '')))}</li>`)
+        i++
+      }
+      output.push(`<ol>${items.join('')}</ol>`)
+      continue
+    }
+
+    // Empty line → paragraph break
+    if (line.trim() === '') {
+      output.push('<br>')
+      i++; continue
+    }
+
+    // Regular paragraph line
+    output.push(`<p>${applyInline(escape(line))}</p>`)
+    i++
+  }
+
+  return output.join('')
+}
+
+function applyInline(text: string): string {
+  return text
+    // Bold: **text**
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // Italic: *text*
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    // Inline code: `code`
+    .replace(/`(.+?)`/g, '<code>$1</code>')
+    // Links: [text](url)
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>')
+}
+
 const CATEGORIES = ['General', 'Orders', 'Products', 'Payments', 'Settings', 'Returns', 'Loyalty', 'Referrals']
 
 interface Article {
@@ -108,9 +185,10 @@ function ArticleEditor({ article, onClose, onSave, isPending }: ArticleEditorPro
                 className="w-full border rounded-xl px-3 py-2 text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-accent/30"
               />
             ) : (
-              <div className="border rounded-xl px-4 py-3 min-h-[14rem] text-sm prose max-w-none whitespace-pre-wrap bg-gray-50">
-                {content || <span className="text-gray-400 italic">Нет содержания для предпросмотра</span>}
-              </div>
+              <div
+                className="border rounded-xl px-4 py-3 min-h-[14rem] text-sm bg-gray-50 prose max-w-none overflow-auto"
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(content) || '<span style="color:#aaa;font-style:italic">Нет содержания для предпросмотра</span>' }}
+              />
             )}
           </div>
         </div>

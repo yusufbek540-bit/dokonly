@@ -1,5 +1,8 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+
+type AnalyticsTab = 'growth' | 'revenue' | 'usage' | 'ai'
 
 function fmtRevenue(n: number) {
   if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1) + 'B'
@@ -25,32 +28,67 @@ function MiniBar({ values, color = '#4F46E5' }: { values: number[]; color?: stri
   )
 }
 
+const ANALYTICS_TABS: { key: AnalyticsTab; label: string; icon: string }[] = [
+  { key: 'growth', label: 'Рост', icon: '📈' },
+  { key: 'revenue', label: 'Выручка', icon: '💰' },
+  { key: 'usage', label: 'Использование', icon: '🔧' },
+  { key: 'ai', label: 'AI расходы', icon: '🤖' },
+]
+
 export function PlatformAnalyticsPage() {
+  const [tab, setTab] = useState<AnalyticsTab>('growth')
+
   const { data: growth, isLoading: gLoading } = useQuery({
     queryKey: ['platform-analytics-growth'],
     queryFn: api.platform.analytics.growth,
     refetchInterval: 300000,
+    enabled: tab === 'growth',
   })
 
   const { data: revenue, isLoading: rLoading } = useQuery({
     queryKey: ['platform-analytics-revenue'],
     queryFn: api.platform.analytics.revenue,
     refetchInterval: 300000,
+    enabled: tab === 'revenue',
   })
 
   const { data: aiCosts, isLoading: aLoading } = useQuery({
     queryKey: ['platform-analytics-ai'],
     queryFn: api.platform.analytics.aiCosts,
     refetchInterval: 300000,
+    enabled: tab === 'ai',
   })
 
-  const isLoading = gLoading || rLoading || aLoading
+  const { data: usage, isLoading: uLoading } = useQuery({
+    queryKey: ['platform-analytics-usage'],
+    queryFn: api.platform.analytics.productUsage,
+    refetchInterval: 300000,
+    enabled: tab === 'usage',
+  })
+
+  const isLoading = (tab === 'growth' && gLoading) || (tab === 'revenue' && rLoading) || (tab === 'ai' && aLoading) || (tab === 'usage' && uLoading)
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold font-display">Аналитика платформы</h1>
         <span className="text-sm text-gray-400">Обновление каждые 5 мин</span>
+      </div>
+
+      {/* Tab bar */}
+      <div className="flex gap-1 border-b border-gray-100 overflow-x-auto">
+        {ANALYTICS_TABS.map(t => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 -mb-px transition-colors ${
+              tab === t.key ? 'border-accent text-accent' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <span>{t.icon}</span>
+            <span>{t.label}</span>
+          </button>
+        ))}
       </div>
 
       {isLoading ? (
@@ -60,7 +98,7 @@ export function PlatformAnalyticsPage() {
       ) : (
         <>
           {/* Growth metrics */}
-          {growth && (
+          {tab === 'growth' && growth && (
             <div className="bg-white rounded-2xl border border-gray-100 p-5">
               <h2 className="font-semibold text-gray-800 mb-4">Рост платформы</h2>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -87,7 +125,7 @@ export function PlatformAnalyticsPage() {
           )}
 
           {/* Revenue breakdown */}
-          {revenue && (
+          {tab === 'revenue' && revenue && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {revenue.by_tier && (
                 <div className="bg-white rounded-2xl border border-gray-100 p-5">
@@ -137,7 +175,7 @@ export function PlatformAnalyticsPage() {
           )}
 
           {/* AI costs */}
-          {aiCosts && (
+          {tab === 'ai' && aiCosts && (
             <div className="bg-white rounded-2xl border border-gray-100 p-5">
               <h2 className="font-semibold text-gray-800 mb-4">AI Расходы</h2>
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
@@ -186,7 +224,81 @@ export function PlatformAnalyticsPage() {
             </div>
           )}
 
-          {(!growth && !revenue && !aiCosts) && (
+          {/* Product Usage */}
+          {tab === 'usage' && usage && (
+            <div className="space-y-6">
+              {usage.top_features && (
+                <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                  <h2 className="font-semibold text-gray-800 mb-4">Топ фичи</h2>
+                  <div className="space-y-3">
+                    {(usage.top_features as { feature: string; count: number }[]).map((f) => {
+                      const maxCount = Math.max(...(usage.top_features as { feature: string; count: number }[]).map((x: { count: number }) => x.count), 1)
+                      const pct = Math.round((f.count / maxCount) * 100)
+                      return (
+                        <div key={f.feature}>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="text-gray-700 capitalize">{f.feature.replace(/_/g, ' ')}</span>
+                            <span className="text-gray-500 font-mono">{f.count.toLocaleString()}</span>
+                          </div>
+                          <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                            <div style={{ width: `${pct}%`, height: '100%', background: '#4F46E5', borderRadius: 999 }} />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {usage.ai_adoption_by_plan && (
+                <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                  <h2 className="font-semibold text-gray-800 mb-4">AI-функции по тарифам</h2>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-gray-400 text-xs border-b border-gray-100">
+                          <th className="pb-2 font-medium">Тариф</th>
+                          <th className="pb-2 font-medium text-right">Активаций</th>
+                          <th className="pb-2 font-medium text-right">% использ.</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(Object.entries(usage.ai_adoption_by_plan) as [string, { activations: number; usage_pct: number }][]).map(([plan, data]) => (
+                          <tr key={plan} className="border-b border-gray-50 last:border-0">
+                            <td className="py-2 font-medium capitalize" style={{ color: ({ trial: '#F59E0B', start: '#3B82F6', business: '#8B5CF6', premium: '#10B981' } as Record<string, string>)[plan] ?? '#6B7280' }}>{plan}</td>
+                            <td className="py-2 text-right font-mono text-gray-600">{data.activations?.toLocaleString()}</td>
+                            <td className="py-2 text-right font-mono text-gray-600">{data.usage_pct?.toFixed(1)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {usage.channel_gate_adoption && (
+                <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                  <h2 className="font-semibold text-gray-800 mb-4">Каналы продаж</h2>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {(Object.entries(usage.channel_gate_adoption) as [string, number][]).map(([channel, pct]) => (
+                      <div key={channel} className="p-4 bg-gray-50 rounded-xl">
+                        <p className="text-xs text-gray-500 mb-1 capitalize">{channel.replace(/_/g, ' ')}</p>
+                        <p className="font-mono font-bold text-xl text-indigo-600">{(pct as number).toFixed(1)}%</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === 'usage' && !usage && !uLoading && (
+            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center text-gray-400 text-sm">
+              Нет данных использования
+            </div>
+          )}
+
+          {(!growth && tab === 'growth') && !gLoading && (
             <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center text-gray-400 text-sm">
               Нет данных аналитики
             </div>

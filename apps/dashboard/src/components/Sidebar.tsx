@@ -8,6 +8,7 @@ const links = [
   { to: '/marketing', label: 'Маркетинг', icon: '📨' },
   { to: '/analytics', label: 'Аналитика', icon: '📈' },
   { to: '/team', label: 'Команда', icon: '🤝' },
+  { to: '/billing', label: 'Биллинг', icon: '💎' },
   { to: '/settings', label: 'Настройки', icon: '⚙️' },
 ]
 
@@ -21,6 +22,7 @@ const platformLinks = [
   { to: '/platform/status', label: 'Статус', icon: '🟢' },
   { to: '/platform/support', label: 'Поддержка', icon: '💬' },
   { to: '/platform/content', label: 'Контент', icon: '📚' },
+  { to: '/platform/config', label: 'Конфигурация', icon: '⚙️' },
 ]
 
 interface SidebarProps {
