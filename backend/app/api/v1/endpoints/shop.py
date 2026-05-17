@@ -1081,3 +1081,194 @@ async def get_my_referral(
         },
         "friends": friends,
     }
+
+
+@router.get("/{tenant_id}/stories")
+async def get_stories(tenant_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(404, "Shop not found")
+    return (tenant.settings or {}).get("stories", [])
+
+
+@router.get("/{tenant_id}/my-loyalty-history")
+async def get_loyalty_history(
+    tenant_id: str,
+    x_telegram_init_data: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    if not x_telegram_init_data:
+        raise HTTPException(401, "Auth required")
+    tg_user = _validate_init_data(x_telegram_init_data)
+    if tg_user is None:
+        raise HTTPException(401, "Invalid auth")
+    return []
+
+
+@router.post("/{tenant_id}/products/{product_id}/share-intent")
+async def create_share_intent(
+    tenant_id: str,
+    product_id: str,
+    x_telegram_init_data: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    if not x_telegram_init_data:
+        raise HTTPException(401, "Auth required")
+    tg_user = _validate_init_data(x_telegram_init_data)
+    if tg_user is None:
+        raise HTTPException(401, "Invalid auth")
+    tenant_result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+    tenant = tenant_result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(404, "Shop not found")
+    share_id = str(_uuid.uuid4())[:8].upper()
+    bot_username = tenant.bot_username or ""
+    deep_link = f"https://t.me/{bot_username}?start=share_{share_id}" if bot_username else ""
+    return {"share_id": share_id, "referral_code": None, "deep_link": deep_link}
+
+
+@router.get("/{tenant_id}/products/{product_id}/recommendations")
+async def get_product_recommendations(
+    tenant_id: str,
+    product_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(
+        select(Product)
+        .where(Product.tenant_id == tenant_id, Product.is_active == True, Product.id != product_id)  # noqa: E712
+        .limit(6)
+    )
+    products = result.scalars().all()
+    return [
+        {
+            "id": str(p.id),
+            "name": p.name,
+            "price": float(p.price),
+            "images": p.images or [],
+            "compare_at_price": float(p.compare_at_price) if p.compare_at_price else None,
+        }
+        for p in products
+    ]
+
+
+@router.get("/{tenant_id}/my-returns")
+async def get_my_returns(
+    tenant_id: str,
+    x_telegram_init_data: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    if not x_telegram_init_data:
+        raise HTTPException(401, "Auth required")
+    tg_user = _validate_init_data(x_telegram_init_data)
+    if tg_user is None:
+        raise HTTPException(401, "Invalid auth")
+    tg_id = tg_user.get("id")
+    result = await db.execute(
+        select(Customer).where(Customer.tenant_id == tenant_id, Customer.telegram_id == tg_id)
+    )
+    customer = result.scalar_one_or_none()
+    if not customer:
+        return []
+    returns_q = await db.execute(
+        select(Order).where(
+            Order.tenant_id == tenant_id,
+            Order.customer_id == customer.id,
+            Order.status.in_(["return_requested", "return_approved", "return_rejected", "returned"]),
+        ).order_by(Order.created_at.desc())
+    )
+    orders = returns_q.scalars().all()
+    return [
+        {
+            "id": str(o.id),
+            "status": o.status,
+            "total": float(o.total or 0),
+            "currency": o.currency,
+            "created_at": o.created_at.isoformat() if o.created_at else None,
+            "meta": o.meta or {},
+        }
+        for o in orders
+    ]
+
+
+@router.post("/{tenant_id}/returns")
+async def create_return(
+    tenant_id: str,
+    body: dict,
+    x_telegram_init_data: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    from sqlalchemy import update as sa_update
+    if not x_telegram_init_data:
+        raise HTTPException(401, "Auth required")
+    tg_user = _validate_init_data(x_telegram_init_data)
+    if tg_user is None:
+        raise HTTPException(401, "Invalid auth")
+    tg_id = tg_user.get("id")
+    order_id = body.get("order_id")
+    reason = body.get("reason", "")
+    if not order_id:
+        raise HTTPException(400, "order_id required")
+    result = await db.execute(select(Customer).where(Customer.tenant_id == tenant_id, Customer.telegram_id == tg_id))
+    customer = result.scalar_one_or_none()
+    if not customer:
+        raise HTTPException(404, "Customer not found")
+    order_result = await db.execute(
+        select(Order).where(Order.id == order_id, Order.tenant_id == tenant_id, Order.customer_id == customer.id)
+    )
+    order = order_result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(404, "Order not found")
+    meta = dict(order.meta or {})
+    meta["return_reason"] = reason
+    meta["return_items"] = body.get("items", [])
+    await db.execute(
+        sa_update(Order).where(Order.id == order.id).values(status="return_requested", meta=meta)
+    )
+    await db.commit()
+    return {"ok": True, "order_id": order_id, "status": "return_requested"}
+
+
+@router.post("/{tenant_id}/ai/chat")
+async def ai_chat(
+    tenant_id: str,
+    body: dict,
+    x_telegram_init_data: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    if not x_telegram_init_data:
+        raise HTTPException(401, "Auth required")
+    tg_user = _validate_init_data(x_telegram_init_data)
+    if tg_user is None:
+        raise HTTPException(401, "Invalid auth")
+    tenant_result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+    tenant = tenant_result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(404, "Shop not found")
+    messages = body.get("messages", [])
+    try:
+        from app.ai.client import openai as ai_client
+        resp = await ai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            max_tokens=500,
+            messages=[
+                {"role": "system", "content": f"Ты AI-консультант магазина '{tenant.name}'. Помогай покупателям с выбором товаров. Отвечай кратко и по делу, на русском языке."},
+                *[{"role": m["role"], "content": m["content"]} for m in messages],
+            ],
+        )
+        reply = resp.choices[0].message.content.strip()
+    except Exception:
+        reply = "Здравствуйте! Чем могу помочь?"
+    return {"reply": reply}
+
+
+@router.get("/public/help-articles")
+async def get_help_articles(db: AsyncSession = Depends(get_db)):  # noqa: ARG001
+    return [
+        {"id": "1", "slug": "how-to-order", "title": "Как сделать заказ", "category": "orders",
+         "content": "1. Выберите товары\n2. Добавьте в корзину\n3. Оформите заказ"},
+        {"id": "2", "slug": "payment-methods", "title": "Способы оплаты", "category": "payments",
+         "content": "Принимаем: наличные при получении, перевод на карту, Telegram Stars."},
+        {"id": "3", "slug": "returns", "title": "Возврат товара", "category": "returns",
+         "content": "Вы можете запросить возврат в течение 14 дней с момента получения заказа."},
+    ]

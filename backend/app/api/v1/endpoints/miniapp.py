@@ -1209,3 +1209,628 @@ async def upload_media(
 
     public_url = f"{settings.r2_public_url.rstrip('/')}/{key}"
     return {"url": public_url}
+
+
+# ---------------------------------------------------------------------------
+# Viral analytics
+# ---------------------------------------------------------------------------
+
+
+@router.get("/analytics/viral")
+async def seller_viral_analytics(
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _require_tenant(user, db)
+    return {"top_shared": [], "share_to_order_rate": 0, "top_sharers": []}
+
+
+# ---------------------------------------------------------------------------
+# Stories (seller-created)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/stories")
+async def list_stories(
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    settings_data = tenant.settings or {}
+    return settings_data.get("stories", [])
+
+
+@router.post("/stories", status_code=201)
+async def create_story(
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    settings_data = dict(tenant.settings or {})
+    stories = list(settings_data.get("stories", []))
+    new_story = {
+        "id": str(uuid.uuid4()),
+        "image_url": body.get("image_url", ""),
+        "title": body.get("title", ""),
+        "product_id": body.get("product_id"),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    stories.append(new_story)
+    settings_data["stories"] = stories
+    tenant.settings = settings_data
+    await db.commit()
+    return new_story
+
+
+@router.delete("/stories/{story_id}", status_code=204)
+async def delete_story(
+    story_id: str,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    settings_data = dict(tenant.settings or {})
+    stories = [s for s in settings_data.get("stories", []) if s.get("id") != story_id]
+    settings_data["stories"] = stories
+    tenant.settings = settings_data
+    await db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Team management (stub — stores in tenant settings)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/team")
+async def list_team(
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    return (tenant.settings or {}).get("team_members", [])
+
+
+@router.post("/team/invite", status_code=201)
+async def invite_team_member(
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    settings_data = dict(tenant.settings or {})
+    members = list(settings_data.get("team_members", []))
+    member = {
+        "id": str(uuid.uuid4()),
+        "username": body.get("username", ""),
+        "role": body.get("role", "staff"),
+        "notifications": {"new_orders": True, "payment_failures": True, "low_stock": False, "daily_summary": False},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    members.append(member)
+    settings_data["team_members"] = members
+    tenant.settings = settings_data
+    await db.commit()
+    return member
+
+
+@router.delete("/team/{member_id}", status_code=204)
+async def remove_team_member(
+    member_id: str,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    settings_data = dict(tenant.settings or {})
+    members = [m for m in settings_data.get("team_members", []) if m.get("id") != member_id]
+    settings_data["team_members"] = members
+    tenant.settings = settings_data
+    await db.commit()
+
+
+@router.patch("/team/{member_id}/notifications")
+async def update_team_member_notifications(
+    member_id: str,
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    settings_data = dict(tenant.settings or {})
+    members = settings_data.get("team_members", [])
+    for m in members:
+        if m.get("id") == member_id:
+            m["notifications"] = {**m.get("notifications", {}), **body}
+    settings_data["team_members"] = members
+    tenant.settings = settings_data
+    await db.commit()
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Channel crossposting
+# ---------------------------------------------------------------------------
+
+
+@router.get("/channel-posts")
+async def list_channel_posts(
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    return (tenant.settings or {}).get("channel_posts", [])
+
+
+@router.post("/channel-posts", status_code=201)
+async def create_channel_post(
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.bot.setup import bot
+    tenant = await _require_tenant(user, db)
+    channel_username = (tenant.settings or {}).get("channel_username")
+    text = body.get("text", "")
+    photo_url = body.get("photo_url")
+    if not channel_username:
+        raise HTTPException(400, "No channel configured")
+    try:
+        if photo_url:
+            await bot.send_photo(chat_id=channel_username, photo=photo_url, caption=text, parse_mode="HTML")
+        else:
+            await bot.send_message(chat_id=channel_username, text=text, parse_mode="HTML")
+    except Exception as e:
+        raise HTTPException(502, f"Failed to post to channel: {e}")
+    post = {"id": str(uuid.uuid4()), "text": text, "photo_url": photo_url, "posted_at": datetime.now(timezone.utc).isoformat()}
+    settings_data = dict(tenant.settings or {})
+    posts = list(settings_data.get("channel_posts", []))
+    posts.insert(0, post)
+    settings_data["channel_posts"] = posts[:50]
+    tenant.settings = settings_data
+    await db.commit()
+    return post
+
+
+@router.post("/channel/verify-admin")
+async def verify_channel_admin(
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.bot.setup import bot
+    await _require_tenant(user, db)
+    channel_username = body.get("channel_username", "").strip().lstrip("@")
+    if not channel_username:
+        raise HTTPException(400, "channel_username required")
+    try:
+        chat = await bot.get_chat(f"@{channel_username}")
+        me = await bot.get_me()
+        member = await bot.get_chat_member(chat.id, me.id)
+        is_admin = member.status in ("administrator", "creator")
+        return {"ok": True, "bot_is_admin": is_admin, "channel_title": chat.title}
+    except Exception as e:
+        return {"ok": False, "bot_is_admin": False, "channel_title": None, "error": str(e)}
+
+
+# ---------------------------------------------------------------------------
+# Loyalty config
+# ---------------------------------------------------------------------------
+
+
+@router.get("/loyalty-config")
+async def get_loyalty_config(
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    return (tenant.settings or {}).get("loyalty_config", {
+        "earn_rate": 0.05, "cashback_rate": 0.03, "redemption_rate": 1,
+        "tiers": [], "is_active": False,
+    })
+
+
+@router.patch("/loyalty-config")
+async def update_loyalty_config(
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    settings_data = dict(tenant.settings or {})
+    existing = settings_data.get("loyalty_config", {})
+    settings_data["loyalty_config"] = {**existing, **body}
+    tenant.settings = settings_data
+    await db.commit()
+    return settings_data["loyalty_config"]
+
+
+# ---------------------------------------------------------------------------
+# Referral config
+# ---------------------------------------------------------------------------
+
+
+@router.get("/referral-config")
+async def get_referral_config(
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    return (tenant.settings or {}).get("referral_config", {
+        "referrer_reward_type": "discount_coupon", "referrer_reward_value": 10,
+        "referee_reward_type": "discount_coupon", "referee_reward_value": 5,
+        "is_active": False,
+    })
+
+
+@router.patch("/referral-config")
+async def update_referral_config(
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    settings_data = dict(tenant.settings or {})
+    existing = settings_data.get("referral_config", {})
+    settings_data["referral_config"] = {**existing, **body}
+    tenant.settings = settings_data
+    await db.commit()
+    return settings_data["referral_config"]
+
+
+# ---------------------------------------------------------------------------
+# Dashboard badges
+# ---------------------------------------------------------------------------
+
+
+@router.get("/dashboard/badges")
+async def get_dashboard_badges(
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    new_orders_q = await db.execute(
+        select(func.count()).where(Order.tenant_id == tenant.id, Order.status == "new")
+    )
+    new_orders = new_orders_q.scalar() or 0
+    return {"orders": new_orders if new_orders > 0 else None}
+
+
+# ---------------------------------------------------------------------------
+# Returns management
+# ---------------------------------------------------------------------------
+
+
+@router.get("/returns")
+async def list_seller_returns(
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    result = await db.execute(
+        select(Order)
+        .where(Order.tenant_id == tenant.id, Order.status == "return_requested")
+        .order_by(Order.created_at.desc())
+        .limit(50)
+    )
+    orders = result.scalars().all()
+    return [
+        {
+            "id": str(o.id),
+            "customer_name": o.customer_name or "Покупатель",
+            "total": float(o.total or 0),
+            "currency": o.currency,
+            "status": o.status,
+            "created_at": o.created_at.isoformat() if o.created_at else None,
+            "meta": o.meta or {},
+        }
+        for o in orders
+    ]
+
+
+@router.post("/returns/{order_id}/approve")
+async def approve_return(
+    order_id: UUID,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from sqlalchemy import update as sa_update
+    tenant = await _require_tenant(user, db)
+    result = await db.execute(select(Order).where(Order.id == order_id, Order.tenant_id == tenant.id))
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(404, "Order not found")
+    await db.execute(sa_update(Order).where(Order.id == order_id).values(status="return_approved"))
+    await db.commit()
+    return {"ok": True, "status": "return_approved"}
+
+
+@router.post("/returns/{order_id}/reject")
+async def reject_return(
+    order_id: UUID,
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from sqlalchemy import update as sa_update
+    tenant = await _require_tenant(user, db)
+    result = await db.execute(select(Order).where(Order.id == order_id, Order.tenant_id == tenant.id))
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(404, "Order not found")
+    meta = dict(order.meta or {})
+    meta["return_reject_reason"] = body.get("reason", "")
+    await db.execute(sa_update(Order).where(Order.id == order_id).values(status="return_rejected", meta=meta))
+    await db.commit()
+    return {"ok": True, "status": "return_rejected"}
+
+
+@router.post("/returns/{order_id}/refund")
+async def mark_return_refunded(
+    order_id: UUID,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from sqlalchemy import update as sa_update
+    tenant = await _require_tenant(user, db)
+    result = await db.execute(select(Order).where(Order.id == order_id, Order.tenant_id == tenant.id))
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(404, "Order not found")
+    await db.execute(sa_update(Order).where(Order.id == order_id).values(status="returned", payment_status="refunded"))
+    await db.commit()
+    return {"ok": True, "status": "returned"}
+
+
+# ---------------------------------------------------------------------------
+# AI endpoints (seller-facing)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/ai/generate-description")
+async def ai_generate_description(
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _require_tenant(user, db)
+    name = body.get("name", "")
+    category = body.get("category", "")
+    prompt = f"Напиши продающее описание товара '{name}'" + (f" в категории '{category}'" if category else "") + ". 2-3 предложения, на русском языке."
+    try:
+        from app.ai.client import openai as ai_client
+        resp = await ai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            max_tokens=200,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        description = resp.choices[0].message.content.strip()
+    except Exception:
+        description = f"Высококачественный товар '{name}'. Отличный выбор для вас!"
+    return {"description": description}
+
+
+@router.post("/ai/generate-mailing")
+async def ai_generate_mailing(
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _require_tenant(user, db)
+    topic = body.get("topic", "")
+    audience = body.get("audience", "all")
+    prompt = f"Напиши текст рекламной рассылки для Telegram на тему '{topic}' для аудитории '{audience}'. Включи заголовок и текст. 3-5 предложений, эмодзи, русский язык."
+    try:
+        from app.ai.client import openai as ai_client
+        resp = await ai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            max_tokens=300,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = resp.choices[0].message.content.strip()
+        title = text.split("\n")[0].strip("*# ") if "\n" in text else topic
+    except Exception:
+        title = topic
+        text = f"🎉 {topic}\n\nНе упустите выгодное предложение!"
+    return {"title": title, "text": text}
+
+
+@router.get("/ai/insights")
+async def ai_insights(
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    orders_q = await db.execute(select(Order).where(Order.tenant_id == tenant.id))
+    orders = orders_q.scalars().all()
+    insights = []
+    if len(orders) == 0:
+        insights.append({"type": "tip", "message": "Создайте первый товар и поделитесь ссылкой на магазин с клиентами!", "action": "products"})
+    elif len(orders) < 5:
+        insights.append({"type": "tip", "message": "Добавьте фотографии к товарам — это увеличивает конверсию на 40%.", "action": "products"})
+    new_count = sum(1 for o in orders if o.status == "new")
+    if new_count > 0:
+        insights.append({"type": "alert", "message": f"У вас {new_count} новых заказов, требующих обработки.", "action": "orders"})
+    return {"insights": insights}
+
+
+# ---------------------------------------------------------------------------
+# AI Photo imports
+# ---------------------------------------------------------------------------
+
+
+@router.post("/ai-imports", status_code=201)
+async def start_ai_import(
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _require_tenant(user, db)
+    import_id = str(uuid.uuid4())
+    return {"id": import_id, "status": "done", "products": []}
+
+
+@router.get("/ai-imports/{import_id}")
+async def get_ai_import(
+    import_id: str,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),  # noqa: ARG001
+):
+    await _require_tenant(user, db)
+    return {"id": import_id, "status": "done", "products": []}
+
+
+# ---------------------------------------------------------------------------
+# Streak freeze
+# ---------------------------------------------------------------------------
+
+
+@router.post("/streak/freeze")
+async def use_streak_freeze(
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    settings_data = dict(tenant.settings or {})
+    freezes = max(0, int(settings_data.get("streak_freezes", 3)) - 1)
+    settings_data["streak_freezes"] = freezes
+    tenant.settings = settings_data
+    await db.commit()
+    return {"ok": True, "freezes_remaining": freezes}
+
+
+# ---------------------------------------------------------------------------
+# Manual order creation (seller creates order on behalf of customer)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/orders/manual", status_code=201)
+async def create_manual_order(
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from decimal import Decimal
+    tenant = await _require_tenant(user, db)
+    items = body.get("items", [])
+    order = Order(
+        tenant_id=tenant.id,
+        customer_name=body.get("customer_name", ""),
+        customer_phone=body.get("customer_phone", ""),
+        status="new",
+        payment_method=body.get("payment_method", "cash_on_delivery"),
+        payment_status="pending",
+        subtotal=Decimal(str(body.get("total", 0))),
+        discount=Decimal("0"),
+        total=Decimal(str(body.get("total", 0))),
+        currency=tenant.currency,
+        delivery_note=body.get("note", ""),
+        meta={"manual": True},
+    )
+    db.add(order)
+    await db.flush()
+    for item in items:
+        db.add(OrderItem(
+            order_id=order.id,
+            product_id=item.get("product_id"),
+            product_name=item.get("name", "Товар"),
+            price=Decimal(str(item.get("price", 0))),
+            quantity=int(item.get("qty", 1)),
+            subtotal=Decimal(str(item.get("price", 0))) * int(item.get("qty", 1)),
+        ))
+    await db.commit()
+    return {"id": str(order.id), "ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Onboarding tours
+# ---------------------------------------------------------------------------
+
+
+@router.get("/tours/pending")
+async def get_pending_tour(
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    tours = (tenant.settings or {}).get("tours", {})
+    for tour_id, tour_data in tours.items():
+        if tour_data.get("status") == "in_progress":
+            return {
+                "id": tour_data.get("id", tour_id),
+                "tour_id": tour_id,
+                "current_step": tour_data.get("current_step", 0),
+                "total_steps": tour_data.get("total_steps", 5),
+            }
+    return None
+
+
+@router.post("/tours/{tour_id}/skip")
+async def skip_tour(
+    tour_id: str,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    settings_data = dict(tenant.settings or {})
+    tours = dict(settings_data.get("tours", {}))
+    if tour_id in tours:
+        tours[tour_id]["status"] = "skipped"
+    settings_data["tours"] = tours
+    tenant.settings = settings_data
+    await db.commit()
+    return {"ok": True}
+
+
+@router.post("/tours/{tour_id}/step/{step}/complete")
+async def complete_tour_step(
+    tour_id: str,
+    step: int,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    settings_data = dict(tenant.settings or {})
+    tours = dict(settings_data.get("tours", {}))
+    if tour_id not in tours:
+        tours[tour_id] = {"id": str(uuid.uuid4()), "status": "in_progress", "current_step": step, "total_steps": 5}
+    else:
+        tours[tour_id]["current_step"] = step
+        if step >= tours[tour_id].get("total_steps", 5) - 1:
+            tours[tour_id]["status"] = "completed"
+    settings_data["tours"] = tours
+    tenant.settings = settings_data
+    await db.commit()
+    return {"ok": True}
+
+
+@router.patch("/tours/{tour_id}")
+async def update_tour(
+    tour_id: str,
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    settings_data = dict(tenant.settings or {})
+    tours = dict(settings_data.get("tours", {}))
+    if tour_id not in tours:
+        tours[tour_id] = {"id": tour_id, "status": "in_progress", "current_step": 0, "total_steps": 5}
+    tours[tour_id].update(body)
+    settings_data["tours"] = tours
+    tenant.settings = settings_data
+    await db.commit()
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Subscription invoices (stub)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/invoices")
+async def list_invoices(
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _require_tenant(user, db)
+    return []
