@@ -8,6 +8,8 @@ _connect_args: dict = {}
 if settings.is_production:
     import ssl as _ssl
     _ctx = _ssl.create_default_context()
+    _ctx.check_hostname = False
+    _ctx.verify_mode = _ssl.CERT_NONE
     _connect_args["ssl"] = _ctx
 
 engine = create_async_engine(
