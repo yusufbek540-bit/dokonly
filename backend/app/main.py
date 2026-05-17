@@ -46,6 +46,26 @@ MIGRATIONS = [
     );
     CREATE INDEX IF NOT EXISTS idx_mailings_tenant ON mass_mailings(tenant_id);
     """,
+    # seed - restore demo tenant (migrated from Supabase)
+    """
+    INSERT INTO tenants (
+        id, owner_id, name, slug, country, currency, locale, tier,
+        bot_token_enc, bot_token_hash, bot_username,
+        accent_color, typography_bundle,
+        contact_info, settings, is_active
+    )
+    SELECT
+        '5a534d64-86d5-4659-b48a-228206f56918'::uuid,
+        'a414389d-a2c3-5c42-8486-095020e84b01'::uuid,
+        'Test', 'test', 'UZ', 'UZS', 'ru', 'start',
+        'gAAAAABqBhc40h_mWWxwqgmAxSLrfvPYWRm0kzFnCHvHBOJ55VR9GGxatUoU7KpMzWBlQMw-7M_W0q9r-DJZ68u7VXfGLg71nPAx9sanQwMNxKFgRDfp0oeC9YLAu1zcXqoiJHfeafoT',
+        'fd449ae2be0a9438f13b87ede592b9998cf067d1b52f842a37769cb9a118db59',
+        'dokonlydemobot', 'sand', 'bold',
+        '{}'::jsonb,
+        '{"description": "", "legal_status": "individual", "business_category": "fashion"}'::jsonb,
+        true
+    WHERE NOT EXISTS (SELECT 1 FROM tenants WHERE slug = 'test')
+    """,
 ]
 
 
