@@ -1262,13 +1262,3 @@ async def ai_chat(
     return {"reply": reply}
 
 
-@router.get("/public/help-articles")
-async def get_help_articles(db: AsyncSession = Depends(get_db)):  # noqa: ARG001
-    return [
-        {"id": "1", "slug": "how-to-order", "title": "Как сделать заказ", "category": "orders",
-         "content": "1. Выберите товары\n2. Добавьте в корзину\n3. Оформите заказ"},
-        {"id": "2", "slug": "payment-methods", "title": "Способы оплаты", "category": "payments",
-         "content": "Принимаем: наличные при получении, перевод на карту, Telegram Stars."},
-        {"id": "3", "slug": "returns", "title": "Возврат товара", "category": "returns",
-         "content": "Вы можете запросить возврат в течение 14 дней с момента получения заказа."},
-    ]
