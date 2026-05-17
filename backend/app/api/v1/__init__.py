@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import ai, me, miniapp, orders, platform, products, promo, public, shop, tenants, webhook
+from app.api.v1.endpoints import ai, me, miniapp, notifications, orders, platform, products, promo, public, shop, tenants, webhook
 
 router = APIRouter()
 router.include_router(me.router)
@@ -15,3 +15,4 @@ router.include_router(ai.router)
 router.include_router(promo.router)
 router.include_router(platform.router)
 router.include_router(public.router)
+router.include_router(notifications.router)

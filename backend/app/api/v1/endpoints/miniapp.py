@@ -1834,3 +1834,184 @@ async def list_invoices(
 ):
     await _require_tenant(user, db)
     return []
+
+
+@router.get("/subscription")
+async def get_subscription(
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    return {"tier": tenant.tier, "status": "active", "trial_ends_at": None, "next_billing_at": None}
+
+
+@router.post("/subscription/upgrade")
+async def upgrade_subscription(
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    plan = body.get("plan", tenant.tier)
+    tenant.tier = plan
+    await db.commit()
+    return {"ok": True, "tier": plan}
+
+
+# ---------------------------------------------------------------------------
+# Customer management (seller views)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/customers")
+async def list_customers(
+    q: str = "",
+    segment: str = "",
+    skip: int = 0,
+    limit: int = 50,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.order import Customer
+    tenant = await _require_tenant(user, db)
+    query = select(Customer).where(Customer.tenant_id == tenant.id, Customer.is_deleted == False)  # noqa: E712
+    if q:
+        query = query.where(
+            (Customer.first_name.ilike(f"%{q}%")) |
+            (Customer.username.ilike(f"%{q}%")) |
+            (Customer.phone.ilike(f"%{q}%"))
+        )
+    result = await db.execute(query.order_by(Customer.created_at.desc()).offset(skip).limit(limit))
+    customers = result.scalars().all()
+    return [
+        {
+            "id": str(c.id),
+            "telegram_id": c.telegram_id,
+            "first_name": c.first_name,
+            "last_name": c.last_name,
+            "username": c.username,
+            "phone": c.phone,
+            "email": c.email,
+            "total_orders": c.total_orders,
+            "total_spent": float(c.total_spent or 0),
+            "created_at": c.created_at.isoformat() if c.created_at else None,
+        }
+        for c in customers
+    ]
+
+
+@router.get("/customers/{customer_id}")
+async def get_customer(
+    customer_id: UUID,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.order import Customer
+    tenant = await _require_tenant(user, db)
+    result = await db.execute(select(Customer).where(Customer.id == customer_id, Customer.tenant_id == tenant.id))
+    c = result.scalar_one_or_none()
+    if not c:
+        raise HTTPException(404, "Customer not found")
+    orders_q = await db.execute(select(Order).where(Order.customer_id == c.id).order_by(Order.created_at.desc()).limit(20))
+    orders = orders_q.scalars().all()
+    return {
+        "id": str(c.id),
+        "telegram_id": c.telegram_id,
+        "first_name": c.first_name,
+        "last_name": c.last_name,
+        "username": c.username,
+        "phone": c.phone,
+        "email": c.email,
+        "total_orders": c.total_orders,
+        "total_spent": float(c.total_spent or 0),
+        "tags": (c.meta or {}).get("tags", []) if hasattr(c, "meta") else [],
+        "notes": (c.meta or {}).get("notes", []) if hasattr(c, "meta") else [],
+        "orders": [{"id": str(o.id), "status": o.status, "total": float(o.total), "currency": o.currency, "created_at": o.created_at.isoformat() if o.created_at else None} for o in orders],
+        "created_at": c.created_at.isoformat() if c.created_at else None,
+    }
+
+
+@router.get("/customers/{customer_id}/notes")
+async def get_customer_notes(
+    customer_id: UUID,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.order import Customer
+    tenant = await _require_tenant(user, db)
+    result = await db.execute(select(Customer).where(Customer.id == customer_id, Customer.tenant_id == tenant.id))
+    c = result.scalar_one_or_none()
+    if not c:
+        raise HTTPException(404, "Customer not found")
+    return []
+
+
+@router.post("/customers/{customer_id}/notes", status_code=201)
+async def add_customer_note(
+    customer_id: UUID,
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _require_tenant(user, db)
+    return {"id": str(uuid.uuid4()), "content": body.get("content", ""), "created_at": datetime.now(timezone.utc).isoformat()}
+
+
+@router.delete("/customers/{customer_id}/notes/{note_id}", status_code=204)
+async def delete_customer_note(
+    customer_id: UUID,
+    note_id: UUID,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _require_tenant(user, db)
+
+
+@router.post("/customers/{customer_id}/tags")
+async def add_customer_tag(
+    customer_id: UUID,
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _require_tenant(user, db)
+    return {"tags": [body.get("tag", "")]}
+
+
+@router.delete("/customers/{customer_id}/tags/{tag}", status_code=204)
+async def remove_customer_tag(
+    customer_id: UUID,
+    tag: str,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    await _require_tenant(user, db)
+
+
+# ---------------------------------------------------------------------------
+# Seller AI chat
+# ---------------------------------------------------------------------------
+
+
+@router.post("/ai/chat")
+async def seller_ai_chat(
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    messages = body.get("messages", [])
+    try:
+        from app.ai.client import openai as ai_client
+        resp = await ai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            max_tokens=500,
+            messages=[
+                {"role": "system", "content": f"Ты AI-ассистент продавца магазина '{tenant.name}' на платформе Dokonly. Помогай продавцу с управлением магазином, анализом продаж, советами по маркетингу. Отвечай на русском языке."},
+                *[{"role": m["role"], "content": m["content"]} for m in messages],
+            ],
+        )
+        reply = resp.choices[0].message.content.strip()
+    except Exception:
+        reply = "Здравствуйте! Чем могу помочь с вашим магазином?"
+    return {"reply": reply}
