@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
@@ -6,7 +6,7 @@ import { useTelegramMainButton } from '@/hooks/useTelegram'
 
 interface Props {
   tgUser: any
-  onDone: (tenant: any) => void
+  onDone: (result: { tenant?: any; openAddProduct?: boolean }) => void
 }
 
 // ── Static data ───────────────────────────────────────────────────────────────
@@ -108,8 +108,8 @@ function slugify(s: string) {
     .replace(/^-|-$/g, '')
 }
 
-// Steps: 0=country · 1=sphere · 2=legal · 3=name → create · 4=bot → setup · 5=visual → save · 6=success
-const TOTAL_STEPS = 6
+// Steps: 0=country · 1=sphere · 2=legal · 3=name → create · 4=bot → setup · 5=visual → save · 6=logo · 7=success
+const TOTAL_STEPS = 7
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -119,13 +119,17 @@ export function Onboarding({ tgUser: _tgUser, onDone }: Props) {
   const [category, setCategory]       = useState('')
   const [legal, setLegal]             = useState('individual')
   const [name, setName]               = useState('')
-  const [botToken, setBotToken]       = useState('')
+  const [botToken, setBotToken]       = useState(() => localStorage.getItem('_ob_bt') ?? '')
   const [typography, setTypography]   = useState('modern')
   const [accentColor, setAccentColor] = useState('emerald')
   const [botUsername, setBotUsername] = useState('')
   const [botSkipped, setBotSkipped]   = useState(false)
+  const [showInlineModeGuide, setShowInlineModeGuide] = useState(false)
   const [error, setError]             = useState('')
   const [tenant, setTenant]           = useState<any>(null)
+  const [logoUrl, setLogoUrl]         = useState<string | null>(null)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const logoInputRef                  = useRef<HTMLInputElement>(null)
 
   const currency = COUNTRIES.find(c => c.code === country)?.currency ?? 'UZS'
 
@@ -168,10 +172,20 @@ export function Onboarding({ tgUser: _tgUser, onDone }: Props) {
     try { return JSON.parse(msg)?.detail ?? msg } catch { return msg }
   }
 
+  const handleBotTokenChange = (val: string) => {
+    setBotToken(val)
+    if (val) localStorage.setItem('_ob_bt', val)
+    else localStorage.removeItem('_ob_bt')
+  }
+
   // Step 4 → connect bot
   const botMutation = useMutation({
     mutationFn: () => api.seller.setupBot(botToken.trim()),
-    onSuccess: (data) => { setBotUsername(data.bot_username); setStep(5) },
+    onSuccess: (data) => {
+      setBotUsername(data.bot_username)
+      localStorage.removeItem('_ob_bt')
+      setShowInlineModeGuide(true)
+    },
     onError: (e: Error) => setError(friendlyError(e)),
   })
 
@@ -182,6 +196,16 @@ export function Onboarding({ tgUser: _tgUser, onDone }: Props) {
     onError: (e: Error) => setError(friendlyError(e)),
   })
 
+  // Step 6 → save logo (optional) then go to success
+  const handleLogoNext = async () => {
+    if (logoUrl) {
+      try {
+        await api.seller.updateSettings({ logo_url: logoUrl })
+      } catch {}
+    }
+    setStep(7)
+  }
+
   const isPending = createMutation.isPending || botMutation.isPending || themeMutation.isPending
 
   const canNext = () => {
@@ -191,6 +215,7 @@ export function Onboarding({ tgUser: _tgUser, onDone }: Props) {
     if (step === 3) return name.trim().length >= 2
     if (step === 4) return botToken.trim().length > 10
     if (step === 5) return true
+    if (step === 6) return true
     return false
   }
 
@@ -200,6 +225,7 @@ export function Onboarding({ tgUser: _tgUser, onDone }: Props) {
     if (step === 3) { createMutation.mutate(); return }
     if (step === 4) { botMutation.mutate(); return }
     if (step === 5) { themeMutation.mutate(); return }
+    if (step === 6) { handleLogoNext(); return }
   }
 
   const handleBack = () => { setError(''); setStep(s => s - 1) }
@@ -211,17 +237,82 @@ export function Onboarding({ tgUser: _tgUser, onDone }: Props) {
     : step < 3 ? 'Далее →'
       : step === 3 ? 'Создать магазин'
       : step === 4 ? 'Подключить бота'
+      : step === 6 ? (uploadingLogo ? 'Загружаем...' : 'Далее →')
       : 'Готово →'
 
   useTelegramMainButton({
     text: mainButtonText,
     onClick: handleNext,
-    isVisible: step < 6,
-    disabled: !canNext() || isPending,
+    isVisible: step < 7,
+    disabled: !canNext() || isPending || uploadingLogo,
   })
 
+  // ── Inline mode guide (step 4.5) ─────────────────────────────────────────
+  if (showInlineModeGuide) {
+    return (
+      <div style={{
+        minHeight: '100vh', display: 'flex', flexDirection: 'column',
+        padding: '0 0 100px', background: 'var(--bg)',
+      }}>
+        {/* Progress bar */}
+        <div style={{ height: 4, background: 'var(--border)' }}>
+          <div style={{ height: '100%', width: '80%', background: 'var(--accent)', transition: 'width 0.3s', borderRadius: 999 }} />
+        </div>
+        <div style={{ flex: 1, padding: '32px 24px' }}>
+          <div style={{ fontSize: 48, textAlign: 'center', marginBottom: 16 }}>⚡</div>
+          <h2 style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 22, color: 'var(--ink)', textAlign: 'center', marginBottom: 8 }}>
+            Включите Inline Mode
+          </h2>
+          <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7, textAlign: 'center', marginBottom: 24 }}>
+            Inline режим позволяет покупателям делиться товарами прямо в переписке.
+          </p>
+          <div style={{ borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)', padding: '16px 20px', marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12 }}>
+              Инструкция
+            </div>
+            {[
+              { num: '1', text: `Откройте @BotFather в Telegram` },
+              { num: '2', text: `Отправьте /mybots → выберите @${botUsername}` },
+              { num: '3', text: `Bot Settings → Inline Mode → Enable` },
+              { num: '4', text: `Введите placeholder текст и сохраните` },
+            ].map(s => (
+              <div key={s.num} style={{ display: 'flex', gap: 12, marginBottom: 12, alignItems: 'flex-start' }}>
+                <div style={{
+                  width: 26, height: 26, borderRadius: 999, background: 'var(--accent)', color: 'white',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0,
+                }}>{s.num}</div>
+                <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.5, paddingTop: 3 }}>{s.text}</div>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => {
+              const tg = (window as any).Telegram?.WebApp
+              tg?.openTelegramLink?.('https://t.me/BotFather') ?? tg?.openLink?.('https://t.me/BotFather')
+            }}
+            style={{
+              width: '100%', height: 48, borderRadius: 14, background: 'var(--accent)',
+              color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', marginBottom: 10,
+            }}
+          >
+            Открыть @BotFather ↗
+          </button>
+          <button
+            onClick={() => { setShowInlineModeGuide(false); setStep(5) }}
+            style={{
+              width: '100%', height: 48, borderRadius: 14, background: 'var(--subtle)',
+              color: 'var(--muted)', fontWeight: 600, fontSize: 15, border: 'none', cursor: 'pointer',
+            }}
+          >
+            Пропустить →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   // ── Success screen ────────────────────────────────────────────────────────
-  if (step === 6) {
+  if (step === 7) {
     const accent = ACCENT_COLORS.find(c => c.id === accentColor)?.hex ?? '#00B383'
     return (
       <div style={{
@@ -261,16 +352,28 @@ export function Onboarding({ tgUser: _tgUser, onDone }: Props) {
             Магазин создан. Добавьте бота в Настройках → «Подключить бота», чтобы поделиться им с покупателями.
           </p>
         )}
-        <button
-          onClick={() => onDone(tenant)}
-          style={{
-            padding: '14px 32px', borderRadius: 14,
-            background: 'var(--subtle)', color: 'var(--ink)',
-            fontWeight: 700, fontSize: 15,
-          }}
-        >
-          Открыть панель управления →
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%', maxWidth: 320 }}>
+          <button
+            onClick={() => onDone({ tenant, openAddProduct: true })}
+            style={{
+              width: '100%', height: 52, borderRadius: 14,
+              background: 'var(--accent)', border: 'none',
+              color: 'white', fontSize: 16, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            ➕ Добавить первый товар
+          </button>
+          <button
+            onClick={() => onDone({ tenant })}
+            style={{
+              width: '100%', height: 52, borderRadius: 14,
+              background: 'var(--card)', border: '1px solid var(--border)',
+              color: 'var(--ink)', fontSize: 16, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            Позже
+          </button>
+        </div>
       </div>
     )
   }
@@ -279,19 +382,38 @@ export function Onboarding({ tgUser: _tgUser, onDone }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
 
-      {/* Progress bar */}
-      <div style={{ padding: '16px 20px 0' }}>
-        <div style={{ display: 'flex', gap: 5, marginBottom: 14 }}>
-          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-            <div key={i} style={{
-              flex: 1, height: 3, borderRadius: 999,
-              background: i <= step ? 'var(--accent)' : 'var(--border)',
-              opacity: i < step ? 0.35 : 1,
-              transition: 'all 0.3s',
-            }}/>
-          ))}
+      {/* Header: back button + progress */}
+      <div style={{ padding: '14px 16px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          {step > 0 ? (
+            <button
+              onClick={handleBack}
+              disabled={isPending}
+              style={{
+                width: 36, height: 36, borderRadius: 10, background: 'var(--card)',
+                border: '1px solid var(--border)', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', flexShrink: 0, cursor: 'pointer',
+              }}
+            >
+              <Icon name="arrowLeft" size={16} color="var(--ink)"/>
+            </button>
+          ) : (
+            <div style={{ width: 36, flexShrink: 0 }} />
+          )}
+          <div style={{ flex: 1, display: 'flex', gap: 5 }}>
+            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+              <div key={i} style={{
+                flex: 1, height: 3, borderRadius: 999,
+                background: i <= step ? 'var(--accent)' : 'var(--border)',
+                opacity: i < step ? 0.35 : 1,
+                transition: 'all 0.3s',
+              }}/>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            {step + 1} / {TOTAL_STEPS}
+          </div>
         </div>
-        <div style={{ fontSize: 12, color: 'var(--muted)' }}>Шаг {step + 1} из {TOTAL_STEPS}</div>
       </div>
 
       <div className="screen-scroll" style={{ flex: 1, padding: '0 16px 120px' }}>
@@ -427,32 +549,46 @@ export function Onboarding({ tgUser: _tgUser, onDone }: Props) {
         {/* ── Step 4: Bot token ───────────────────────────────────────────── */}
         {step === 4 && (
           <>
-            <h1 style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 24, color: 'var(--ink)', marginBottom: 6, marginTop: 16 }}>
+            <h1 style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 22, color: 'var(--ink)', marginBottom: 6, marginTop: 16 }}>
               Подключите своего бота
             </h1>
-            <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 20 }}>
-              Покупатели будут открывать ваш магазин через <b>собственного</b> Telegram-бота.
+            <p style={{ fontSize: 14, color: 'var(--muted)', lineHeight: 1.7, marginBottom: 16 }}>
+              Покупатели откроют ваш магазин через <b>собственного</b> Telegram-бота.
             </p>
 
-            <div style={{ padding: 16, borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)', marginBottom: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 12 }}>Как получить токен:</div>
+            {/* Open BotFather CTA */}
+            <button
+              onClick={() => {
+                const tg = (window as any).Telegram?.WebApp
+                const url = 'https://t.me/BotFather?start=newbot'
+                if (tg?.openTelegramLink) tg.openTelegramLink(url)
+                else window.open(url, '_blank')
+              }}
+              style={{
+                width: '100%', height: 48, borderRadius: 14,
+                background: 'var(--accent)', border: 'none',
+                color: 'white', fontWeight: 700, fontSize: 15,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                cursor: 'pointer', marginBottom: 16,
+              }}
+            >
+              🤖 Создать бота в @BotFather
+            </button>
+
+            <div style={{ padding: 14, borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)', marginBottom: 16 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 10 }}>Инструкция</div>
               {[
-                { n: '1', text: 'Откройте ', link: '@BotFather', href: 'https://t.me/BotFather' },
-                { n: '2', text: 'Отправьте команду ', code: '/newbot' },
-                { n: '3', text: 'Введите имя и username бота' },
-                { n: '4', text: 'Скопируйте токен и вставьте ниже' },
+                { n: '1', text: 'Нажмите кнопку выше, откроется @BotFather' },
+                { n: '2', text: 'Отправьте /newbot, введите имя и username' },
+                { n: '3', text: 'Скопируйте токен и вернитесь сюда' },
               ].map((s, i) => (
-                <div key={i} style={{ display: 'flex', gap: 10, marginBottom: i < 3 ? 10 : 0 }}>
+                <div key={i} style={{ display: 'flex', gap: 10, marginBottom: i < 2 ? 8 : 0 }}>
                   <div style={{
-                    width: 22, height: 22, borderRadius: 999, flexShrink: 0, fontSize: 11, fontWeight: 700,
+                    width: 20, height: 20, borderRadius: 999, flexShrink: 0, fontSize: 11, fontWeight: 700,
                     background: 'var(--accent)', color: 'white',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>{s.n}</div>
-                  <span style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.5 }}>
-                    {s.text}
-                    {s.link && <a href={s.href} target="_blank" rel="noreferrer" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>{s.link}</a>}
-                    {s.code && <code style={{ background: 'var(--subtle)', padding: '1px 6px', borderRadius: 5, fontFamily: 'JetBrains Mono', fontSize: 12 }}>{s.code}</code>}
-                  </span>
+                  <span style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.5 }}>{s.text}</span>
                 </div>
               ))}
             </div>
@@ -463,7 +599,7 @@ export function Onboarding({ tgUser: _tgUser, onDone }: Props) {
             <input
               placeholder="123456789:AABBccDDeeFF..."
               value={botToken}
-              onChange={e => setBotToken(e.target.value)}
+              onChange={e => handleBotTokenChange(e.target.value)}
               style={{
                 width: '100%', height: 48, padding: '0 14px',
                 borderRadius: 12, background: 'var(--card)',
@@ -477,8 +613,16 @@ export function Onboarding({ tgUser: _tgUser, onDone }: Props) {
               </div>
             )}
             <div style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)' }}>
-              Хранится в зашифрованном виде
+              Токен хранится в зашифрованном виде
             </div>
+            {!isPending && (
+              <button
+                onClick={() => { setBotSkipped(true); setStep(5) }}
+                style={{ marginTop: 16, fontSize: 13, color: 'var(--muted)', width: '100%', textAlign: 'center', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0' }}
+              >
+                Пропустить — настрою позже
+              </button>
+            )}
           </>
         )}
 
@@ -566,34 +710,63 @@ export function Onboarding({ tgUser: _tgUser, onDone }: Props) {
           </>
         )}
 
+        {/* ── Step 6: Logo upload ─────────────────────────────────────────── */}
+        {step === 6 && (
+          <>
+            <h1 style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 24, color: 'var(--ink)', marginBottom: 6, marginTop: 16 }}>
+              Логотип магазина
+            </h1>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, marginTop: 24 }}>
+              <p style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', textAlign: 'center' }}>Добавьте логотип магазина</p>
+              <p style={{ fontSize: 14, color: 'var(--muted)', textAlign: 'center' }}>Необязательно — можно добавить позже в настройках</p>
+              <button
+                type="button"
+                onClick={() => logoInputRef.current?.click()}
+                style={{
+                  width: 100, height: 100, borderRadius: '50%',
+                  background: logoUrl ? 'none' : 'var(--card)',
+                  border: '2px dashed var(--border)', cursor: 'pointer',
+                  overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                {logoUrl ? (
+                  <img src={logoUrl} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  uploadingLogo ? (
+                    <div style={{ width: 28, height: 28, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+                  ) : (
+                    <span style={{ fontSize: 32 }}>📷</span>
+                  )
+                )}
+              </button>
+              <input
+                ref={logoInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  setUploadingLogo(true)
+                  try {
+                    const { url } = await api.seller.uploadFile(file)
+                    setLogoUrl(url)
+                  } catch {}
+                  setUploadingLogo(false)
+                }}
+              />
+              <button
+                onClick={() => setLogoUrl(null)}
+                style={{ display: logoUrl ? 'block' : 'none', background: 'none', border: 'none', color: 'var(--muted)', fontSize: 13, cursor: 'pointer' }}
+              >
+                Удалить
+              </button>
+            </div>
+          </>
+        )}
+
       </div>
 
-      {/* Bottom nav — back button + skip (primary action via MainButton) */}
-      {(step > 0 || (step === 4 && !isPending)) && (
-        <div style={{
-          position: 'sticky', bottom: 0, zIndex: 30,
-          padding: '10px 16px calc(10px + env(safe-area-inset-bottom))',
-          background: 'var(--bg)', borderTop: '1px solid var(--border)',
-          display: 'flex', flexDirection: 'column', gap: 8,
-        }}>
-          {step > 0 && (
-            <button onClick={handleBack} disabled={isPending} style={{
-              width: 52, height: 52, borderRadius: 14, background: 'var(--subtle)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Icon name="arrowLeft" size={18}/>
-            </button>
-          )}
-          {step === 4 && !isPending && (
-            <button
-              onClick={() => { setBotSkipped(true); setStep(5) }}
-              style={{ fontSize: 13, color: 'var(--muted)', padding: '4px 0', textAlign: 'center' }}
-            >
-              Пропустить — настрою позже
-            </button>
-          )}
-        </div>
-      )}
     </div>
   )
 }

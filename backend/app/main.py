@@ -85,10 +85,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if not settings.is_production else [
-        "https://admin.dokonly.com",
-        "https://miniapp.dokonly.com",
-    ],
+    allow_origins=["*"] if not settings.is_production else settings.allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

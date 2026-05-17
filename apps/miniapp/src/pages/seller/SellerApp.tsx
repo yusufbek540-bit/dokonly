@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
@@ -67,6 +67,13 @@ function Spinner({ label }: { label: string }) {
 }
 
 export function SellerApp({ tenantSlug, shop }: Props) {
+  useEffect(() => {
+    const pref = localStorage.getItem('dokonly_admin_theme') ?? 'system'
+    const tgScheme = (window as any).Telegram?.WebApp?.colorScheme ?? 'light'
+    const resolved = pref === 'system' ? tgScheme : pref
+    document.documentElement.dataset.theme = resolved
+  }, [])
+
   const [tab, setTab] = useState<Tab>('home')
   const [overrideTenant, setOverrideTenant] = useState<any>(null)
   const qc = useQueryClient()
@@ -81,6 +88,34 @@ export function SellerApp({ tenantSlug, shop }: Props) {
     retry: 2,
   })
 
+  const tenant = overrideTenant ?? (sellerMe as any)?.tenant ?? null
+
+  // ALL hooks must be declared before any early returns
+  const [tourDismissed, setTourDismissed] = useState(false)
+  const { data: pendingTour } = useQuery({
+    queryKey: ['seller-pending-tour'],
+    queryFn: api.seller.pendingTour,
+    enabled: !!tenant,
+    retry: false,
+  })
+  const { data: newOrdersCount } = useQuery({
+    queryKey: ['seller-new-orders-count'],
+    queryFn: async () => {
+      const orders = await api.seller.orders('new')
+      return orders.length
+    },
+    enabled: !!tenant,
+    refetchInterval: 30000,
+  })
+  const { data: badges } = useQuery({
+    queryKey: ['seller-badges'],
+    queryFn: api.seller.badges,
+    enabled: !!tenant,
+    refetchInterval: 60000,
+    retry: false,
+  })
+
+  // Early returns after all hooks
   if (!hasInitData) return <NoInitData />
   if (isLoading) return <Spinner label="Загружаем магазин..." />
   if (isError) return (
@@ -108,36 +143,15 @@ export function SellerApp({ tenantSlug, shop }: Props) {
     </div>
   )
 
-  const tenant = overrideTenant ?? (sellerMe as any)?.tenant ?? null
-
-  // Check for pending migration tour
-  const [tourDismissed, setTourDismissed] = useState(false)
-  const { data: pendingTour } = useQuery({
-    queryKey: ['seller-pending-tour'],
-    queryFn: api.seller.pendingTour,
-    enabled: !!tenant,
-    retry: false,
-  })
-
-  // Count new orders for badge — only fetch if tenant exists
-  const { data: newOrdersCount } = useQuery({
-    queryKey: ['seller-new-orders-count'],
-    queryFn: async () => {
-      const orders = await api.seller.orders('new')
-      return orders.length
-    },
-    enabled: !!tenant,
-    refetchInterval: 30000, // refresh every 30 seconds
-  })
-
   // No tenant yet → onboarding wizard
   if (!tenant) {
     return (
       <Onboarding
         tgUser={(sellerMe as any)?.tg_user}
-        onDone={newTenant => {
+        onDone={({ tenant: newTenant, openAddProduct }) => {
           setOverrideTenant(newTenant)
           qc.invalidateQueries({ queryKey: ['seller-me'] })
+          if (openAddProduct) setTab('catalog')
         }}
       />
     )
@@ -198,33 +212,47 @@ export function SellerApp({ tenantSlug, shop }: Props) {
         display: 'flex',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{
-            flex: 1, padding: '10px 0 8px',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-            color: tab === t.id ? 'var(--accent)' : 'var(--muted)',
-            transition: 'color 0.15s',
-            position: 'relative',
-          }}>
-            <div style={{ position: 'relative' }}>
-              <Icon name={t.icon} size={22} color={tab === t.id ? 'var(--accent)' : 'var(--muted)'}/>
-              {t.id === 'orders' && newOrdersCount && newOrdersCount > 0 ? (
-                <div style={{
-                  position: 'absolute', top: -4, right: -6,
-                  minWidth: 16, height: 16, borderRadius: 999,
-                  background: '#EF4444', color: 'white',
-                  fontSize: 10, fontWeight: 700,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  padding: '0 3px',
-                  border: '1.5px solid var(--bg)',
-                }}>
-                  {newOrdersCount > 99 ? '99+' : newOrdersCount}
-                </div>
-              ) : null}
-            </div>
-            <span style={{ fontSize: 10, fontWeight: tab === t.id ? 700 : 500 }}>{t.label}</span>
-          </button>
-        ))}
+        {TABS.map(t => {
+          const badgeCount = t.id === 'orders'
+            ? ((newOrdersCount ?? 0) + ((badges as any)?.orders ?? 0))
+            : t.id === 'catalog'
+            ? ((badges as any)?.products ?? 0)
+            : 0
+          const hasDot = t.id === 'more' && (badges as any)?.subscription
+          return (
+            <button key={t.id} onClick={() => setTab(t.id)} style={{
+              flex: 1, padding: '10px 0 8px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+              color: tab === t.id ? 'var(--accent)' : 'var(--muted)',
+              transition: 'color 0.15s',
+              position: 'relative',
+            }}>
+              <div style={{ position: 'relative' }}>
+                <Icon name={t.icon} size={22} color={tab === t.id ? 'var(--accent)' : 'var(--muted)'}/>
+                {badgeCount > 0 && (
+                  <div style={{
+                    position: 'absolute', top: -4, right: -6,
+                    minWidth: 16, height: 16, borderRadius: 999,
+                    background: '#EF4444', color: 'white',
+                    fontSize: 10, fontWeight: 700,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '0 3px', border: '1.5px solid var(--bg)',
+                  }}>
+                    {badgeCount > 99 ? '99+' : badgeCount}
+                  </div>
+                )}
+                {hasDot && (
+                  <div style={{
+                    position: 'absolute', top: -2, right: -4,
+                    width: 8, height: 8, borderRadius: 999,
+                    background: '#EF4444', border: '1.5px solid var(--bg)',
+                  }}/>
+                )}
+              </div>
+              <span style={{ fontSize: 10, fontWeight: tab === t.id ? 700 : 500 }}>{t.label}</span>
+            </button>
+          )
+        })}
       </div>
     </div>
   )
