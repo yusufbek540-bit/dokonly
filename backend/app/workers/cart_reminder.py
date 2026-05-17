@@ -5,12 +5,18 @@ from aiogram import Bot
 from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest
 from sqlalchemy import update
 
+from app.core.bot_utils import get_tenant_bot
 from app.core.database import AsyncSessionLocal
 from app.models.order import Cart
 
 
 async def send_cart_reminder(ctx: dict, chat_id: int, tenant_id: str | None = None) -> None:
-    bot: Bot = ctx["bot"]
+    tenant_bot: Bot | None = None
+    if tenant_id:
+        tenant_bot = await get_tenant_bot(tenant_id)
+
+    bot: Bot = tenant_bot or ctx["bot"]
+
     try:
         await bot.send_message(
             chat_id=chat_id,
@@ -34,3 +40,6 @@ async def send_cart_reminder(ctx: dict, chat_id: int, tenant_id: str | None = No
                 await db.commit()
     except (TelegramForbiddenError, TelegramBadRequest):
         pass
+    finally:
+        if tenant_bot:
+            await tenant_bot.session.close()

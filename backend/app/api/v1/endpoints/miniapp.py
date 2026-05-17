@@ -492,14 +492,22 @@ async def seller_update_order_status(
     await db.commit()
     await db.refresh(order)
 
-    # Notify buyer on status change
-    if order.status != old_status and order.customer_id and settings.telegram_bot_token:
+    # Notify buyer on status change via merchant's own bot
+    if order.status != old_status and order.customer_id:
         try:
+            from app.core.crypto import decrypt
             cust_result = await db.execute(
                 select(Customer).where(Customer.id == order.customer_id)
             )
             customer = cust_result.scalar_one_or_none()
-            if customer and customer.telegram_id:
+            bot_token = None
+            if tenant.bot_token_enc:
+                try:
+                    bot_token = decrypt(tenant.bot_token_enc)
+                except Exception:
+                    pass
+            bot_token = bot_token or settings.telegram_bot_token
+            if customer and customer.telegram_id and bot_token:
                 STATUS_MSG = {
                     "confirmed": "✅ Ваш заказ подтверждён!",
                     "shipping":  "🚚 Ваш заказ в пути!",
@@ -512,7 +520,7 @@ async def seller_update_order_status(
                     text = f"{msg}\n\nЗаказ *#{order_short}* · {tenant.name}"
                     async with httpx.AsyncClient(timeout=5) as client:
                         await client.post(
-                            f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage",
+                            f"https://api.telegram.org/bot{bot_token}/sendMessage",
                             json={"chat_id": customer.telegram_id, "text": text, "parse_mode": "Markdown"},
                         )
         except Exception:
@@ -1042,13 +1050,21 @@ async def send_mailing(
     mailing.recipient_count = len(customers)
     await db.commit()
 
-    if not settings.telegram_bot_token:
+    # Resolve merchant's bot token (fall back to master bot)
+    from app.core.crypto import decrypt as _decrypt
+    bot_token = None
+    if tenant.bot_token_enc:
+        try:
+            bot_token = _decrypt(tenant.bot_token_enc)
+        except Exception:
+            pass
+    bot_token = bot_token or settings.telegram_bot_token
+    if not bot_token:
         mailing.status = "failed"
         await db.commit()
         raise HTTPException(503, "Bot token not configured")
 
     # Send asynchronously (non-blocking fire-and-forget)
-    bot_token = settings.telegram_bot_token
     msg_text = mailing.text
     img_url = mailing.image_url
     mailing_db_id = str(mailing.id)
@@ -1144,7 +1160,7 @@ async def send_abandoned_cart_reminder(
     user: dict = Depends(get_tg_user),
     db: AsyncSession = Depends(get_db),
 ):
-    from app.bot.setup import bot
+    from app.core.bot_utils import get_tenant_bot
     tenant = await _require_tenant(user, db)
     result = await db.execute(
         select(Cart).where(Cart.id == cart_id, Cart.tenant_id == tenant.id)
@@ -1152,8 +1168,11 @@ async def send_abandoned_cart_reminder(
     cart = result.scalar_one_or_none()
     if not cart:
         raise HTTPException(status_code=404, detail="Cart not found")
+    from app.bot.setup import bot as master_bot
+    tenant_bot = await get_tenant_bot(tenant.id)
+    bot_to_use = tenant_bot or master_bot
     try:
-        await bot.send_message(
+        await bot_to_use.send_message(
             chat_id=cart.telegram_user_id,
             text="🛒 Продавец напоминает: в вашей корзине есть товары!\n\nОформите заказ прямо сейчас.",
         )
@@ -1161,6 +1180,9 @@ async def send_abandoned_cart_reminder(
         await db.commit()
     except Exception:
         raise HTTPException(status_code=502, detail="Failed to send message")
+    finally:
+        if tenant_bot:
+            await tenant_bot.session.close()
     return {"ok": True}
 
 
@@ -1367,20 +1389,25 @@ async def create_channel_post(
     user: dict = Depends(get_tg_user),
     db: AsyncSession = Depends(get_db),
 ):
-    from app.bot.setup import bot
+    from app.core.bot_utils import get_tenant_bot
     tenant = await _require_tenant(user, db)
     channel_username = (tenant.settings or {}).get("channel_username")
     text = body.get("text", "")
     photo_url = body.get("photo_url")
     if not channel_username:
         raise HTTPException(400, "No channel configured")
+    tenant_bot = await get_tenant_bot(tenant.id)
+    if not tenant_bot:
+        raise HTTPException(400, "Merchant bot not configured")
     try:
         if photo_url:
-            await bot.send_photo(chat_id=channel_username, photo=photo_url, caption=text, parse_mode="HTML")
+            await tenant_bot.send_photo(chat_id=channel_username, photo=photo_url, caption=text, parse_mode="HTML")
         else:
-            await bot.send_message(chat_id=channel_username, text=text, parse_mode="HTML")
+            await tenant_bot.send_message(chat_id=channel_username, text=text, parse_mode="HTML")
     except Exception as e:
         raise HTTPException(502, f"Failed to post to channel: {e}")
+    finally:
+        await tenant_bot.session.close()
     post = {"id": str(uuid.uuid4()), "text": text, "photo_url": photo_url, "posted_at": datetime.now(timezone.utc).isoformat()}
     settings_data = dict(tenant.settings or {})
     posts = list(settings_data.get("channel_posts", []))
@@ -1397,19 +1424,24 @@ async def verify_channel_admin(
     user: dict = Depends(get_tg_user),
     db: AsyncSession = Depends(get_db),
 ):
-    from app.bot.setup import bot
-    await _require_tenant(user, db)
+    from app.core.bot_utils import get_tenant_bot
+    tenant = await _require_tenant(user, db)
     channel_username = body.get("channel_username", "").strip().lstrip("@")
     if not channel_username:
         raise HTTPException(400, "channel_username required")
+    tenant_bot = await get_tenant_bot(tenant.id)
+    if not tenant_bot:
+        return {"ok": False, "bot_is_admin": False, "channel_title": None, "error": "Merchant bot not configured"}
     try:
-        chat = await bot.get_chat(f"@{channel_username}")
-        me = await bot.get_me()
-        member = await bot.get_chat_member(chat.id, me.id)
+        chat = await tenant_bot.get_chat(f"@{channel_username}")
+        me = await tenant_bot.get_me()
+        member = await tenant_bot.get_chat_member(chat.id, me.id)
         is_admin = member.status in ("administrator", "creator")
         return {"ok": True, "bot_is_admin": is_admin, "channel_title": chat.title}
     except Exception as e:
         return {"ok": False, "bot_is_admin": False, "channel_title": None, "error": str(e)}
+    finally:
+        await tenant_bot.session.close()
 
 
 # ---------------------------------------------------------------------------
