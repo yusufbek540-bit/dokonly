@@ -16,7 +16,7 @@ from aiogram.types import (
 from sqlalchemy import select, update as sa_update
 
 from app.core.database import AsyncSessionLocal
-from app.models.order import Customer, Order, OrderItem
+from app.models.order import Cart, Customer, Order, OrderItem
 from app.models.product import Product
 from app.models.promo import PromoCode
 from app.models.tenant import Tenant
@@ -131,7 +131,7 @@ async def _send_stars_invoice(message: Message, state: FSMContext, tenant: Tenan
 
 
 @router.callback_query(F.data.startswith("buy:"))
-async def add_to_cart(callback: CallbackQuery, state: FSMContext):
+async def add_to_cart(callback: CallbackQuery, state: FSMContext, tenant: Tenant | None):
     product_id = callback.data.split(":", 1)[1]
     data = await state.get_data()
     cart: dict[str, int] = data.get("cart", {})
@@ -139,10 +139,33 @@ async def add_to_cart(callback: CallbackQuery, state: FSMContext):
     cart[product_id] = cart.get(product_id, 0) + 1
     await state.update_data(cart=cart)
 
+    if tenant:
+        items_snapshot = [{"product_id": pid, "quantity": qty} for pid, qty in cart.items()]
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(
+                select(Cart).where(
+                    Cart.tenant_id == tenant.id,
+                    Cart.telegram_user_id == callback.from_user.id,
+                    Cart.recovered == False,  # noqa: E712
+                )
+            )
+            cart_record = result.scalar_one_or_none()
+            if cart_record:
+                cart_record.items = items_snapshot
+            else:
+                db.add(Cart(
+                    tenant_id=tenant.id,
+                    telegram_user_id=callback.from_user.id,
+                    customer_name=callback.from_user.first_name,
+                    items=items_snapshot,
+                ))
+            await db.commit()
+
     if is_first_item and arq_pool:
         await arq_pool.enqueue_job(
             "send_cart_reminder",
             callback.from_user.id,
+            str(tenant.id) if tenant else None,
             _defer_by=timedelta(hours=2),
             _job_id=f"cart_reminder:{callback.from_user.id}",
         )
@@ -308,6 +331,12 @@ async def handle_successful_payment(message: Message, state: FSMContext, tenant:
                 .values(used_count=PromoCode.used_count + 1)
             )
 
+        await db.execute(
+            sa_update(Cart)
+            .where(Cart.tenant_id == tenant.id, Cart.telegram_user_id == message.from_user.id, Cart.recovered == False)  # noqa: E712
+            .values(recovered=True)
+        )
+
         await db.commit()
         order_id_short = str(order.id)[:8].upper()
 
@@ -413,6 +442,12 @@ async def place_order(message: Message, state: FSMContext, tenant: Tenant | None
                 .where(PromoCode.id == uuid.UUID(promo_id))
                 .values(used_count=PromoCode.used_count + 1)
             )
+
+        await db.execute(
+            sa_update(Cart)
+            .where(Cart.tenant_id == tenant.id, Cart.telegram_user_id == message.from_user.id, Cart.recovered == False)  # noqa: E712
+            .values(recovered=True)
+        )
 
         await db.commit()
         order_id_short = str(order.id)[:8].upper()

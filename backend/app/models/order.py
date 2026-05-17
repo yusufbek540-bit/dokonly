@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import BigInteger, Boolean, Column, Date, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from app.models.base import Base, TimestampMixin
@@ -101,3 +101,18 @@ class WishlistItem(Base, TimestampMixin):
         ForeignKey("products.id", ondelete="CASCADE"),
         nullable=False,
     )
+
+
+class Cart(Base, TimestampMixin):
+    __tablename__ = "carts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    telegram_user_id = Column(BigInteger, nullable=False)
+    customer_name = Column(String(200), nullable=True)
+    items = Column(JSONB, default=list, nullable=False)
+    total_amount = Column(Numeric(14, 2), nullable=True)
+    abandoned = Column(Boolean, default=False, nullable=False)
+    abandoned_at = Column(DateTime(timezone=True), nullable=True)
+    recovery_sent_at = Column(DateTime(timezone=True), nullable=True)
+    recovered = Column(Boolean, default=False, nullable=False)

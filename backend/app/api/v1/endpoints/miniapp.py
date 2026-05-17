@@ -20,7 +20,7 @@ from app.core.crypto import encrypt
 from app.core.database import get_db
 from app.models.tenant import Tenant
 from app.models.product import Product, Category
-from app.models.order import Order, OrderItem, Customer
+from app.models.order import Cart, Order, OrderItem, Customer
 from app.models.promo import PromoCode
 from app.models.mailing import MassMailing
 from app.schemas.tenant import TenantResponse
@@ -1104,6 +1104,64 @@ async def delete_mailing(
     if mailing:
         await db.delete(mailing)
         await db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Abandoned carts
+# ---------------------------------------------------------------------------
+
+
+@router.get("/abandoned-carts")
+async def list_abandoned_carts(
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    result = await db.execute(
+        select(Cart)
+        .where(Cart.tenant_id == tenant.id, Cart.abandoned == True, Cart.recovered == False)  # noqa: E712
+        .order_by(Cart.abandoned_at.desc())
+        .limit(50)
+    )
+    carts = result.scalars().all()
+    return [
+        {
+            "id": str(c.id),
+            "customer_name": c.customer_name or "Покупатель",
+            "telegram_user_id": c.telegram_user_id,
+            "items": c.items or [],
+            "total_amount": float(c.total_amount) if c.total_amount else None,
+            "abandoned_at": c.abandoned_at.isoformat() if c.abandoned_at else None,
+            "recovery_sent_at": c.recovery_sent_at.isoformat() if c.recovery_sent_at else None,
+        }
+        for c in carts
+    ]
+
+
+@router.post("/abandoned-carts/{cart_id}/remind", status_code=200)
+async def send_abandoned_cart_reminder(
+    cart_id: UUID,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.bot.setup import bot
+    tenant = await _require_tenant(user, db)
+    result = await db.execute(
+        select(Cart).where(Cart.id == cart_id, Cart.tenant_id == tenant.id)
+    )
+    cart = result.scalar_one_or_none()
+    if not cart:
+        raise HTTPException(status_code=404, detail="Cart not found")
+    try:
+        await bot.send_message(
+            chat_id=cart.telegram_user_id,
+            text="🛒 Продавец напоминает: в вашей корзине есть товары!\n\nОформите заказ прямо сейчас.",
+        )
+        cart.recovery_sent_at = datetime.now(timezone.utc)
+        await db.commit()
+    except Exception:
+        raise HTTPException(status_code=502, detail="Failed to send message")
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------------------

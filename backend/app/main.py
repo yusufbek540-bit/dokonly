@@ -46,6 +46,25 @@ MIGRATIONS = [
     );
     CREATE INDEX IF NOT EXISTS idx_mailings_tenant ON mass_mailings(tenant_id);
     """,
+    # 003 - carts table for abandoned cart tracking
+    """
+    CREATE TABLE IF NOT EXISTS carts (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        telegram_user_id BIGINT NOT NULL,
+        customer_name TEXT,
+        items JSONB NOT NULL DEFAULT '[]',
+        total_amount DECIMAL(14, 2),
+        abandoned BOOLEAN DEFAULT FALSE,
+        abandoned_at TIMESTAMPTZ,
+        recovery_sent_at TIMESTAMPTZ,
+        recovered BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT now(),
+        updated_at TIMESTAMPTZ DEFAULT now()
+    );
+    CREATE INDEX IF NOT EXISTS idx_carts_tenant ON carts(tenant_id);
+    CREATE INDEX IF NOT EXISTS idx_carts_user ON carts(tenant_id, telegram_user_id)
+    """,
     # seed - restore demo tenant (migrated from Supabase)
     """
     INSERT INTO tenants (
