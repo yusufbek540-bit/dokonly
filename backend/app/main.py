@@ -10,7 +10,8 @@ from app.api.v1 import router as api_v1_router
 from app.bot.setup import bot, dp
 import app.bot.handlers  # noqa: F401 — registers routers and middleware into dp
 from app.core.config import settings
-from app.core.database import AsyncSessionLocal
+from app.core.database import AsyncSessionLocal, engine
+from app.models import Base  # noqa: F401 — also registers all model subclasses
 from app.workers import close_pool, init_pool
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,12 @@ MIGRATIONS = [
 
 
 async def run_migrations() -> None:
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        logger.info("DB schema created (create_all)")
+    except Exception as e:
+        logger.warning(f"create_all warning: {e}")
     try:
         async with AsyncSessionLocal() as session:
             for sql_block in MIGRATIONS:
