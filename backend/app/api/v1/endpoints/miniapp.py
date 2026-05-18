@@ -1650,7 +1650,7 @@ async def ai_remove_background(
     user: dict = Depends(get_tg_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Remove background using gpt-image-1 and return a white-background JPEG URL."""
+    """Remove background using gpt-image-2 and return a white-background JPEG URL."""
     tenant = await _require_tenant(user, db)
     image_url = body.get("image_url", "")
     if not image_url:
@@ -1664,7 +1664,7 @@ async def ai_remove_background(
             resp.raise_for_status()
             image_bytes = resp.content
 
-        # Convert to square PNG that gpt-image-1 edit accepts
+        # Convert to square PNG that gpt-image-2 edit accepts
         img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
         size = max(img.size)
         square = Image.new("RGBA", (size, size), (255, 255, 255, 0))
@@ -1677,11 +1677,17 @@ async def ai_remove_background(
         from app.ai.client import get_openai_client
         ai_client = get_openai_client()
         result = await ai_client.images.edit(
-            model="gpt-image-1",
+            model="gpt-image-2",
             image=("product.png", png_buf, "image/png"),
             prompt=(
-                "Remove the background completely. Place the product on a perfectly solid pure white (#FFFFFF) background. "
-                "Keep the product itself 100% intact — do not change its shape, color, or any details. Clean sharp edges."
+                "TASK: Remove only the background. Replace it with a perfectly solid pure white (#FFFFFF) background. "
+                "CRITICAL — DO NOT ALTER THE PRODUCT IN ANY WAY. "
+                "The product must be pixel-perfect identical to the original reference image: "
+                "preserve every text, label, logo, print, graphic, pattern, stitching, and design detail exactly as they appear. "
+                "If the product is clothing, preserve all prints, embroidery, fabric patterns, and material texture exactly. "
+                "Do not reinterpret, stylize, enhance, or reconstruct any part of the product. "
+                "Only the background pixels change — everything else stays untouched. "
+                "Clean, sharp edges where product meets white background."
             ),
             n=1,
             size="1024x1024",
