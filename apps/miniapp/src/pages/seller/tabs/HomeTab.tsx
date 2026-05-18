@@ -7,6 +7,54 @@ import { AchievementsPage } from '../AchievementsPage'
 import { StreakDetailPage } from '../StreakDetailPage'
 import { MailingsView, CouponsView, AbandonedCartsView, StoriesView, LoyaltyProgramView, ReferralProgramView, ChannelCrosspostingView, TeamView } from './SettingsTab'
 
+function HomeSection({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, paddingLeft: 4 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          {title}
+        </span>
+        {action}
+      </div>
+      <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)' }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function HomeRow({ icon, label, value, sub, noBorder, onPress, iconColor }: {
+  icon: string; label: string; value?: string | number; sub?: string;
+  noBorder?: boolean; onPress?: () => void; iconColor?: string;
+}) {
+  const inner = (
+    <>
+      <div style={{
+        width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+        background: 'var(--subtle)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon name={icon} size={16} color={iconColor ?? 'var(--muted-strong)'} />
+      </div>
+      <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>{label}</span>
+      {sub && <span style={{ fontSize: 12, color: 'var(--muted)' }}>{sub}</span>}
+      {value !== undefined && (
+        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', fontFamily: 'JetBrains Mono' }}>{value}</span>
+      )}
+      {onPress && <Icon name="chevronRight" size={16} color="var(--muted)" />}
+    </>
+  )
+  const shared: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+    padding: '14px 16px', background: 'var(--card)',
+    borderBottom: noBorder ? 'none' : '1px solid var(--border)',
+    textAlign: 'left',
+  }
+  return onPress
+    ? <button onClick={onPress} style={{ ...shared, cursor: 'pointer' }}>{inner}</button>
+    : <div style={shared}>{inner}</div>
+}
+
 function fmtPrice(n: number, currency: string) {
   if (currency === 'UZS') return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' сум'
   return n.toLocaleString() + ' ' + currency
@@ -386,17 +434,17 @@ export function HomeTab({ tenant, onTabChange }: Props) {
       onPress: () => onTabChange?.('catalog'),
     },
     {
-      label: '📋 Заказы',
+      label: 'Заказы',
       priority: hasOrders ? 2 : 4,
       onPress: () => onTabChange?.('orders'),
     },
     {
-      label: '📣 Рассылка',
+      label: 'Рассылка',
       priority: hasProducts && hasOrders ? 3 : 2,
       onPress: () => onTabChange?.('more'),
     },
     {
-      label: '👁 Магазин',
+      label: 'Магазин',
       priority: 4,
       onPress: () => {
         if ((window as any).Telegram?.WebApp?.openLink) {
@@ -407,7 +455,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
       },
     },
     {
-      label: '🔗 Скопировать',
+      label: 'Скопировать',
       priority: 5,
       onPress: () => navigator.clipboard?.writeText(shopUrl),
     },
@@ -465,7 +513,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
             const firstName = (window as any).Telegram?.WebApp?.initDataUnsafe?.user?.first_name
             return firstName ? (
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 4 }}>
-                Привет, {firstName}! 👋
+                Привет, {firstName}!
               </div>
             ) : null
           })()}
@@ -568,7 +616,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
           const badge = {
             early: { text: 'Free Trial', bg: 'linear-gradient(135deg, #00B5E2 0%, #0066CC 100%)' },
             warning: { text: 'Заканчивается', bg: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)' },
-            offer50: { text: '🔥 50% скидка', bg: 'linear-gradient(135deg, #FF6B35 0%, #E11D48 100%)' },
+            offer50: { text: '50% скидка', bg: 'linear-gradient(135deg, #FF6B35 0%, #E11D48 100%)' },
             expired_winback: { text: 'Trial истёк', bg: 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)' },
             expired: { text: 'Trial истёк', bg: 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)' },
           }[trialState]
@@ -592,7 +640,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                 <div>
                   <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 15, color: 'var(--ink)', marginBottom: 2 }}>
-                    {trialState === 'offer50' ? '🔥 Ограниченное предложение'
+                    {trialState === 'offer50' ? 'Ограниченное предложение'
                       : trialState === 'expired_winback' || trialState === 'expired' ? 'Пробный период завершён'
                       : 'Пробный период'}
                   </div>
@@ -949,7 +997,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
           }
 
           // Rule-based fallback
-          const insights: { icon: string; text: string; action: string; onPress?: () => void }[] = []
+          const insights: { icon: string; iconColor?: string; text: string; action: string; onPress?: () => void }[] = []
 
           if (s.out_of_stock_count > 0) {
             insights.push({
@@ -961,33 +1009,37 @@ export function HomeTab({ tenant, onTabChange }: Props) {
           }
           if (s.low_stock_count > 0) {
             insights.push({
-              icon: '⚠️',
+              icon: 'alertTriangle',
+              iconColor: '#F59E0B',
               text: `${s.low_stock_count} ${s.low_stock_count === 1 ? 'товар заканчивается' : 'товара заканчиваются'} (остаток ≤ 5)`,
-              action: 'Пополнить →',
+              action: 'Пополнить',
               onPress: () => onTabChange?.('catalog'),
             })
           }
           if (s.pending_too_long_count > 0) {
             insights.push({
-              icon: '⏰',
+              icon: 'clock',
+              iconColor: '#EF4444',
               text: `${s.pending_too_long_count} ${s.pending_too_long_count === 1 ? 'заказ ожидает' : 'заказа ожидают'} подтверждения 2+ дня`,
-              action: 'Обработать →',
+              action: 'Обработать',
               onPress: () => onTabChange?.('orders'),
             })
           }
           if (s.no_images_count > 0 && insights.length < 3) {
             insights.push({
-              icon: '📸',
-              text: `${s.no_images_count} ${s.no_images_count === 1 ? 'товар без фото' : 'товара без фото'} — добавьте, чтобы продавать лучше`,
-              action: 'Добавить фото →',
+              icon: 'image',
+              iconColor: '#3B82F6',
+              text: `${s.no_images_count} ${s.no_images_count === 1 ? 'товар без фото' : 'товара без фото'} — добавьте фото`,
+              action: 'Добавить фото',
               onPress: () => onTabChange?.('catalog'),
             })
           }
           if (s.no_description_count > 0 && insights.length < 3) {
             insights.push({
-              icon: '✏️',
+              icon: 'pen',
+              iconColor: '#8B5CF6',
               text: `${s.no_description_count} ${s.no_description_count === 1 ? 'товар без описания' : 'товара без описания'}`,
-              action: 'Заполнить →',
+              action: 'Заполнить',
               onPress: () => onTabChange?.('catalog'),
             })
           }
@@ -995,87 +1047,61 @@ export function HomeTab({ tenant, onTabChange }: Props) {
           if (insights.length === 0) return null
 
           return (
-            <div style={{
-              borderRadius: 16,
-              border: '1px solid var(--border)',
-              background: 'var(--card)',
-              overflow: 'hidden',
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 16px',
-                borderBottom: '1px solid var(--border)',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 16 }}>💡</span>
-                  <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>Что требует внимания</span>
-                </div>
-              </div>
+            <HomeSection title="Требует внимания">
               {insights.slice(0, 3).map((ins, i, arr) => (
                 <button
                   key={i}
                   onClick={ins.onPress}
                   disabled={!ins.onPress}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    width: '100%',
-                    padding: '12px 16px',
-                    background: 'transparent',
-                    textAlign: 'left',
+                    display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                    padding: '14px 16px', background: 'var(--card)', textAlign: 'left',
                     borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
                     cursor: ins.onPress ? 'pointer' : 'default',
                   }}
                 >
-                  <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>{ins.icon}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, color: 'var(--ink)', marginBottom: 2, lineHeight: 1.4 }}>{ins.text}</div>
-                    {ins.onPress && <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>{ins.action}</div>}
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                    background: 'var(--subtle)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Icon name={ins.icon} size={16} color={ins.iconColor ?? 'var(--muted-strong)'} />
                   </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.4 }}>{ins.text}</div>
+                    {ins.onPress && <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, marginTop: 2 }}>{ins.action}</div>}
+                  </div>
+                  {ins.onPress && <Icon name="chevronRight" size={16} color="var(--muted)" />}
                 </button>
               ))}
-            </div>
+            </HomeSection>
           )
         })()}
 
-        {/* ── Stats Grid 2×2 ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          {stats.map(s => (
-            <div key={s.label} style={{
-              padding: '14px 16px',
-              borderRadius: 14,
-              background: 'var(--card)',
-              border: '1px solid var(--border)',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontSize: 12, color: 'var(--muted)' }}>{s.label}</span>
-                <Icon name={s.icon} size={14} color="var(--muted)" />
-              </div>
-              <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>
-                {s.value}
-              </div>
-            </div>
+        {/* ── Stats Section ── */}
+        <HomeSection title="Статистика">
+          {stats.map((s, i) => (
+            <HomeRow
+              key={s.label}
+              icon={s.icon}
+              label={s.label}
+              value={s.value}
+              noBorder={i === stats.length - 1}
+            />
           ))}
-        </div>
+        </HomeSection>
 
-        {/* Revenue breakdown: today / week / month */}
+        {/* ── Period Section ── */}
         {(summary || weekSummary || monthSummary) && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          <HomeSection title="Выручка за период">
             {[
-              { label: 'Сегодня', value: summary?.today_revenue != null ? fmtPrice(summary.today_revenue, tenant.currency) : '—', orders: summary?.today_orders },
-              { label: 'Неделя', value: weekSummary?.total_revenue != null ? fmtPrice(weekSummary.total_revenue, tenant.currency) : '—', orders: weekSummary?.total_orders },
-              { label: 'Месяц', value: monthSummary?.total_revenue != null ? fmtPrice(monthSummary.total_revenue, tenant.currency) : '—', orders: monthSummary?.total_orders },
-            ].map(s => (
-              <div key={s.label} style={{ padding: '12px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)', textAlign: 'center' }}>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>{s.label}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.3 }}>{s.value}</div>
-                {s.orders != null && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>{s.orders} заказ{s.orders === 1 ? '' : s.orders < 5 ? 'а' : 'ов'}</div>}
-              </div>
+              { icon: 'clock', label: 'Сегодня', value: summary?.today_revenue != null ? fmtPrice(summary.today_revenue, tenant.currency) : '—', sub: summary?.today_orders != null ? `${summary.today_orders} заказов` : undefined },
+              { icon: 'barChart', label: 'Неделя', value: weekSummary?.total_revenue != null ? fmtPrice(weekSummary.total_revenue, tenant.currency) : '—', sub: weekSummary?.total_orders != null ? `${weekSummary.total_orders} заказов` : undefined },
+              { icon: 'flag', label: 'Месяц', value: monthSummary?.total_revenue != null ? fmtPrice(monthSummary.total_revenue, tenant.currency) : '—', sub: monthSummary?.total_orders != null ? `${monthSummary.total_orders} заказов` : undefined },
+            ].map((s, i, arr) => (
+              <HomeRow key={s.label} icon={s.icon} label={s.label} value={s.value} sub={s.sub} noBorder={i === arr.length - 1} />
             ))}
-          </div>
+          </HomeSection>
         )}
 
         {/* ── Today's Pulse Strip ── */}
@@ -1203,94 +1229,39 @@ export function HomeTab({ tenant, onTabChange }: Props) {
           const completedCount = steps.filter(s => s.done).length
           const progressPct = (completedCount / steps.length) * 100
 
+          const stepIcons = ['image', 'plus', 'creditCard', 'search', 'send']
           return (
-            <div style={{
-              padding: '16px',
-              borderRadius: 16,
-              border: '1px solid var(--border)',
-              background: 'var(--card)',
-            }}>
-              {/* Header row */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>
-                  Начните работу
-                </div>
-                <span style={{
-                  background: 'var(--accent)',
-                  color: 'white',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  padding: '3px 10px',
-                  borderRadius: 999,
-                }}>
+            <HomeSection
+              title="Начните работу"
+              action={
+                <span style={{ background: 'var(--accent)', color: 'white', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999 }}>
                   {completedCount}/5
                 </span>
-              </div>
-
-              {/* Sub-title */}
-              <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
-                Начните за 5 шагов:
-              </div>
-
-              {/* Steps */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-                {steps.map((step, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    {/* Checkbox circle */}
-                    <div style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 999,
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      background: step.done ? 'var(--accent)' : 'transparent',
-                      border: step.done ? 'none' : '2px solid var(--border)',
-                    }}>
-                      {step.done && (
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                          <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      )}
-                    </div>
-                    {/* Step text */}
-                    <span style={{
-                      fontSize: 13,
-                      fontWeight: 500,
-                      color: step.done ? 'var(--muted)' : 'var(--ink)',
-                      textDecoration: step.done ? 'line-through' : 'none',
-                      flex: 1,
-                    }}>
-                      {step.label}
-                    </span>
+              }
+            >
+              {steps.map((step, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '14px 16px', background: 'var(--card)',
+                  borderBottom: i < steps.length - 1 ? '1px solid var(--border)' : 'none',
+                }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                    background: step.done ? 'var(--accent)' : 'var(--subtle)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Icon name={step.done ? 'check' : stepIcons[i]} size={16} color={step.done ? 'white' : 'var(--muted-strong)'} />
                   </div>
-                ))}
-              </div>
-
-              {/* Progress bar */}
-              <div style={{
-                height: 6,
-                borderRadius: 999,
-                background: 'var(--subtle)',
-                overflow: 'hidden',
-              }}>
-                <div style={{
-                  height: '100%',
-                  width: `${progressPct}%`,
-                  borderRadius: 999,
-                  background: 'var(--accent)',
-                  transition: 'width 0.4s ease',
-                }} />
-              </div>
-
-              {/* Motivational text when all done */}
-              {completedCount === 5 && (
-                <div style={{ textAlign: 'center', marginTop: 12, fontSize: 14, fontWeight: 600, color: 'var(--accent)' }}>
-                  🎉 Вы готовы к продажам!
+                  <span style={{
+                    flex: 1, fontSize: 15, fontWeight: 500,
+                    color: step.done ? 'var(--muted)' : 'var(--ink)',
+                    textDecoration: step.done ? 'line-through' : 'none',
+                  }}>
+                    {step.label}
+                  </span>
                 </div>
-              )}
-            </div>
+              ))}
+            </HomeSection>
           )
         })()}
 
