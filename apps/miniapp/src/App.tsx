@@ -442,7 +442,11 @@ function ShopApp() {
   const slug = SHOP_SLUG!
 
   const [tab, setTab] = useState<BuyerTab>('home')
-  const [productId, setProductId] = useState<string | null>(null)
+  const [productId, setProductId] = useState<string | null>(() => {
+    const param = (window as any).Telegram?.WebApp?.initDataUnsafe?.start_param ?? ''
+    if (param.startsWith('product_')) return param.replace('product_', '')
+    return null
+  })
   const [showCheckout, setShowCheckout] = useState(false)
   const [gateUnlocked, setGateUnlocked] = useState(false)
   const [catalogInitCat, setCatalogInitCat] = useState<string | undefined>(undefined)
