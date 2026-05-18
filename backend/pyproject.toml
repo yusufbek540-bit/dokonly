@@ -33,7 +33,7 @@ dependencies = [
     "PyJWT>=2.8.0",
     "passlib[bcrypt]>=1.7.4",
     "pillow>=10.4.0",
-    "rembg>=2.0.57",
+    "rembg[cpu]>=2.0.57",
     "python-dotenv>=1.0.0",
 ]
 
