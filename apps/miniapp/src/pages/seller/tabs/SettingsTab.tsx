@@ -1509,7 +1509,7 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
         <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
           <Icon name="arrowLeft" size={20} color="var(--ink)" />
         </button>
-        <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>Кросспостинг в канал</span>
+        <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>Публикации в канале</span>
       </div>
       <div style={{ flex: 1, padding: '16px 16px 32px' }}>
         {/* Channel setup */}
@@ -1638,26 +1638,6 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
           </div>
         )}
 
-        {/* Posts history */}
-        {(posts as any[]).length > 0 && (
-          <>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>История публикаций</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {(posts as any[]).slice(0, 10).map((p: any) => (
-                <div key={p.id} style={{ borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 16 }}>{p.type === 'auto' ? '🤖' : '📢'}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}>{p.product_name ?? 'Публикация'}</div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>{new Date(p.created_at).toLocaleString('ru')}</div>
-                  </div>
-                  <div style={{ fontSize: 12, color: p.status === 'sent' ? '#10B981' : 'var(--danger)', fontWeight: 600 }}>
-                    {p.status === 'sent' ? '✓' : '✗'}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
       </div>
     </div>
   )
@@ -3044,11 +3024,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
           icon="cart"
           label="Брошенные корзины"
           onPress={() => setShowAbandonedCarts(true)}
-        />
-        <Row
-          icon="send"
-          label="Кросспостинг в канал"
-          onPress={() => setShowChannelCrossposting(true)}
         />
         {(tier === 'business' || tier === 'premium') ? (
           <Row
