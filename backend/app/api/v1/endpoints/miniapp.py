@@ -1629,7 +1629,7 @@ async def ai_generate_description(
     category = body.get("category", "")
     prompt = f"Напиши продающее описание товара '{name}'" + (f" в категории '{category}'" if category else "") + ". 2-3 предложения, на русском языке."
     try:
-        from app.ai.client import openai as ai_client
+        from app.ai.client import get_openai_client; ai_client = get_openai_client()
         resp = await ai_client.chat.completions.create(
             model="gpt-4o-mini",
             max_tokens=200,
@@ -1652,7 +1652,7 @@ async def ai_generate_mailing(
     audience = body.get("audience", "all")
     prompt = f"Напиши текст рекламной рассылки для Telegram на тему '{topic}' для аудитории '{audience}'. Включи заголовок и текст. 3-5 предложений, эмодзи, русский язык."
     try:
-        from app.ai.client import openai as ai_client
+        from app.ai.client import get_openai_client; ai_client = get_openai_client()
         resp = await ai_client.chat.completions.create(
             model="gpt-4o-mini",
             max_tokens=300,
@@ -2034,7 +2034,7 @@ async def seller_ai_chat(
     tenant = await _require_tenant(user, db)
     messages = body.get("messages", [])
     try:
-        from app.ai.client import openai as ai_client
+        from app.ai.client import get_openai_client; ai_client = get_openai_client()
         resp = await ai_client.chat.completions.create(
             model="gpt-4o-mini",
             max_tokens=500,

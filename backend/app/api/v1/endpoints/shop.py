@@ -1252,7 +1252,7 @@ async def ai_chat(
         raise HTTPException(404, "Shop not found")
     messages = body.get("messages", [])
     try:
-        from app.ai.client import openai as ai_client
+        from app.ai.client import get_openai_client; ai_client = get_openai_client()
         resp = await ai_client.chat.completions.create(
             model="gpt-4o-mini",
             max_tokens=500,
