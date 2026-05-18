@@ -1631,7 +1631,7 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
               href="https://t.me/BotFather"
               target="_blank"
               rel="noreferrer"
-              style={{ display: 'block', width: '100%', height: 44, borderRadius: 10, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 14, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              style={{ display: 'flex', width: '100%', height: 44, borderRadius: 10, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 14, textDecoration: 'none', alignItems: 'center', justifyContent: 'center', gap: 6 }}
             >
               ✈️ Открыть @BotFather
             </a>
