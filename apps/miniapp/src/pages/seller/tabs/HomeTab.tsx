@@ -1005,40 +1005,9 @@ export function HomeTab({ tenant, onTabChange }: Props) {
           Каталог и операции
         </div>
         <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 16 }}>
-          {/* Products row with attention badge */}
-          {/* Товары — with attention badge */}
-          {(() => {
-            const s = summary as any
-            const attentionCount = s ? (s.out_of_stock_count ?? 0) + (s.no_images_count ?? 0) : 0
-            return (
-              <MenuRow
-                icon="box" label="Товары"
-                onPress={() => onTabChange?.('catalog')}
-                badge={attentionCount > 0 ? (
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'white', background: '#EF4444', borderRadius: 999, padding: '2px 7px' }}>{attentionCount}</span>
-                ) : undefined}
-              />
-            )
-          })()}
-          {/* Заказы — with pending badge */}
-          {(() => {
-            const pendingCount = (orders as any[]).filter((o: any) => o.status === 'new' || o.status === 'created').length
-            const unverified = (orders as any[]).filter((o: any) => o.meta?.payment_screenshot && o.payment_status !== 'paid').length
-            const badgeCount = Math.max(pendingCount, unverified)
-            return (
-              <MenuRow
-                icon="cart" label="Заказы"
-                onPress={() => onTabChange?.('orders')}
-                badge={badgeCount > 0 ? (
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'white', background: '#EF4444', borderRadius: 999, padding: '2px 7px' }}>{badgeCount}</span>
-                ) : undefined}
-              />
-            )
-          })()}
-          <MenuRow icon="list"        label="Категории"        onPress={() => onTabChange?.('catalog')} />
           <MenuRow icon="refreshCw"   label="Возвраты"         onPress={() => setShowReturns(true)} />
           <MenuRow icon="truck"       label="Способы доставки" onPress={() => onTabChange?.('more', 'delivery')} />
-          <MenuRow icon="coupon"      label="Купоны и скидки"  onPress={() => setShowCoupons(true)} />
+          <MenuRow icon="creditCard"  label="Способы оплаты"   onPress={() => onTabChange?.('more', 'payment')} />
           <MenuRow icon="barChart"    label="Аналитика"        onPress={() => onTabChange?.('analytics')} last />
         </div>
 
@@ -1048,6 +1017,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
           <span style={{ fontSize: 10, fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #00B5E2 0%, #0066CC 100%)', padding: '2px 7px', borderRadius: 999 }}>Business+</span>
         </div>
         <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 16 }}>
+          <MenuRow icon="coupon"    label="Купоны и скидки"         onPress={() => setShowCoupons(true)} />
           <MenuRow icon="send"      label="Рассылки"                onPress={() => setShowMailings(true)} />
           <MenuRow icon="play"      label="Stories и баннеры"       onPress={() => setShowStories(true)} />
           <MenuRow icon="gift"      label="Программа лояльности"    onPress={() => setShowLoyaltyProgram(true)} />
@@ -1059,7 +1029,6 @@ export function HomeTab({ tenant, onTabChange }: Props) {
         {/* Group 3: Настройки */}
         <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, marginTop: 8 }}>Настройки</div>
         <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 16 }}>
-          <MenuRow icon="creditCard" label="Способы оплаты"    onPress={() => onTabChange?.('more', 'payment')} />
           <MenuRow icon="box"        label="Настройки заказов" onPress={() => onTabChange?.('more', 'orders')} />
           <MenuRow icon="sparkles"   label="Оформление"        onPress={() => onTabChange?.('more', 'design')} />
           <MenuRow
