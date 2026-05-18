@@ -160,8 +160,47 @@ async def onboard_seller(
 
 
 @router.post("/setup-bot")
+async def _auto_pin_store_card(tenant_id: str) -> None:
+    """Background task: pin store card in channel if one is configured."""
+    from app.core.bot_utils import get_tenant_bot
+    from app.core.database import AsyncSessionLocal
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+        tenant = result.scalar_one_or_none()
+        if not tenant:
+            return
+        settings_data = tenant.settings or {}
+        channel = settings_data.get("crosspost_channel") or settings_data.get("channel_username")
+        if not channel or not tenant.bot_username:
+            return
+        if not channel.startswith("@"):
+            channel = f"@{channel}"
+        tenant_bot = await get_tenant_bot(tenant.id)
+        if not tenant_bot:
+            return
+        shop_url = f"https://t.me/{tenant.bot_username}"
+        description = settings_data.get("description") or ""
+        text_lines = [f"🏪 *{tenant.name}*"]
+        if description:
+            text_lines += ["", description]
+        text_lines += ["", "Открывайте наш магазин прямо в Telegram — быстро и удобно."]
+        text = "\n".join(text_lines)
+        kb = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="🛍 Открыть магазин", url=shop_url)
+        ]])
+        try:
+            msg = await tenant_bot.send_message(chat_id=channel, text=text, parse_mode="Markdown", reply_markup=kb)
+            await tenant_bot.pin_chat_message(chat_id=channel, message_id=msg.message_id, disable_notification=True)
+        except Exception:
+            pass
+        finally:
+            await tenant_bot.session.close()
+
+
 async def setup_bot(
     body: dict,
+    background_tasks: BackgroundTasks,
     user: dict = Depends(get_tg_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -219,6 +258,7 @@ async def setup_bot(
 
         await asyncio.gather(_set_webhook(), _set_menu_button())
 
+    background_tasks.add_task(_auto_pin_store_card, str(tenant.id))
     return {"ok": True, "bot_username": bot_username, "mini_app_url": mini_app_url}
 
 
@@ -1551,6 +1591,52 @@ async def verify_channel_admin(
         return {"ok": False, "bot_is_admin": False, "channel_title": None, "error": str(e)}
     finally:
         await tenant_bot.session.close()
+
+
+@router.post("/channel/pin-card")
+async def pin_channel_store_card(
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.core.bot_utils import get_tenant_bot
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    tenant = await _require_tenant(user, db)
+    settings_data = tenant.settings or {}
+    channel = settings_data.get("crosspost_channel") or settings_data.get("channel_username")
+    if not channel:
+        raise HTTPException(400, "No channel configured")
+    if not channel.startswith("@"):
+        channel = f"@{channel}"
+
+    tenant_bot = await get_tenant_bot(tenant.id)
+    if not tenant_bot:
+        raise HTTPException(400, "Merchant bot not configured")
+
+    bot_username = tenant.bot_username
+    shop_url = f"https://t.me/{bot_username}" if bot_username else None
+    if not shop_url:
+        raise HTTPException(400, "Bot username not set")
+
+    description = (tenant.settings or {}).get("description") or ""
+    text_lines = [f"🏪 *{tenant.name}*"]
+    if description:
+        text_lines += ["", description]
+    text_lines += ["", "Открывайте наш магазин прямо в Telegram — быстро и удобно."]
+    text = "\n".join(text_lines)
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="🛍 Открыть магазин", url=shop_url)
+    ]])
+
+    try:
+        msg = await tenant_bot.send_message(chat_id=channel, text=text, parse_mode="Markdown", reply_markup=kb)
+        await tenant_bot.pin_chat_message(chat_id=channel, message_id=msg.message_id, disable_notification=True)
+    except Exception as e:
+        raise HTTPException(502, f"Failed to pin card: {e}")
+    finally:
+        await tenant_bot.session.close()
+
+    return {"ok": True, "message_id": msg.message_id}
 
 
 # ---------------------------------------------------------------------------

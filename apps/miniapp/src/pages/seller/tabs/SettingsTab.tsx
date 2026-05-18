@@ -1424,6 +1424,35 @@ export function ReferralProgramView({ onBack }: { onBack: () => void }) {
   )
 }
 
+function PinCardButton() {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  async function handlePin() {
+    setStatus('loading')
+    try {
+      await api.seller.pinChannelCard()
+      setStatus('done')
+    } catch {
+      setStatus('error')
+    }
+  }
+  return (
+    <button
+      onClick={handlePin}
+      disabled={status === 'loading'}
+      style={{
+        width: '100%', height: 46, borderRadius: 12,
+        background: status === 'done' ? '#D1FAE5' : status === 'error' ? '#FEE2E2' : 'var(--subtle)',
+        border: '1px solid var(--border)',
+        color: status === 'done' ? '#065F46' : status === 'error' ? '#991B1B' : 'var(--ink)',
+        fontWeight: 600, fontSize: 14, cursor: status === 'loading' ? 'default' : 'pointer',
+        marginBottom: 20, opacity: status === 'loading' ? 0.7 : 1,
+      }}
+    >
+      {status === 'loading' ? '📌 Закрепляем...' : status === 'done' ? '✅ Карточка закреплена!' : status === 'error' ? '❌ Ошибка — попробуйте снова' : '📌 Закрепить карточку магазина'}
+    </button>
+  )
+}
+
 // ─── ChannelCrosspostingView ──────────────────────────────────────────────────
 
 export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBack: () => void }) {
@@ -1450,10 +1479,14 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
     setVerifyStatus('loading')
     setVerifyChannelTitle(null)
     try {
+      // Save channel username first so pin-card endpoint can read it
+      await api.seller.updateSettings({ crosspost_channel: channelUsername.trim() })
       const res = await api.seller.verifyChannelAdmin(channelUsername.trim().replace(/^@/, ''))
       if (res.bot_is_admin) {
         setVerifyStatus('ok')
         setVerifyChannelTitle(res.channel_title ?? null)
+        // Auto-pin store card when bot is confirmed as admin
+        api.seller.pinChannelCard().catch(() => {})
       } else {
         setVerifyStatus('fail')
       }
@@ -1553,11 +1586,14 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
 
         {/* Manual post button */}
         {channelUsername && (
-          <button
-            onClick={() => postMutation.mutate({ text: template, type: 'manual' })}
-            disabled={postMutation.isPending}
-            style={{ width: '100%', height: 46, borderRadius: 12, background: 'var(--subtle)', border: '1px solid var(--border)', color: 'var(--ink)', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginBottom: 20, opacity: postMutation.isPending ? 0.7 : 1 }}
-          >📢 {postMutation.isPending ? 'Публикация...' : 'Опубликовать сейчас'}</button>
+          <>
+            <button
+              onClick={() => postMutation.mutate({ text: template, type: 'manual' })}
+              disabled={postMutation.isPending}
+              style={{ width: '100%', height: 46, borderRadius: 12, background: 'var(--subtle)', border: '1px solid var(--border)', color: 'var(--ink)', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginBottom: 10, opacity: postMutation.isPending ? 0.7 : 1 }}
+            >📢 {postMutation.isPending ? 'Публикация...' : 'Опубликовать сейчас'}</button>
+            <PinCardButton />
+          </>
         )}
 
         {/* Posts history */}

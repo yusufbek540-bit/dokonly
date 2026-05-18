@@ -278,6 +278,8 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ channel_username }),
       }),
+    pinChannelCard: () =>
+      request<{ ok: boolean; message_id: number }>('/api/v1/miniapp/channel/pin-card', { method: 'POST' }),
     pendingTour: () =>
       request<{ id: string; tour_id: string; current_step: number; total_steps: number } | null>('/api/v1/miniapp/tours/pending'),
     skipTour: (tourId: string) =>
