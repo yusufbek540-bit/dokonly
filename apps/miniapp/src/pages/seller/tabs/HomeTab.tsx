@@ -881,68 +881,6 @@ export function HomeTab({ tenant, onTabChange }: Props) {
           </div>
         </div>
 
-        {/* ── Onboarding Checklist (shown only when brand new: no products AND no orders) ── */}
-        {(summary as any)?.product_count === 0 && (summary as any)?.total_orders === 0 && (() => {
-          const steps = [
-            {
-              label: 'Добавить обложку и логотип магазина',
-              done: !!(tenant?.cover_url || tenant?.logo_url),
-            },
-            {
-              label: 'Добавить первый товар',
-              done: ((summary as any)?.product_count ?? 0) > 0,
-            },
-            {
-              label: 'Настроить способ оплаты',
-              done: (tenant?.settings?.payment_methods?.length ?? 0) > 0,
-            },
-            {
-              label: 'Проверить свой магазин',
-              done: false,
-            },
-            {
-              label: 'Поделиться с аудиторией',
-              done: false,
-            },
-          ]
-          const completedCount = steps.filter(s => s.done).length
-          const progressPct = (completedCount / steps.length) * 100
-
-          const stepIcons = ['image', 'plus', 'creditCard', 'search', 'send']
-          return (
-            <HomeSection
-              title="Начните работу"
-              action={
-                <span style={{ background: 'var(--accent)', color: 'white', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999 }}>
-                  {completedCount}/5
-                </span>
-              }
-            >
-              {steps.map((step, i) => (
-                <div key={i} style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '14px 16px', background: 'var(--card)',
-                  borderBottom: i < steps.length - 1 ? '1px solid var(--border)' : 'none',
-                }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                    background: step.done ? 'var(--accent)' : 'var(--subtle)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <Icon name={step.done ? 'check' : stepIcons[i]} size={16} color={step.done ? 'white' : 'var(--muted-strong)'} />
-                  </div>
-                  <span style={{
-                    flex: 1, fontSize: 15, fontWeight: 500,
-                    color: step.done ? 'var(--muted)' : 'var(--ink)',
-                    textDecoration: step.done ? 'line-through' : 'none',
-                  }}>
-                    {step.label}
-                  </span>
-                </div>
-              ))}
-            </HomeSection>
-          )
-        })()}
 
         {/* ── Recent Orders ── */}
         <div>
