@@ -199,7 +199,7 @@ export function Layout() {
           </div>
         </div>
 
-        <main className="flex-1 p-8 overflow-auto" style={{ overflowX: 'hidden' }}>
+        <main className="flex-1 p-8 overflow-auto">
           <div key={location.pathname} className="page-enter">
             <Outlet />
           </div>
