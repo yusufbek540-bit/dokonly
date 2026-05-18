@@ -76,6 +76,8 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
   const [attributes, setAttributes] = useState<Record<string, string>>(p?.attributes ?? {})
   const [uploading, setUploading] = useState(false)
   const [generatingDesc, setGeneratingDesc] = useState(false)
+  const [removingBgIdx, setRemovingBgIdx] = useState<number | null>(null)
+  const [fillingFromPhoto, setFillingFromPhoto] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const sphereAttrs = getSphereAttrs(sphere ?? '')
@@ -152,7 +154,27 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
               {images.map((url, i) => (
                 <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
-                  <img src={url} style={{ width: 80, height: 80, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--border)' }} />
+                  <img src={url} style={{ width: 80, height: 80, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--border)', background: 'repeating-conic-gradient(#ccc 0% 25%, white 0% 50%) 0 0 / 10px 10px' }} />
+                  {removingBgIdx === i ? (
+                    <div style={{ position: 'absolute', inset: 0, borderRadius: 10, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 18, height: 18, borderRadius: 999, border: '2px solid white', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }}/>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        setRemovingBgIdx(i)
+                        try {
+                          const res = await api.seller.removeBackground(url)
+                          setImages(imgs => imgs.map((u, j) => j === i ? res.url : u))
+                        } catch { /* silently fail */ }
+                        finally { setRemovingBgIdx(null) }
+                      }}
+                      title="Убрать фон"
+                      style={{ position: 'absolute', bottom: 4, left: 4, width: 22, height: 22, borderRadius: 6, background: 'rgba(0,0,0,0.6)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    >
+                      <Icon name="sparkles" size={11} color="white"/>
+                    </button>
+                  )}
                   <button
                     onClick={() => setImages(imgs => imgs.filter((_, j) => j !== i))}
                     style={{ position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: 999, background: 'var(--danger)', border: '2px solid var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -198,24 +220,50 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
               }}
             />
           </div>
-          {[
-            { label: 'Название*', val: name, set: setName, placeholder: 'Название товара' },
-          ].map(f => (
-            <div key={f.label}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>{f.label}</label>
-              <input
-                value={f.val}
-                onChange={e => f.set(e.target.value)}
-                placeholder={f.placeholder}
-                style={{
-                  width: '100%', height: 46, padding: '0 12px',
-                  borderRadius: 12, background: 'var(--card)',
-                  border: '1px solid var(--border)', outline: 'none',
-                  fontSize: 14, color: 'var(--ink)',
-                }}
-              />
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)' }}>Название*</label>
+              {images.length > 0 && (
+                <button
+                  type="button"
+                  disabled={fillingFromPhoto}
+                  onClick={async () => {
+                    setFillingFromPhoto(true)
+                    try {
+                      const res = await api.seller.fillFromPhoto(images[0])
+                      if (res.name) setName(res.name)
+                      if (res.description) setDescription(res.description)
+                      if (res.price) setPrice(String(res.price))
+                    } catch { /* silently fail */ }
+                    finally { setFillingFromPhoto(false) }
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: '4px 10px', borderRadius: 8,
+                    background: fillingFromPhoto ? 'var(--subtle)' : 'var(--accent-soft)',
+                    fontSize: 12, fontWeight: 600, color: 'var(--accent)',
+                    opacity: fillingFromPhoto ? 0.6 : 1, cursor: fillingFromPhoto ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {fillingFromPhoto
+                    ? <><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', border: '1.5px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }} /> Анализирую...</>
+                    : <>🤖 AI из фото</>
+                  }
+                </button>
+              )}
             </div>
-          ))}
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Название товара"
+              style={{
+                width: '100%', height: 46, padding: '0 12px',
+                borderRadius: 12, background: 'var(--card)',
+                border: '1px solid var(--border)', outline: 'none',
+                fontSize: 14, color: 'var(--ink)',
+              }}
+            />
+          </div>
           {/* Description with AI */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>

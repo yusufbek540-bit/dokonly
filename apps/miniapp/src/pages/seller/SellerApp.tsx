@@ -75,6 +75,7 @@ export function SellerApp({ tenantSlug, shop }: Props) {
   }, [])
 
   const [tab, setTab] = useState<Tab>('home')
+  const [moreDeepLink, setMoreDeepLink] = useState<string | undefined>(undefined)
   const [overrideTenant, setOverrideTenant] = useState<any>(null)
   const qc = useQueryClient()
 
@@ -192,12 +193,12 @@ export function SellerApp({ tenantSlug, shop }: Props) {
 
       {/* Tab content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingBottom: 64 }}>
-        {tab === 'home'      && <HomeTab      tenant={tenant} onTabChange={(t) => setTab(t as Tab)} />}
+        {tab === 'home'      && <HomeTab      tenant={tenant} onTabChange={(t, deepLink) => { setTab(t as Tab); if (deepLink) setMoreDeepLink(deepLink) }} />}
         {tab === 'catalog'   && <CatalogTab   tenant={tenant} />}
         {tab === 'orders'    && <OrdersTab    tenant={tenant} />}
         {tab === 'analytics' && <AnalyticsTab tenant={tenant} />}
         {tab === 'customers' && <CustomersTab tenant={tenant} />}
-        {tab === 'more'      && <SettingsTab  tenant={tenant} />}
+        {tab === 'more'      && <SettingsTab  tenant={tenant} deepLink={moreDeepLink} onDeepLinkConsumed={() => setMoreDeepLink(undefined)} />}
       </div>
 
       {/* Migration tour */}

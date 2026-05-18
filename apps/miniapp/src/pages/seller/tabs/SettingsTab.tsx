@@ -1,11 +1,15 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Icon } from '@/components/Icon'
 import { api } from '@/lib/api'
 import { useTelegramMainButton } from '@/hooks/useTelegram'
 import { PlanPicker } from '../PlanPicker'
 
-interface Props { tenant: any }
+interface Props {
+  tenant: any
+  deepLink?: string
+  onDeepLinkConsumed?: () => void
+}
 
 // ─── Helper components ────────────────────────────────────────────────────────
 
@@ -1847,7 +1851,7 @@ export function TeamView({ onBack }: { onBack: () => void }) {
   )
 }
 
-export function SettingsTab({ tenant }: Props) {
+export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
   const queryClient = useQueryClient()
 
   const { data: meData } = useQuery({
@@ -2260,6 +2264,20 @@ export function SettingsTab({ tenant }: Props) {
     document.documentElement.dataset.theme = resolved
     setAdminTheme(pref)
   }
+
+  useEffect(() => {
+    if (!deepLink) return
+    const map: Record<string, () => void> = {
+      delivery: () => setEditDelivery(true),
+      payment:  () => setEditPayment(true),
+      orders:   () => setEditOrderSettings(true),
+      design:   () => setEditAppearance(true),
+      bot:      () => setEditBot(true),
+      channel:  () => setShowChannelCrossposting(true),
+    }
+    map[deepLink]?.()
+    onDeepLinkConsumed?.()
+  }, [deepLink])
 
   if (showCoupons) return <CouponsView onBack={() => setShowCoupons(false)} />
   if (showMailings) return <MailingsView onBack={() => setShowMailings(false)} />

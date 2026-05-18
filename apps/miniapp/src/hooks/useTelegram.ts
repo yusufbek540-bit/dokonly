@@ -62,11 +62,13 @@ export function useTelegramMainButton({ text, onClick, isVisible, color, disable
   const tg = window.Telegram?.WebApp
   const callbackRef = useRef(onClick)
   callbackRef.current = onClick
+  const disabledRef = useRef(disabled)
+  disabledRef.current = disabled
 
   useEffect(() => {
     if (!tg) return
     const mb = tg.MainButton
-    const handler = () => { if (!disabled) callbackRef.current() }
+    const handler = () => { if (!disabledRef.current) callbackRef.current() }
     mb.onClick(handler)
     return () => {
       mb.offClick(handler)

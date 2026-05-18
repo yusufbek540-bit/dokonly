@@ -1618,6 +1618,83 @@ async def mark_return_refunded(
 # ---------------------------------------------------------------------------
 
 
+@router.post("/ai/fill-from-photo")
+async def ai_fill_from_photo(
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Extract product name, description, and price from an image URL."""
+    await _require_tenant(user, db)
+    image_url = body.get("image_url", "")
+    locale = body.get("locale", "ru")
+    if not image_url:
+        raise HTTPException(status_code=400, detail="image_url is required")
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            resp = await client.get(image_url)
+            resp.raise_for_status()
+            image_bytes = resp.content
+        from app.ai.tasks.photo_import import extract_product_from_photo
+        result = await extract_product_from_photo(image_bytes, caption="", locale=locale)
+        return {"name": result.name, "description": result.description, "price": result.price}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/ai/remove-background")
+async def ai_remove_background(
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Remove background from an image URL and return a new URL with transparent background."""
+    tenant = await _require_tenant(user, db)
+    image_url = body.get("image_url", "")
+    if not image_url:
+        raise HTTPException(status_code=400, detail="image_url is required")
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            resp = await client.get(image_url)
+            resp.raise_for_status()
+            image_bytes = resp.content
+
+        from rembg import remove
+        from PIL import Image
+        import io
+
+        input_image = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
+        output_image = await asyncio.get_event_loop().run_in_executor(
+            None, lambda: remove(input_image)
+        )
+
+        buf = io.BytesIO()
+        output_image.save(buf, format="PNG")
+        png_bytes = buf.getvalue()
+
+        key = f"products/{tenant.id}/{uuid.uuid4()}_nobg.png"
+
+        def _upload():
+            s3 = boto3.client(
+                "s3",
+                endpoint_url=f"https://{settings.cloudflare_account_id}.r2.cloudflarestorage.com",
+                aws_access_key_id=settings.r2_access_key_id,
+                aws_secret_access_key=settings.r2_secret_access_key,
+            )
+            s3.put_object(
+                Bucket=settings.r2_bucket_name,
+                Key=key,
+                Body=png_bytes,
+                ContentType="image/png",
+            )
+
+        await asyncio.get_event_loop().run_in_executor(None, _upload)
+        public_url = f"{settings.r2_public_url.rstrip('/')}/{key}"
+        return {"url": public_url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/ai/generate-description")
 async def ai_generate_description(
     body: dict,

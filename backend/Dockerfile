@@ -3,7 +3,7 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Install system deps
-RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev libgomp1 && rm -rf /var/lib/apt/lists/*
 
 # Install Python deps (skip the -e . line)
 COPY requirements.txt .
@@ -17,6 +17,9 @@ COPY pyproject.toml .
 
 # Install the package itself (non-editable)
 RUN pip install --no-cache-dir --no-deps .
+
+# Pre-download rembg model so first request has no cold-start delay
+RUN python -c "from rembg import new_session; new_session('u2net')"
 
 EXPOSE 8080
 

@@ -252,6 +252,16 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ name, category }),
       }),
+    fillFromPhoto: (imageUrl: string) =>
+      request<{ name: string; description: string | null; price: number | null }>('/api/v1/miniapp/ai/fill-from-photo', {
+        method: 'POST',
+        body: JSON.stringify({ image_url: imageUrl }),
+      }),
+    removeBackground: (imageUrl: string) =>
+      request<{ url: string }>('/api/v1/miniapp/ai/remove-background', {
+        method: 'POST',
+        body: JSON.stringify({ image_url: imageUrl }),
+      }),
     generateMailing: (topic: string, audience?: string) =>
       request<{ text: string; title: string }>('/api/v1/miniapp/ai/generate-mailing', {
         method: 'POST',

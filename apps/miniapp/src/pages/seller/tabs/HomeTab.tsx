@@ -80,24 +80,31 @@ const STATUS_COLORS: Record<string, string> = {
 
 interface Props {
   tenant: any
-  onTabChange?: (tab: string) => void
+  onTabChange?: (tab: string, deepLink?: string) => void
 }
 
-function MenuRow({ emoji, label, value, last, onPress }: { emoji: string; label: string; value?: string; last?: boolean; onPress?: () => void }) {
+function MenuRow({ icon, label, value, last, onPress, badge }: { icon: string; label: string; value?: string; last?: boolean; onPress?: () => void; badge?: React.ReactNode }) {
   return (
     <button
       onClick={onPress}
       disabled={!onPress}
       style={{
         display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-        padding: '13px 16px', background: 'var(--card)', textAlign: 'left',
+        padding: '14px 16px', background: 'var(--card)', textAlign: 'left',
         borderBottom: last ? 'none' : '1px solid var(--border)',
         cursor: onPress ? 'pointer' : 'default',
       }}
     >
-      <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>{emoji}</span>
-      <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{label}</span>
-      {value && <span style={{ fontSize: 12, color: 'var(--muted)', marginRight: 4 }}>{value}</span>}
+      <div style={{
+        width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+        background: 'var(--subtle)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon name={icon} size={16} color="var(--muted-strong)" />
+      </div>
+      <span style={{ flex: 1, fontSize: 15, fontWeight: 500, color: 'var(--ink)' }}>{label}</span>
+      {badge}
+      {value && <span style={{ fontSize: 13, color: 'var(--muted)' }}>{value}</span>}
       <Icon name="chevronRight" size={15} color="var(--muted)" />
     </button>
   )
@@ -1363,202 +1370,96 @@ export function HomeTab({ tenant, onTabChange }: Props) {
         </div>
         <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 16 }}>
           {/* Products row with attention badge */}
+          {/* Товары — with attention badge */}
           {(() => {
             const s = summary as any
-            const needsAttention = s && (s.out_of_stock_count > 0 || s.no_images_count > 0)
             const attentionCount = s ? (s.out_of_stock_count ?? 0) + (s.no_images_count ?? 0) : 0
             return (
-              <button
-                onClick={() => onTabChange?.('catalog')}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-                  padding: '13px 16px', background: 'var(--card)', textAlign: 'left',
-                  borderBottom: '1px solid var(--border)', cursor: 'pointer',
-                }}
-              >
-                <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>📦</span>
-                <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Товары</span>
-                {needsAttention && (
-                  <span style={{
-                    fontSize: 11, fontWeight: 700, color: 'white',
-                    background: '#EF4444', borderRadius: 999,
-                    padding: '2px 7px', minWidth: 20, textAlign: 'center',
-                  }}>
-                    {attentionCount}
-                  </span>
-                )}
-                <Icon name="chevronRight" size={15} color="var(--muted)" />
-              </button>
+              <MenuRow
+                icon="box" label="Товары"
+                onPress={() => onTabChange?.('catalog')}
+                badge={attentionCount > 0 ? (
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'white', background: '#EF4444', borderRadius: 999, padding: '2px 7px' }}>{attentionCount}</span>
+                ) : undefined}
+              />
             )
           })()}
+          {/* Заказы — with pending badge */}
           {(() => {
-            const unverifiedScreenshots = (orders as any[]).filter((o: any) =>
-              o.meta?.payment_screenshot && o.payment_status !== 'paid'
-            ).length
             const pendingCount = (orders as any[]).filter((o: any) => o.status === 'new' || o.status === 'created').length
-            const badgeCount = Math.max(pendingCount, unverifiedScreenshots)
+            const unverified = (orders as any[]).filter((o: any) => o.meta?.payment_screenshot && o.payment_status !== 'paid').length
+            const badgeCount = Math.max(pendingCount, unverified)
             return (
-              <button
-                onClick={() => onTabChange?.('orders')}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-                  padding: '13px 16px', background: 'var(--card)', textAlign: 'left',
-                  borderBottom: '1px solid var(--border)', cursor: 'pointer',
-                }}
-              >
-                <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>🛍</span>
-                <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Заказы</span>
-                {badgeCount > 0 && (
-                  <span style={{
-                    fontSize: 11, fontWeight: 700, color: 'white',
-                    background: '#EF4444', borderRadius: 999,
-                    padding: '2px 7px', minWidth: 20, textAlign: 'center',
-                  }}>
-                    {badgeCount}
-                  </span>
-                )}
-                <Icon name="chevronRight" size={15} color="var(--muted)" />
-              </button>
+              <MenuRow
+                icon="cart" label="Заказы"
+                onPress={() => onTabChange?.('orders')}
+                badge={badgeCount > 0 ? (
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'white', background: '#EF4444', borderRadius: 999, padding: '2px 7px' }}>{badgeCount}</span>
+                ) : undefined}
+              />
             )
           })()}
-          <MenuRow emoji="📋" label="Категории" onPress={() => onTabChange?.('catalog')} />
-          <MenuRow emoji="🔄" label="Возвраты" onPress={() => setShowReturns(true)} />
-          <MenuRow emoji="🚚" label="Способы доставки" onPress={() => onTabChange?.('more')} />
-          <MenuRow emoji="🎟" label="Купоны и скидки" onPress={() => setShowCoupons(true)} />
-          <MenuRow emoji="📊" label="Аналитика" last onPress={() => onTabChange?.('analytics')} />
+          <MenuRow icon="list"        label="Категории"        onPress={() => onTabChange?.('catalog')} />
+          <MenuRow icon="refreshCw"   label="Возвраты"         onPress={() => setShowReturns(true)} />
+          <MenuRow icon="truck"       label="Способы доставки" onPress={() => onTabChange?.('more', 'delivery')} />
+          <MenuRow icon="coupon"      label="Купоны и скидки"  onPress={() => setShowCoupons(true)} />
+          <MenuRow icon="barChart"    label="Аналитика"        onPress={() => onTabChange?.('analytics')} last />
         </div>
 
         {/* Group 2: Маркетинг и рост */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, marginTop: 8 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Маркетинг и рост
-          </div>
-          <span style={{
-            fontSize: 10, fontWeight: 700, color: 'white',
-            background: 'linear-gradient(135deg, #00B5E2 0%, #0066CC 100%)',
-            padding: '2px 7px', borderRadius: 999,
-          }}>
-            Business+
-          </span>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Маркетинг и рост</div>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #00B5E2 0%, #0066CC 100%)', padding: '2px 7px', borderRadius: 999 }}>Business+</span>
         </div>
         <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 16 }}>
-          <MenuRow emoji="📨" label="Рассылки" onPress={() => setShowMailings(true)} />
-          <MenuRow emoji="🎬" label="Stories и баннеры" onPress={() => setShowStories(true)} />
-          <MenuRow emoji="🎁" label="Программа лояльности" onPress={() => setShowLoyaltyProgram(true)} />
-          <MenuRow emoji="👥" label="Реферальная программа" onPress={() => setShowReferralProgram(true)} />
-          <MenuRow emoji="📢" label="Кросспостинг в канал" onPress={() => setShowChannelCrossposting(true)} />
-          <MenuRow emoji="🛍" label="Брошенные корзины" onPress={() => setShowAbandonedCarts(true)} last />
+          <MenuRow icon="send"      label="Рассылки"                onPress={() => setShowMailings(true)} />
+          <MenuRow icon="play"      label="Stories и баннеры"       onPress={() => setShowStories(true)} />
+          <MenuRow icon="gift"      label="Программа лояльности"    onPress={() => setShowLoyaltyProgram(true)} />
+          <MenuRow icon="users"     label="Реферальная программа"   onPress={() => setShowReferralProgram(true)} />
+          <MenuRow icon="megaphone" label="Кросспостинг в канал"    onPress={() => setShowChannelCrossposting(true)} />
+          <MenuRow icon="cart"      label="Брошенные корзины"       onPress={() => setShowAbandonedCarts(true)} last />
         </div>
 
         {/* Group 3: Настройки */}
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, marginTop: 8 }}>
-          Настройки
-        </div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, marginTop: 8 }}>Настройки</div>
         <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 16 }}>
-          <MenuRow emoji="💳" label="Способы оплаты" onPress={() => onTabChange?.('more')} />
-          <MenuRow emoji="📦" label="Настройки заказов" onPress={() => onTabChange?.('more')} />
-          <MenuRow emoji="🎨" label="Оформление магазина" onPress={() => onTabChange?.('more')} />
-          {/* Bot row — custom value rendering */}
-          <button
-            onClick={() => onTabChange?.('more')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-              padding: '13px 16px', background: 'var(--card)', textAlign: 'left',
-              borderBottom: '1px solid var(--border)', cursor: 'pointer',
-            }}
-          >
-            <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>🤖</span>
-            <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Telegram-бот</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {!tenant.bot_username && (
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'white', background: '#EF4444', borderRadius: 999, padding: '2px 7px' }}>!</span>
-              )}
-              {tenant.bot_username && <span style={{ fontSize: 12, color: 'var(--muted)' }}>@{tenant.bot_username}</span>}
-              <Icon name="chevronRight" size={15} color="var(--muted)" />
-            </div>
-          </button>
-          <button
-            onClick={() => onTabChange?.('more')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-              padding: '13px 16px', background: 'var(--card)', textAlign: 'left',
-              cursor: 'pointer',
-            }}
-          >
-            <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>📢</span>
-            <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Канал Telegram</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {!tenant.settings?.channel_id && (
-                <span style={{ fontSize: 11, fontWeight: 700, color: 'white', background: '#F59E0B', borderRadius: 999, padding: '2px 7px' }}>!</span>
-              )}
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>{tenant.settings?.channel_id ? 'Настроен' : 'Настроить'}</span>
-              <Icon name="chevronRight" size={15} color="var(--muted)" />
-            </div>
-          </button>
+          <MenuRow icon="creditCard" label="Способы оплаты"    onPress={() => onTabChange?.('more', 'payment')} />
+          <MenuRow icon="box"        label="Настройки заказов" onPress={() => onTabChange?.('more', 'orders')} />
+          <MenuRow icon="sparkles"   label="Оформление"        onPress={() => onTabChange?.('more', 'design')} />
+          <MenuRow
+            icon="bot" label="Telegram-бот"
+            value={tenant.bot_username ? `@${tenant.bot_username}` : undefined}
+            onPress={() => onTabChange?.('more', 'bot')}
+            badge={!tenant.bot_username ? (
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'white', background: '#EF4444', borderRadius: 999, padding: '2px 7px' }}>!</span>
+            ) : undefined}
+          />
+          <MenuRow
+            icon="pin" label="Канал Telegram"
+            value={tenant.settings?.channel_id ? 'Настроен' : 'Настроить'}
+            onPress={() => onTabChange?.('more', 'channel')}
+            last
+            badge={!tenant.settings?.channel_id ? (
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'white', background: '#F59E0B', borderRadius: 999, padding: '2px 7px' }}>!</span>
+            ) : undefined}
+          />
         </div>
 
         {/* Group 4: Аккаунт */}
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, marginTop: 8 }}>
-          Аккаунт
-        </div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, marginTop: 8 }}>Аккаунт</div>
         <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 16 }}>
-          <MenuRow
-            emoji="💎"
-            label="Подписка"
-            value={(tenant.tier ?? 'Trial').charAt(0).toUpperCase() + (tenant.tier ?? 'Trial').slice(1)}
-            onPress={() => setShowPlanPicker(true)}
-          />
-          <MenuRow emoji="👥" label="Команда" onPress={() => setShowTeam(true)} />
-          <MenuRow emoji="🏆" label="Достижения" onPress={() => setShowAchievements(true)} />
-          <MenuRow emoji="🌍" label="Язык" value="Русский" last />
+          <MenuRow icon="gem"     label="Подписка"   value={(tenant.tier ?? 'Trial').charAt(0).toUpperCase() + (tenant.tier ?? 'Trial').slice(1)} onPress={() => setShowPlanPicker(true)} />
+          <MenuRow icon="users"   label="Команда"    onPress={() => setShowTeam(true)} />
+          <MenuRow icon="trophy"  label="Достижения" onPress={() => setShowAchievements(true)} />
+          <MenuRow icon="globe"   label="Язык"       value="Русский" last />
         </div>
 
         {/* Group 5: Помощь */}
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, marginTop: 8 }}>
-          Помощь
-        </div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8, marginTop: 8 }}>Помощь</div>
         <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 16 }}>
-          <button
-            onClick={() => (window.Telegram?.WebApp as any)?.openTelegramLink('https://t.me/dokonly_support')}
-            style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
-          >
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '13px 16px', background: 'var(--card)',
-              borderBottom: '1px solid var(--border)',
-            }}>
-              <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>💬</span>
-              <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Поддержка</span>
-              <Icon name="chevronRight" size={15} color="var(--muted)" />
-            </div>
-          </button>
-          <button
-            onClick={() => (window.Telegram?.WebApp as any)?.openTelegramLink('https://t.me/dokonly_news')}
-            style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
-          >
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '13px 16px', background: 'var(--card)',
-              borderBottom: '1px solid var(--border)',
-            }}>
-              <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>📰</span>
-              <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>Новости Dokonly</span>
-              <Icon name="chevronRight" size={15} color="var(--muted)" />
-            </div>
-          </button>
-          <button
-            onClick={() => setShowHelp(true)}
-            style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}
-          >
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '13px 16px', background: 'var(--card)',
-            }}>
-              <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>❓</span>
-              <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>FAQ и помощь</span>
-              <Icon name="chevronRight" size={15} color="var(--muted)" />
-            </div>
-          </button>
+          <MenuRow icon="send" label="Поддержка"      onPress={() => (window.Telegram?.WebApp as any)?.openTelegramLink('https://t.me/dokonly_support')} />
+          <MenuRow icon="info" label="Новости Dokonly" onPress={() => (window.Telegram?.WebApp as any)?.openTelegramLink('https://t.me/dokonly_news')} />
+          <MenuRow icon="info" label="FAQ и помощь"   onPress={() => setShowHelp(true)} last />
         </div>
 
         {/* Footer */}
