@@ -75,10 +75,13 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
   const [tagsStr, setTagsStr] = useState<string>((p?.tags ?? []).join(', '))
   const [attributes, setAttributes] = useState<Record<string, string>>(p?.attributes ?? {})
   const [uploading, setUploading] = useState(false)
+  const [uploadingVideo, setUploadingVideo] = useState(false)
   const [generatingDesc, setGeneratingDesc] = useState(false)
   const [removingBgIdx, setRemovingBgIdx] = useState<number | null>(null)
   const [fillingFromPhoto, setFillingFromPhoto] = useState(false)
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const videoInputRef = useRef<HTMLInputElement>(null)
 
   const sphereAttrs = getSphereAttrs(sphere ?? '')
 
@@ -151,35 +154,46 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
             <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 8 }}>
               Фото товара
             </label>
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 4 }}>
               {images.map((url, i) => (
-                <div key={i} style={{ position: 'relative', flexShrink: 0 }}>
-                  <img src={url} style={{ width: 80, height: 80, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--border)', background: 'repeating-conic-gradient(#ccc 0% 25%, white 0% 50%) 0 0 / 10px 10px' }} />
-                  {removingBgIdx === i ? (
-                    <div style={{ position: 'absolute', inset: 0, borderRadius: 10, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <div style={{ width: 18, height: 18, borderRadius: 999, border: '2px solid white', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }}/>
-                    </div>
-                  ) : (
+                <div key={i} style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 4, width: 80 }}>
+                  <div style={{ position: 'relative', width: 80, height: 80 }}>
+                    <img
+                      src={url}
+                      onClick={() => setLightboxUrl(url)}
+                      style={{ width: 80, height: 80, borderRadius: 10, objectFit: 'cover', border: '1px solid var(--border)', background: 'repeating-conic-gradient(#ccc 0% 25%, white 0% 50%) 0 0 / 10px 10px', display: 'block', cursor: 'zoom-in' }}
+                    />
                     <button
-                      onClick={async () => {
-                        setRemovingBgIdx(i)
-                        try {
-                          const res = await api.seller.removeBackground(url)
-                          setImages(imgs => imgs.map((u, j) => j === i ? res.url : u))
-                        } catch { /* silently fail */ }
-                        finally { setRemovingBgIdx(null) }
-                      }}
-                      title="Убрать фон"
-                      style={{ position: 'absolute', bottom: 4, left: 4, width: 22, height: 22, borderRadius: 6, background: 'rgba(0,0,0,0.6)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                      onClick={() => setImages(imgs => imgs.filter((_, j) => j !== i))}
+                      style={{ position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: 999, background: 'var(--danger)', border: '2px solid var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     >
-                      <Icon name="sparkles" size={11} color="white"/>
+                      <Icon name="x" size={10} color="white"/>
                     </button>
-                  )}
+                  </div>
                   <button
-                    onClick={() => setImages(imgs => imgs.filter((_, j) => j !== i))}
-                    style={{ position: 'absolute', top: -6, right: -6, width: 22, height: 22, borderRadius: 999, background: 'var(--danger)', border: '2px solid var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    onClick={async () => {
+                      if (removingBgIdx === i) return
+                      setRemovingBgIdx(i)
+                      try {
+                        const res = await api.seller.removeBackground(url)
+                        setImages(imgs => imgs.map((u, j) => j === i ? res.url : u))
+                      } catch { /* silently fail */ }
+                      finally { setRemovingBgIdx(null) }
+                    }}
+                    disabled={removingBgIdx === i}
+                    style={{
+                      width: 80, height: 26, borderRadius: 8,
+                      background: 'var(--accent-soft)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                      fontSize: 11, fontWeight: 600, color: 'var(--accent)',
+                      opacity: removingBgIdx === i ? 0.7 : 1,
+                      cursor: removingBgIdx === i ? 'not-allowed' : 'pointer',
+                    }}
                   >
-                    <Icon name="x" size={10} color="white"/>
+                    {removingBgIdx === i
+                      ? <><div style={{ width: 10, height: 10, borderRadius: 999, border: '1.5px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.7s linear infinite' }}/> Удаляю...</>
+                      : <><Icon name="sparkles" size={12} color="var(--accent)"/> Убрать фон</>
+                    }
                   </button>
                 </div>
               ))}
@@ -433,13 +447,49 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
             </div>
           </div>
           <div>
-            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>Видео (URL)</label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>Видео</label>
+            {videoUrl ? (
+              <div style={{ position: 'relative', width: '100%' }}>
+                <video
+                  src={videoUrl}
+                  controls
+                  style={{ width: '100%', borderRadius: 12, maxHeight: 200, background: '#000', display: 'block' }}
+                />
+                <button
+                  onClick={() => setVideoUrl('')}
+                  style={{ position: 'absolute', top: 6, right: 6, width: 26, height: 26, borderRadius: 999, background: 'rgba(0,0,0,0.55)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Icon name="x" size={12} color="white"/>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => videoInputRef.current?.click()}
+                disabled={uploadingVideo}
+                style={{ width: '100%', height: 60, borderRadius: 12, border: '1.5px dashed var(--border)', background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: 14, color: 'var(--muted)', cursor: uploadingVideo ? 'not-allowed' : 'pointer' }}
+              >
+                {uploadingVideo
+                  ? <><div style={{ width: 18, height: 18, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }}/> Загружаю...</>
+                  : <><Icon name="video" size={18} color="var(--muted)"/> Загрузить видео</>
+                }
+              </button>
+            )}
             <input
-              value={videoUrl}
-              onChange={e => setVideoUrl(e.target.value)}
-              placeholder="https://..."
-              type="url"
-              style={{ width: '100%', height: 46, padding: '0 12px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }}
+              ref={videoInputRef}
+              type="file"
+              accept="video/*"
+              style={{ display: 'none' }}
+              onChange={async (e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                e.target.value = ''
+                setUploadingVideo(true)
+                try {
+                  const result = await api.seller.uploadFile(file)
+                  setVideoUrl(result.url)
+                } catch { /* silently fail */ }
+                finally { setUploadingVideo(false) }
+              }}
             />
           </div>
           <div>
@@ -551,6 +601,33 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
           </div>
         </div>
       </div>
+      {lightboxUrl && (
+        <div
+          onClick={() => setLightboxUrl(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            background: 'rgba(0,0,0,0.92)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <button
+            onClick={() => setLightboxUrl(null)}
+            style={{
+              position: 'absolute', top: 16, right: 16,
+              width: 36, height: 36, borderRadius: 999,
+              background: 'rgba(255,255,255,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <Icon name="x" size={18} color="white"/>
+          </button>
+          <img
+            src={lightboxUrl}
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: '100%', maxHeight: '90vh', borderRadius: 12, objectFit: 'contain' }}
+          />
+        </div>
+      )}
     </div>
   )
 }

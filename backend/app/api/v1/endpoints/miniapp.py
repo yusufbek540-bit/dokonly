@@ -1190,7 +1190,7 @@ async def send_abandoned_cart_reminder(
 # Media upload
 # ---------------------------------------------------------------------------
 
-MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+MAX_UPLOAD_BYTES = 100 * 1024 * 1024  # 100 MB (covers product videos)
 
 
 @router.post("/upload")
@@ -1202,8 +1202,10 @@ async def upload_media(
     """Upload an image to Cloudflare R2 and return its public URL."""
     tenant = await _require_tenant(user, db)
 
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Only image files are allowed")
+    if not file.content_type or (
+        not file.content_type.startswith("image/") and not file.content_type.startswith("video/")
+    ):
+        raise HTTPException(status_code=400, detail="Only image or video files are allowed")
 
     contents = await file.read()
     if len(contents) > MAX_UPLOAD_BYTES:
@@ -1648,31 +1650,54 @@ async def ai_remove_background(
     user: dict = Depends(get_tg_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Remove background from an image URL and return a new URL with transparent background."""
+    """Remove background using gpt-image-1 and return a white-background JPEG URL."""
     tenant = await _require_tenant(user, db)
     image_url = body.get("image_url", "")
     if not image_url:
         raise HTTPException(status_code=400, detail="image_url is required")
     try:
-        async with httpx.AsyncClient(timeout=20) as client:
+        from PIL import Image
+        import io, base64
+
+        async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.get(image_url)
             resp.raise_for_status()
             image_bytes = resp.content
 
-        from rembg import remove
-        from PIL import Image
-        import io
+        # Convert to square PNG that gpt-image-1 edit accepts
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
+        size = max(img.size)
+        square = Image.new("RGBA", (size, size), (255, 255, 255, 0))
+        square.paste(img, ((size - img.width) // 2, (size - img.height) // 2))
+        square = square.resize((1024, 1024), Image.LANCZOS)
+        png_buf = io.BytesIO()
+        square.save(png_buf, format="PNG")
+        png_buf.seek(0)
 
-        input_image = Image.open(io.BytesIO(image_bytes)).convert("RGBA")
-        output_image = await asyncio.get_event_loop().run_in_executor(
-            None, lambda: remove(input_image)
+        from app.ai.client import get_openai_client
+        ai_client = get_openai_client()
+        result = await ai_client.images.edit(
+            model="gpt-image-1",
+            image=("product.png", png_buf, "image/png"),
+            prompt=(
+                "Remove the background completely. Place the product on a perfectly solid pure white (#FFFFFF) background. "
+                "Keep the product itself 100% intact — do not change its shape, color, or any details. Clean sharp edges."
+            ),
+            n=1,
+            size="1024x1024",
         )
 
-        buf = io.BytesIO()
-        output_image.save(buf, format="PNG")
-        png_bytes = buf.getvalue()
+        img_data = base64.b64decode(result.data[0].b64_json)
+        out_img = Image.open(io.BytesIO(img_data)).convert("RGBA")
 
-        key = f"products/{tenant.id}/{uuid.uuid4()}_nobg.png"
+        # Flatten onto white background → JPEG
+        white = Image.new("RGB", out_img.size, (255, 255, 255))
+        white.paste(out_img, mask=out_img.split()[3])
+        jpeg_buf = io.BytesIO()
+        white.save(jpeg_buf, format="JPEG", quality=92)
+        jpeg_bytes = jpeg_buf.getvalue()
+
+        key = f"products/{tenant.id}/{uuid.uuid4()}_whitebg.jpg"
 
         def _upload():
             s3 = boto3.client(
@@ -1681,16 +1706,10 @@ async def ai_remove_background(
                 aws_access_key_id=settings.r2_access_key_id,
                 aws_secret_access_key=settings.r2_secret_access_key,
             )
-            s3.put_object(
-                Bucket=settings.r2_bucket_name,
-                Key=key,
-                Body=png_bytes,
-                ContentType="image/png",
-            )
+            s3.put_object(Bucket=settings.r2_bucket_name, Key=key, Body=jpeg_bytes, ContentType="image/jpeg")
 
         await asyncio.get_event_loop().run_in_executor(None, _upload)
-        public_url = f"{settings.r2_public_url.rstrip('/')}/{key}"
-        return {"url": public_url}
+        return {"url": f"{settings.r2_public_url.rstrip('/')}/{key}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

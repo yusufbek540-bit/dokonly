@@ -48,6 +48,7 @@ const paths: Record<string, React.ReactNode> = {
   megaphone: <><path d="M3 11l19-9-9 19-2-8-8-2z"/></>,
   gem: <><polygon points="6 3 18 3 22 9 12 22 2 9 6 3"/><polyline points="2 9 12 9 18 3"/><line x1="12" y1="22" x2="12" y2="9"/></>,
   trophy: <><path d="M6 9H4a2 2 0 01-2-2V5a2 2 0 012-2h16a2 2 0 012 2v2a2 2 0 01-2 2h-2"/><path d="M12 17v4"/><path d="M8 21h8"/><path d="M6 9c0 4.97 2.69 9 6 9s6-4.03 6-9"/></>,
+  video: <><rect x="2" y="7" width="14" height="10" rx="2"/><path d="M16 11l6-4v10l-6-4"/></>,
 }
 
 export function Icon({ name, size = 20, color = 'currentColor', strokeWidth = 2, style }: IconProps) {
