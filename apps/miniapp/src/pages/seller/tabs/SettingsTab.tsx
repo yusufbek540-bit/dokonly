@@ -1453,6 +1453,32 @@ function PinCardButton() {
   )
 }
 
+function MiniAppUrlCopy({ url }: { url: string }) {
+  const [copied, setCopied] = useState(false)
+  function handleCopy() {
+    navigator.clipboard?.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  return (
+    <div style={{ background: 'var(--subtle)', borderRadius: 10, padding: '8px 12px', display: 'flex', gap: 8, alignItems: 'center', marginTop: 12, marginBottom: 10 }}>
+      <span style={{ flex: 1, fontSize: 12, color: 'var(--muted)', fontFamily: 'monospace', wordBreak: 'break-all' }}>{url}</span>
+      <button
+        onClick={handleCopy}
+        style={{
+          padding: '4px 10px', borderRadius: 8, border: '1px solid var(--border)',
+          background: copied ? '#D1FAE5' : 'var(--card)',
+          color: copied ? '#065F46' : 'var(--ink)',
+          fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
+          transition: 'background 0.2s, color 0.2s',
+        }}
+      >
+        {copied ? '✓ Скопировано' : 'Копировать'}
+      </button>
+    </div>
+  )
+}
+
 // ─── ChannelCrosspostingView ──────────────────────────────────────────────────
 
 export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBack: () => void }) {
@@ -1616,17 +1642,7 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
                 <span style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.5 }}>{text}</span>
               </div>
             ))}
-            <div style={{ background: 'var(--subtle)', borderRadius: 10, padding: '8px 12px', display: 'flex', gap: 8, alignItems: 'center', marginTop: 12, marginBottom: 10 }}>
-              <span style={{ flex: 1, fontSize: 12, color: 'var(--muted)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
-                {`https://dokonly-miniapp.pages.dev?shop=${tenant.slug}`}
-              </span>
-              <button
-                onClick={() => navigator.clipboard?.writeText(`https://dokonly-miniapp.pages.dev?shop=${tenant.slug}`)}
-                style={{ padding: '4px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--ink)', fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
-              >
-                Копировать
-              </button>
-            </div>
+            <MiniAppUrlCopy url={`https://dokonly-miniapp.pages.dev?shop=${tenant.slug}`} />
             <a
               href="https://t.me/BotFather"
               target="_blank"
