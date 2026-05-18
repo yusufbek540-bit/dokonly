@@ -1596,6 +1596,48 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
           </>
         )}
 
+        {/* BotFather Mini App setup instructions */}
+        {tenant.bot_username && (
+          <div style={{ borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)', padding: '14px 16px', marginBottom: 16 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Прямое открытие магазина из канала
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.6, marginBottom: 12 }}>
+              Выполните одноразовую настройку в @BotFather — после этого кнопки в канале будут открывать магазин напрямую, без перехода в чат бота.
+            </div>
+            {[
+              { n: 1, text: 'Откройте @BotFather в Telegram' },
+              { n: 2, text: 'Отправьте команду /setmainwebapp' },
+              { n: 3, text: 'Выберите вашего бота' },
+              { n: 4, text: 'Отправьте URL магазина (скопируйте кнопкой ниже)' },
+            ].map(({ n, text }) => (
+              <div key={n} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 8 }}>
+                <div style={{ width: 22, height: 22, borderRadius: 999, background: 'var(--accent)', color: 'white', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{n}</div>
+                <span style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.5 }}>{text}</span>
+              </div>
+            ))}
+            <div style={{ background: 'var(--subtle)', borderRadius: 10, padding: '8px 12px', display: 'flex', gap: 8, alignItems: 'center', marginTop: 12, marginBottom: 10 }}>
+              <span style={{ flex: 1, fontSize: 12, color: 'var(--muted)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                {`https://dokonly-miniapp.pages.dev?shop=${tenant.slug}`}
+              </span>
+              <button
+                onClick={() => navigator.clipboard?.writeText(`https://dokonly-miniapp.pages.dev?shop=${tenant.slug}`)}
+                style={{ padding: '4px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--ink)', fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}
+              >
+                Копировать
+              </button>
+            </div>
+            <a
+              href="https://t.me/BotFather"
+              target="_blank"
+              rel="noreferrer"
+              style={{ display: 'block', width: '100%', height: 44, borderRadius: 10, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 14, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+            >
+              ✈️ Открыть @BotFather
+            </a>
+          </div>
+        )}
+
         {/* Posts history */}
         {(posts as any[]).length > 0 && (
           <>
