@@ -1606,10 +1606,10 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
               Выполните одноразовую настройку в @BotFather — после этого кнопки в канале будут открывать магазин напрямую, без перехода в чат бота.
             </div>
             {[
-              { n: 1, text: 'Откройте @BotFather в Telegram' },
-              { n: 2, text: 'Отправьте команду /setmainwebapp' },
-              { n: 3, text: 'Выберите вашего бота' },
-              { n: 4, text: 'Отправьте URL магазина (скопируйте кнопкой ниже)' },
+              { n: 1, text: 'Откройте @BotFather → /mybots → выберите вашего бота' },
+              { n: 2, text: 'Перейдите в Bot Settings → Configure Mini App' },
+              { n: 3, text: 'Нажмите «Enable Mini App»' },
+              { n: 4, text: 'Вставьте URL магазина (скопируйте кнопкой ниже)' },
             ].map(({ n, text }) => (
               <div key={n} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 8 }}>
                 <div style={{ width: 22, height: 22, borderRadius: 999, background: 'var(--accent)', color: 'white', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>{n}</div>
