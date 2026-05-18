@@ -4,11 +4,39 @@ from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
 
 from app.bot.setup import bot, dp
+from app.core.config import settings
 from app.core.crypto import decrypt
 from app.core.database import AsyncSessionLocal
 from app.models.tenant import Tenant
 
 router = APIRouter(prefix="/webhook", tags=["webhook"])
+
+
+@router.get("/bot-status")
+async def bot_status():
+    """Diagnostic: returns bot identity and webhook info (no secrets exposed)."""
+    try:
+        me = await bot.get_me()
+        bot_info = {"username": me.username, "id": me.id, "ok": True}
+    except Exception as e:
+        bot_info = {"ok": False, "error": str(e)}
+
+    try:
+        wh = await bot.get_webhook_info()
+        webhook_info = {
+            "url": wh.url or "(none)",
+            "pending_updates": wh.pending_update_count,
+            "last_error": wh.last_error_message or None,
+        }
+    except Exception as e:
+        webhook_info = {"error": str(e)}
+
+    return {
+        "bot": bot_info,
+        "webhook": webhook_info,
+        "polling_mode": not bool(settings.webhook_base_url),
+        "webhook_base_url_set": bool(settings.webhook_base_url),
+    }
 
 
 @router.post("/telegram")
