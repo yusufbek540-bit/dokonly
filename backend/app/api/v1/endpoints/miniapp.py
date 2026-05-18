@@ -163,7 +163,7 @@ async def _auto_pin_store_card(tenant_id: str) -> None:
     """Background task: pin store card in channel if one is configured."""
     from app.core.bot_utils import get_tenant_bot
     from app.core.database import AsyncSessionLocal
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
         tenant = result.scalar_one_or_none()
@@ -178,7 +178,7 @@ async def _auto_pin_store_card(tenant_id: str) -> None:
         tenant_bot = await get_tenant_bot(tenant.id)
         if not tenant_bot:
             return
-        shop_url = f"https://t.me/{tenant.bot_username}?startapp=store"
+        shop_webapp_url = f"{settings.miniapp_url}?shop={tenant.slug}"
         description = settings_data.get("description") or ""
         text_lines = [f"🏪 *{tenant.name}*"]
         if description:
@@ -186,7 +186,7 @@ async def _auto_pin_store_card(tenant_id: str) -> None:
         text_lines += ["", "Открывайте наш магазин прямо в Telegram — быстро и удобно."]
         text = "\n".join(text_lines)
         kb = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text="🛍 Открыть магазин", url=shop_url)
+            InlineKeyboardButton(text="🛍 Открыть магазин", web_app=WebAppInfo(url=shop_webapp_url))
         ]])
         try:
             msg = await tenant_bot.send_message(chat_id=channel, text=text, parse_mode="Markdown", reply_markup=kb)
@@ -1440,18 +1440,17 @@ def _render_crosspost_template(template: str, product, tenant) -> str:
 
 
 def _build_crosspost_keyboard(product, tenant):
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-    bot_base = f"https://t.me/{tenant.bot_username}" if tenant.bot_username else None
-    product_url = f"{bot_base}?startapp=product_{product.id}" if bot_base else None
-    shop_url = f"{bot_base}?startapp=store" if bot_base else None
-    buttons = []
-    if product_url:
-        buttons.append(InlineKeyboardButton(text="🛒 Купить", url=product_url))
-    if shop_url:
-        buttons.append(InlineKeyboardButton(text="🏪 Магазин", url=shop_url))
-    if not buttons:
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+    miniapp_base = settings.miniapp_url
+    shop_slug = getattr(tenant, 'slug', None)
+    if not shop_slug:
         return None
-    return InlineKeyboardMarkup(inline_keyboard=[buttons])
+    product_webapp_url = f"{miniapp_base}?shop={shop_slug}&product={product.id}"
+    shop_webapp_url = f"{miniapp_base}?shop={shop_slug}"
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="🛒 Купить", web_app=WebAppInfo(url=product_webapp_url)),
+        InlineKeyboardButton(text="🏪 Магазин", web_app=WebAppInfo(url=shop_webapp_url)),
+    ]])
 
 
 async def _do_crosspost(tenant_id: str, product_id: str) -> None:
@@ -1600,7 +1599,7 @@ async def pin_channel_store_card(
     db: AsyncSession = Depends(get_db),
 ):
     from app.core.bot_utils import get_tenant_bot
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
     tenant = await _require_tenant(user, db)
     settings_data = tenant.settings or {}
     channel = settings_data.get("crosspost_channel") or settings_data.get("channel_username")
@@ -1624,8 +1623,9 @@ async def pin_channel_store_card(
     text_lines += ["", "Открывайте наш магазин прямо в Telegram — быстро и удобно."]
     text = "\n".join(text_lines)
 
+    shop_webapp_url = f"{settings.miniapp_url}?shop={tenant.slug}"
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🛍 Открыть магазин", url=f"https://t.me/{bot_username}?startapp=store")
+        InlineKeyboardButton(text="🛍 Открыть магазин", web_app=WebAppInfo(url=shop_webapp_url))
     ]])
 
     try:
