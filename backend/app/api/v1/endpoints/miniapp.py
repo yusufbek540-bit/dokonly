@@ -9,7 +9,7 @@ from uuid import UUID
 
 import boto3
 import httpx
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
@@ -98,6 +98,10 @@ async def _require_tenant(user: dict, db: AsyncSession) -> Tenant:
     if not tenant:
         raise HTTPException(status_code=404, detail="No store found — complete onboarding first")
     return tenant
+
+
+# In-memory store for AI photo import results (short-lived, per-request)
+_import_store: dict[str, dict] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -1792,15 +1796,47 @@ async def ai_insights(
 # ---------------------------------------------------------------------------
 
 
+async def _run_ai_import(import_id: str, photo_urls: list[str]) -> None:
+    from app.ai.tasks.photo_import import extract_product_from_photo
+
+    sem = asyncio.Semaphore(5)
+
+    async def process_one(url: str) -> dict | None:
+        async with sem:
+            try:
+                async with httpx.AsyncClient(timeout=20) as client:
+                    resp = await client.get(url)
+                    resp.raise_for_status()
+                    image_bytes = resp.content
+                result = await extract_product_from_photo(image_bytes, caption="", locale="ru")
+                return {
+                    "name": result.name,
+                    "description": result.description or "",
+                    "price": result.price or 0,
+                    "category": "",
+                    "images": [url],
+                }
+            except Exception:
+                return None
+
+    results = await asyncio.gather(*[process_one(url) for url in photo_urls[:50]])
+    products = [r for r in results if r is not None]
+    _import_store[import_id] = {"status": "done", "products": products}
+
+
 @router.post("/ai-imports", status_code=201)
 async def start_ai_import(
     body: dict,
+    background_tasks: BackgroundTasks,
     user: dict = Depends(get_tg_user),
     db: AsyncSession = Depends(get_db),
 ):
     await _require_tenant(user, db)
+    photo_urls: list[str] = body.get("photo_urls", [])
     import_id = str(uuid.uuid4())
-    return {"id": import_id, "status": "done", "products": []}
+    _import_store[import_id] = {"status": "processing", "products": []}
+    background_tasks.add_task(_run_ai_import, import_id, photo_urls)
+    return {"id": import_id, "status": "processing"}
 
 
 @router.get("/ai-imports/{import_id}")
@@ -1810,7 +1846,8 @@ async def get_ai_import(
     db: AsyncSession = Depends(get_db),  # noqa: ARG001
 ):
     await _require_tenant(user, db)
-    return {"id": import_id, "status": "done", "products": []}
+    data = _import_store.get(import_id, {"status": "done", "products": []})
+    return {"id": import_id, **data}
 
 
 # ---------------------------------------------------------------------------

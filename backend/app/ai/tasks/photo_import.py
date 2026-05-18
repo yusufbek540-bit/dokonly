@@ -36,8 +36,9 @@ async def extract_product_from_photo(
                         "text": (
                             f"Extract product info from this image and caption. "
                             f"Caption: '{caption}'. "
-                            f"Return JSON: {{\"name\": str, \"price\": number|null, \"description\": str (in {lang}, 1-2 sentences)}}. "
-                            f"If price is missing, use null."
+                            f"Return JSON with all text fields in {lang}: "
+                            f"{{\"name\": str (product name in {lang}), \"price\": number|null, \"description\": str (in {lang}, 1-2 sentences)}}. "
+                            f"If price is missing, use null. Name must be in {lang}."
                         ),
                     },
                 ],
