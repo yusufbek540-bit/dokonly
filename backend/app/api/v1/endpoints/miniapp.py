@@ -1478,8 +1478,7 @@ async def create_channel_post(
     if not channel_username:
         raise HTTPException(400, "No channel configured")
 
-    # Use the stored template from DB (ignore body text — always render with real data)
-    template = settings_data.get("crosspost_template", "🛍 {product_name}\n\n{description}\n\n💰 {price}")
+    custom_message = body.get("custom_message")
     product_id = body.get("product_id")
     if product_id:
         prod_result = await db.execute(select(Product).where(Product.id == product_id, Product.tenant_id == tenant.id))
@@ -1492,11 +1491,15 @@ async def create_channel_post(
         product = prod_result.scalar_one_or_none()
 
     if product:
-        text = _render_crosspost_template(template, product, tenant)
+        if custom_message:
+            text = custom_message
+        else:
+            template = settings_data.get("crosspost_template", "🛍 {product_name}\n\n{description}\n\n💰 {price}")
+            text = _render_crosspost_template(template, product, tenant)
         photo_url = product.images[0] if product.images else None
         keyboard = _build_crosspost_keyboard(product, tenant)
     else:
-        text = template
+        text = custom_message or settings_data.get("crosspost_template", "")
         photo_url = None
         keyboard = None
 

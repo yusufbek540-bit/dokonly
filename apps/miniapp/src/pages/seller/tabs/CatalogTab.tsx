@@ -81,6 +81,8 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
   const [removingBgIdx, setRemovingBgIdx] = useState<number | null>(null)
   const [fillingFromPhoto, setFillingFromPhoto] = useState(false)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+  const [channelPostEnabled, setChannelPostEnabled] = useState(false)
+  const [channelMessage, setChannelMessage] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoInputRef = useRef<HTMLInputElement>(null)
 
@@ -118,6 +120,7 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
       low_stock_threshold: lowStockThreshold ? Number(lowStockThreshold) : null,
       tags: tagsStr.split(',').map(t => t.trim()).filter(Boolean),
       attributes: Object.keys(filteredAttrs).length > 0 ? filteredAttrs : undefined,
+      _channel_post_text: (mode.type === 'new' && channelPostEnabled) ? (channelMessage.trim() || null) : undefined,
     })
   }
 
@@ -600,6 +603,50 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
               }}/>
             </button>
           </div>
+          {mode.type === 'new' && (
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>📢 Опубликовать в канале</span>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>Отправить пост после добавления</div>
+                </div>
+                <button
+                  onClick={() => setChannelPostEnabled(v => !v)}
+                  style={{
+                    width: 48, height: 28, borderRadius: 999,
+                    background: channelPostEnabled ? 'var(--accent)' : 'var(--border)',
+                    position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute', top: 3, width: 22, height: 22,
+                    borderRadius: 999, background: 'white',
+                    left: channelPostEnabled ? 23 : 3, transition: 'left 0.2s',
+                  }}/>
+                </button>
+              </div>
+              {channelPostEnabled && (
+                <div style={{ marginTop: 10 }}>
+                  <textarea
+                    value={channelMessage}
+                    onChange={e => setChannelMessage(e.target.value)}
+                    placeholder="Текст поста для канала (необязательно — без текста используется стандартный шаблон)"
+                    rows={4}
+                    style={{
+                      width: '100%', padding: '10px 12px',
+                      borderRadius: 12, background: 'var(--card)',
+                      border: '1px solid var(--border)', outline: 'none',
+                      fontSize: 14, color: 'var(--ink)', resize: 'none',
+                      fontFamily: 'inherit',
+                    }}
+                  />
+                  <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 3 }}>
+                    Фото и кнопки «Купить» / «Магазин» добавляются автоматически
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
       {lightboxUrl && (
@@ -723,6 +770,9 @@ export function CatalogTab({ tenant }: Props) {
   const [filter, setFilter] = useState<'all' | 'active' | 'inactive' | 'out_of_stock' | 'featured'>('all')
   const [bulkMode, setBulkMode] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [channelPostSheet, setChannelPostSheet] = useState<{ product: any } | null>(null)
+  const [channelSheetMsg, setChannelSheetMsg] = useState('')
+  const [sendingChannelPost, setSendingChannelPost] = useState(false)
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['seller-products'],
@@ -786,8 +836,19 @@ export function CatalogTab({ tenant }: Props) {
 
   const handleSave = (data: any) => {
     if (!form) return
-    if (form.type === 'new') createMutation.mutate(data)
-    else updateMutation.mutate({ id: form.product.id, body: data })
+    const { _channel_post_text, ...productData } = data
+    if (form.type === 'new') {
+      createMutation.mutate(productData, {
+        onSuccess: (product: any) => {
+          if (_channel_post_text !== undefined) {
+            // _channel_post_text is null (no custom msg) or a string (custom msg) — undefined means disabled
+            api.seller.createChannelPost({ product_id: product.id, custom_message: _channel_post_text ?? undefined }).catch(() => {})
+          }
+        },
+      })
+    } else {
+      updateMutation.mutate({ id: form.product.id, body: productData })
+    }
   }
 
   return (
@@ -1023,6 +1084,13 @@ export function CatalogTab({ tenant }: Props) {
                         Изменить
                       </button>
                       <button
+                        onClick={() => { setChannelPostSheet({ product: p }); setChannelSheetMsg('') }}
+                        style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        title="В канал"
+                      >
+                        <Icon name="megaphone" size={13} color="var(--accent)"/>
+                      </button>
+                      <button
                         onClick={() => tgConfirm('Удалить товар?', () => deleteMutation.mutate(p.id))}
                         style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--danger-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
@@ -1186,6 +1254,68 @@ export function CatalogTab({ tenant }: Props) {
       )}
 
       {showPlanPicker && <PlanPicker onBack={() => setShowPlanPicker(false)} />}
+
+      {/* Channel post sheet */}
+      {channelPostSheet && (
+        <div
+          onClick={() => setChannelPostSheet(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px calc(28px + env(safe-area-inset-bottom))' }}
+          >
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }}/>
+            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 4 }}>
+              📢 Пост в канале
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 14 }}>
+              {channelPostSheet.product.name}
+            </div>
+            <textarea
+              value={channelSheetMsg}
+              onChange={e => setChannelSheetMsg(e.target.value)}
+              placeholder="Текст поста (необязательно — без текста используется стандартный шаблон)"
+              rows={5}
+              style={{
+                width: '100%', padding: '10px 12px',
+                borderRadius: 12, background: 'var(--card)',
+                border: '1px solid var(--border)', outline: 'none',
+                fontSize: 14, color: 'var(--ink)', resize: 'none',
+                fontFamily: 'inherit', marginBottom: 6,
+              }}
+            />
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 16 }}>
+              Фото и кнопки «Купить» / «Магазин» добавляются автоматически
+            </div>
+            <button
+              disabled={sendingChannelPost}
+              onClick={async () => {
+                setSendingChannelPost(true)
+                try {
+                  await api.seller.createChannelPost({
+                    product_id: channelPostSheet.product.id,
+                    custom_message: channelSheetMsg.trim() || undefined,
+                  })
+                  setChannelPostSheet(null)
+                } catch (e: any) {
+                  alert(e?.message ?? 'Ошибка при отправке')
+                } finally {
+                  setSendingChannelPost(false)
+                }
+              }}
+              style={{
+                width: '100%', height: 50, borderRadius: 14,
+                background: sendingChannelPost ? 'var(--subtle)' : 'var(--accent)',
+                color: sendingChannelPost ? 'var(--muted)' : 'white',
+                fontSize: 15, fontWeight: 700,
+              }}
+            >
+              {sendingChannelPost ? 'Отправляем…' : 'Опубликовать'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

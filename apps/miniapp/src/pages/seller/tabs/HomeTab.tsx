@@ -5,7 +5,7 @@ import { Icon } from '@/components/Icon'
 import { PlanPicker } from '../PlanPicker'
 import { AchievementsPage } from '../AchievementsPage'
 import { StreakDetailPage } from '../StreakDetailPage'
-import { MailingsView, CouponsView, AbandonedCartsView, StoriesView, LoyaltyProgramView, ReferralProgramView, ChannelCrosspostingView, TeamView } from './SettingsTab'
+import { MailingsView, CouponsView, AbandonedCartsView, StoriesView, LoyaltyProgramView, ReferralProgramView, TeamView } from './SettingsTab'
 
 function HomeSection({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
@@ -366,7 +366,6 @@ export function HomeTab({ tenant, onTabChange }: Props) {
   const [showStories, setShowStories] = useState(false)
   const [showLoyaltyProgram, setShowLoyaltyProgram] = useState(false)
   const [showReferralProgram, setShowReferralProgram] = useState(false)
-  const [showChannelCrossposting, setShowChannelCrossposting] = useState(false)
   const [showTeam, setShowTeam] = useState(false)
   const [showAbandonedCarts, setShowAbandonedCarts] = useState(false)
   const [showReturns, setShowReturns] = useState(false)
@@ -474,7 +473,6 @@ export function HomeTab({ tenant, onTabChange }: Props) {
   if (showStories) return <StoriesView onBack={() => setShowStories(false)} />
   if (showLoyaltyProgram) return <LoyaltyProgramView onBack={() => setShowLoyaltyProgram(false)} />
   if (showReferralProgram) return <ReferralProgramView onBack={() => setShowReferralProgram(false)} />
-  if (showChannelCrossposting) return <ChannelCrosspostingView tenant={tenant} onBack={() => setShowChannelCrossposting(false)} />
   if (showTeam) return <TeamView onBack={() => setShowTeam(false)} />
   if (showAbandonedCarts) return <AbandonedCartsView onBack={() => setShowAbandonedCarts(false)} />
   if (showReturns) return <SellerReturnsView onBack={() => setShowReturns(false)} />
@@ -1022,7 +1020,6 @@ export function HomeTab({ tenant, onTabChange }: Props) {
           <MenuRow icon="play"      label="Stories и баннеры"       onPress={() => setShowStories(true)} />
           <MenuRow icon="gift"      label="Программа лояльности"    onPress={() => setShowLoyaltyProgram(true)} />
           <MenuRow icon="users"     label="Реферальная программа"   onPress={() => setShowReferralProgram(true)} />
-          <MenuRow icon="megaphone" label="Кросспостинг в канал"    onPress={() => setShowChannelCrossposting(true)} />
           <MenuRow icon="cart"      label="Брошенные корзины"       onPress={() => setShowAbandonedCarts(true)} last />
         </div>
 
