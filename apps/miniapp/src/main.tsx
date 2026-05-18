@@ -10,7 +10,10 @@ import './index.css'
   if (!tg) return
   tg.ready?.()
   tg.expand?.()
-  tg.requestFullscreen?.()
+  // requestFullscreen only when user has opted in via Settings
+  if (localStorage.getItem('tg_fullscreen') === '1') {
+    tg.requestFullscreen?.()
+  }
 })()
 
 const queryClient = new QueryClient({

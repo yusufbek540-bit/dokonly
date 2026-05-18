@@ -514,20 +514,22 @@ function ShopApp() {
 
   // AI Consultant overlay
   if (showAiConsultant) {
-    return <AiConsultantView tenantId={shop.id} onClose={() => setShowAiConsultant(false)} />
+    return <div className="page-enter"><AiConsultantView tenantId={shop.id} onClose={() => setShowAiConsultant(false)} /></div>
   }
 
   // Checkout flow (full screen, no tabs)
   if (showCheckout) {
     return (
-      <Checkout
-        tenantId={shop.id}
-        currency={shop.currency}
-        shopSettings={shop.settings}
-        onBack={() => setShowCheckout(false)}
-        onDone={() => { setShowCheckout(false); handleTabChange('home') }}
-        onTrackOrder={() => { setShowCheckout(false); handleTabChange('profile') }}
-      />
+      <div className="page-enter">
+        <Checkout
+          tenantId={shop.id}
+          currency={shop.currency}
+          shopSettings={shop.settings}
+          onBack={() => setShowCheckout(false)}
+          onDone={() => { setShowCheckout(false); handleTabChange('home') }}
+          onTrackOrder={() => { setShowCheckout(false); handleTabChange('profile') }}
+        />
+      </div>
     )
   }
 

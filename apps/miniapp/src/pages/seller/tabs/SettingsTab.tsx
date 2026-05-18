@@ -1453,6 +1453,11 @@ function PinCardButton() {
   )
 }
 
+function PageSlide({ children }: { children: React.ReactNode }) {
+  useEffect(() => { window.scrollTo(0, 0) }, [])
+  return <div className="page-enter">{children}</div>
+}
+
 function MiniAppUrlCopy({ url }: { url: string }) {
   const [copied, setCopied] = useState(false)
   function handleCopy() {
@@ -1489,8 +1494,6 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
   const [saving, setSaving] = useState(false)
   const [verifyStatus, setVerifyStatus] = useState<'idle' | 'loading' | 'ok' | 'fail'>('idle')
   const [verifyChannelTitle, setVerifyChannelTitle] = useState<string | null>(null)
-
-  useEffect(() => { window.scrollTo(0, 0) }, [])
 
   const { data: posts = [] } = useQuery({
     queryKey: ['seller-channel-posts'],
@@ -2059,6 +2062,7 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
   // Delete store confirmation state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteText, setDeleteText] = useState('')
+  const [fullscreenMode, setFullscreenMode] = useState(() => localStorage.getItem('tg_fullscreen') === '1')
 
   // ── Mutations ────────────────────────────────────────────────────────────────
 
@@ -2367,14 +2371,14 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
     onDeepLinkConsumed?.()
   }, [deepLink])
 
-  if (showCoupons) return <CouponsView onBack={() => setShowCoupons(false)} />
-  if (showMailings) return <MailingsView onBack={() => setShowMailings(false)} />
-  if (showTeam) return <TeamView onBack={() => setShowTeam(false)} />
-  if (showAbandonedCarts) return <AbandonedCartsView onBack={() => setShowAbandonedCarts(false)} />
-  if (showStories) return <StoriesView onBack={() => setShowStories(false)} />
-  if (showLoyaltyProgram) return <LoyaltyProgramView onBack={() => setShowLoyaltyProgram(false)} />
-  if (showReferralProgram) return <ReferralProgramView onBack={() => setShowReferralProgram(false)} />
-  if (showChannelCrossposting) return <ChannelCrosspostingView tenant={tenant} onBack={() => setShowChannelCrossposting(false)} />
+  if (showCoupons) return <PageSlide><CouponsView onBack={() => setShowCoupons(false)} /></PageSlide>
+  if (showMailings) return <PageSlide><MailingsView onBack={() => setShowMailings(false)} /></PageSlide>
+  if (showTeam) return <PageSlide><TeamView onBack={() => setShowTeam(false)} /></PageSlide>
+  if (showAbandonedCarts) return <PageSlide><AbandonedCartsView onBack={() => setShowAbandonedCarts(false)} /></PageSlide>
+  if (showStories) return <PageSlide><StoriesView onBack={() => setShowStories(false)} /></PageSlide>
+  if (showLoyaltyProgram) return <PageSlide><LoyaltyProgramView onBack={() => setShowLoyaltyProgram(false)} /></PageSlide>
+  if (showReferralProgram) return <PageSlide><ReferralProgramView onBack={() => setShowReferralProgram(false)} /></PageSlide>
+  if (showChannelCrossposting) return <PageSlide><ChannelCrosspostingView tenant={tenant} onBack={() => setShowChannelCrossposting(false)} /></PageSlide>
 
   return (
     <div className="screen-scroll" style={{ flex: 1, padding: '16px 16px 100px' }}>
@@ -2597,10 +2601,21 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
               icon="sparkles"
               label="Изменить бота"
               onPress={() => { setBotToken(''); setBotError(''); setEditBot(true) }}
-              noBorder
             />
           </>
         )}
+        <ToggleRow
+          icon="maximize"
+          label="Полноэкранный режим"
+          value={fullscreenMode}
+          onChange={(v) => {
+            setFullscreenMode(v)
+            localStorage.setItem('tg_fullscreen', v ? '1' : '0')
+            const tg = (window as any).Telegram?.WebApp
+            if (v) tg?.requestFullscreen?.()
+            else tg?.exitFullscreen?.()
+          }}
+        />
       </Section>
 
       {/* ── Section 3: Telegram-канал ───────────────────────────────────────── */}

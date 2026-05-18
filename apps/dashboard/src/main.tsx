@@ -9,7 +9,9 @@ import './index.css'
   if (!tg) return
   tg.ready?.()
   tg.expand?.()
-  tg.requestFullscreen?.()
+  if (localStorage.getItem('tg_fullscreen') === '1') {
+    tg.requestFullscreen?.()
+  }
 })()
 
 const queryClient = new QueryClient({
