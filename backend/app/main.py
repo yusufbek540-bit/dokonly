@@ -110,6 +110,7 @@ async def run_migrations() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("Dokonly backend starting — build 2026-05-18-v4")
     await run_migrations()
     await init_pool()
     if settings.webhook_base_url:

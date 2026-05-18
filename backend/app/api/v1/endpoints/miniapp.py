@@ -1478,15 +1478,15 @@ async def create_channel_post(
     if not channel_username:
         raise HTTPException(400, "No channel configured")
 
-    # Resolve template variables using the latest product
-    template = body.get("text") or settings_data.get("crosspost_template", "🛍 {product_name}\n\n{description}\n\n💰 {price}")
+    # Use the stored template from DB (ignore body text — always render with real data)
+    template = settings_data.get("crosspost_template", "🛍 {product_name}\n\n{description}\n\n💰 {price}")
     product_id = body.get("product_id")
     if product_id:
         prod_result = await db.execute(select(Product).where(Product.id == product_id, Product.tenant_id == tenant.id))
         product = prod_result.scalar_one_or_none()
     else:
         prod_result = await db.execute(
-            select(Product).where(Product.tenant_id == tenant.id, Product.is_active == True)
+            select(Product).where(Product.tenant_id == tenant.id)
             .order_by(Product.created_at.desc()).limit(1)
         )
         product = prod_result.scalar_one_or_none()
