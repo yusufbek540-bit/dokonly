@@ -178,7 +178,7 @@ async def _auto_pin_store_card(tenant_id: str) -> None:
         tenant_bot = await get_tenant_bot(tenant.id)
         if not tenant_bot:
             return
-        shop_url = f"https://t.me/{tenant.bot_username}?startapp=store"
+        shop_url = f"https://t.me/{tenant.bot_username}"
         description = settings_data.get("description") or ""
         text_lines = [f"🏪 *{tenant.name}*"]
         if description:
@@ -1426,7 +1426,7 @@ async def update_team_member_notifications(
 
 def _render_crosspost_template(template: str, product, tenant) -> str:
     shop_url = f"https://t.me/{tenant.bot_username}" if tenant.bot_username else ""
-    product_url = f"{shop_url}?startapp=product_{product.id}" if shop_url else ""
+    product_url = f"{shop_url}?start=product_{product.id}" if shop_url else ""
     price_str = ""
     if product.price is not None:
         currency = tenant.currency or "UZS"
@@ -1442,13 +1442,12 @@ def _render_crosspost_template(template: str, product, tenant) -> str:
 def _build_crosspost_keyboard(product, tenant):
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     bot_base = f"https://t.me/{tenant.bot_username}" if tenant.bot_username else None
-    product_url = f"{bot_base}?startapp=product_{product.id}" if bot_base else None
-    shop_url = f"{bot_base}?startapp=store" if bot_base else None
+    product_url = f"{bot_base}?start=product_{product.id}" if bot_base else None
     buttons = []
     if product_url:
         buttons.append(InlineKeyboardButton(text="🛒 Купить", url=product_url))
-    if shop_url:
-        buttons.append(InlineKeyboardButton(text="🏪 Магазин", url=shop_url))
+    if bot_base:
+        buttons.append(InlineKeyboardButton(text="🏪 Магазин", url=bot_base))
     if not buttons:
         return None
     return InlineKeyboardMarkup(inline_keyboard=[buttons])
@@ -1625,7 +1624,7 @@ async def pin_channel_store_card(
     text = "\n".join(text_lines)
 
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🛍 Открыть магазин", url=f"https://t.me/{bot_username}?startapp=store")
+        InlineKeyboardButton(text="🛍 Открыть магазин", url=f"https://t.me/{bot_username}")
     ]])
 
     try:
