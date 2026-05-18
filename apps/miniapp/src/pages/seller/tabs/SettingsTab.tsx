@@ -1478,7 +1478,7 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
         </button>
         <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>Кросспостинг в канал</span>
       </div>
-      <div style={{ flex: 1, padding: '16px 16px 120px' }}>
+      <div style={{ flex: 1, padding: '16px 16px 32px' }}>
         {/* Channel setup */}
         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Настройка канала</div>
         <div style={{ borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)', padding: '14px 16px', marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1544,10 +1544,17 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
           Переменные: {'{product_name}'} {'{description}'} {'{price}'} {'{url}'}
         </div>
 
+        {/* Save button */}
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 16, border: 'none', cursor: 'pointer', opacity: saving ? 0.7 : 1, marginBottom: 12 }}
+        >{saving ? 'Сохранение...' : 'Сохранить'}</button>
+
         {/* Manual post button */}
         {channelUsername && (
           <button
-            onClick={() => postMutation.mutate({ type: 'manual', template })}
+            onClick={() => postMutation.mutate({ text: template, type: 'manual' })}
             disabled={postMutation.isPending}
             style={{ width: '100%', height: 46, borderRadius: 12, background: 'var(--subtle)', border: '1px solid var(--border)', color: 'var(--ink)', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginBottom: 20, opacity: postMutation.isPending ? 0.7 : 1 }}
           >📢 {postMutation.isPending ? 'Публикация...' : 'Опубликовать сейчас'}</button>
@@ -1573,13 +1580,6 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
             </div>
           </>
         )}
-      </div>
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--bg)', borderTop: '1px solid var(--border)', padding: '12px 16px', paddingBottom: 'calc(12px + env(safe-area-inset-bottom))' }}>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 16, border: 'none', cursor: 'pointer', opacity: saving ? 0.7 : 1 }}
-        >{saving ? 'Сохранение...' : 'Сохранить'}</button>
       </div>
     </div>
   )

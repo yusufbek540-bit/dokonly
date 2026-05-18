@@ -239,6 +239,7 @@ async def update_tenant_settings(
         "transfer_card_number", "transfer_card_holder",
         "min_order_amount", "required_checkout_fields", "order_confirmation_message",
         "return_policy",
+        "crosspost_channel", "auto_crosspost", "crosspost_template",
     ]
     settings_update = {k: body[k] for k in settings_keys if k in body}
     if settings_update:
@@ -1397,7 +1398,8 @@ async def create_channel_post(
 ):
     from app.core.bot_utils import get_tenant_bot
     tenant = await _require_tenant(user, db)
-    channel_username = (tenant.settings or {}).get("channel_username")
+    settings = tenant.settings or {}
+    channel_username = settings.get("crosspost_channel") or settings.get("channel_username")
     text = body.get("text", "")
     photo_url = body.get("photo_url")
     if not channel_username:
