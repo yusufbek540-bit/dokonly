@@ -2565,6 +2565,11 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
       {/* ── Section 3: Telegram-канал ───────────────────────────────────────── */}
       <Section title="Telegram-канал">
+        <Row
+          icon="megaphone"
+          label="Публикации в канале"
+          onPress={() => setShowChannelCrossposting(true)}
+        />
         <ToggleRow
           icon="send"
           label="Закрытый магазин"
