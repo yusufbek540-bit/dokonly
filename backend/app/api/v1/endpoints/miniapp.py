@@ -406,7 +406,7 @@ async def seller_create_product(
     await db.commit()
     await db.refresh(product)
     if (tenant.settings or {}).get("auto_crosspost") and (tenant.settings or {}).get("crosspost_channel"):
-        background_tasks.add_task(_do_crosspost, str(tenant.id), str(product.id), db)
+        background_tasks.add_task(_do_crosspost, str(tenant.id), str(product.id))
     return product
 
 
@@ -1390,7 +1390,7 @@ def _render_crosspost_template(template: str, product, tenant) -> str:
     price_str = ""
     if product.price is not None:
         currency = tenant.currency or "UZS"
-        price_str = f"{product.price:g} {currency}"
+        price_str = f"{float(product.price):g} {currency}"
     text = template
     text = text.replace("{product_name}", product.name or "")
     text = text.replace("{description}", product.description or "")
@@ -1399,42 +1399,46 @@ def _render_crosspost_template(template: str, product, tenant) -> str:
     return text
 
 
-async def _do_crosspost(tenant_id: str, product_id: str, db: AsyncSession) -> None:
+async def _do_crosspost(tenant_id: str, product_id: str) -> None:
     from app.core.bot_utils import get_tenant_bot
-    tenant_result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
-    tenant = tenant_result.scalar_one_or_none()
-    if not tenant:
-        return
-    settings_data = tenant.settings or {}
-    channel = settings_data.get("crosspost_channel") or settings_data.get("channel_username")
-    template = settings_data.get("crosspost_template", "🛍 {product_name}\n\n{description}\n\n💰 {price}\n\n[Купить]({url})")
-    if not channel:
-        return
-    product_result = await db.execute(select(Product).where(Product.id == product_id))
-    product = product_result.scalar_one_or_none()
-    if not product:
-        return
-    text = _render_crosspost_template(template, product, tenant)
-    photo_url = (product.images or [None])[0] if product.images else None
-    tenant_bot = await get_tenant_bot(tenant.id)
-    if not tenant_bot:
-        return
-    try:
-        if photo_url:
-            await tenant_bot.send_photo(chat_id=channel, photo=photo_url, caption=text, parse_mode="Markdown")
-        else:
-            await tenant_bot.send_message(chat_id=channel, text=text, parse_mode="Markdown")
-        post = {"id": str(uuid.uuid4()), "product_name": product.name, "type": "auto", "status": "sent", "created_at": datetime.now(timezone.utc).isoformat()}
-    except Exception:
-        post = {"id": str(uuid.uuid4()), "product_name": product.name, "type": "auto", "status": "failed", "created_at": datetime.now(timezone.utc).isoformat()}
-    finally:
-        await tenant_bot.session.close()
-    settings_data = dict(tenant.settings or {})
-    posts = list(settings_data.get("channel_posts", []))
-    posts.insert(0, post)
-    settings_data["channel_posts"] = posts[:50]
-    tenant.settings = settings_data
-    await db.commit()
+    from app.core.database import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        tenant_result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+        tenant = tenant_result.scalar_one_or_none()
+        if not tenant:
+            return
+        settings_data = tenant.settings or {}
+        channel = settings_data.get("crosspost_channel") or settings_data.get("channel_username")
+        template = settings_data.get("crosspost_template", "🛍 {product_name}\n\n{description}\n\n💰 {price}\n\n[Купить]({url})")
+        if not channel:
+            return
+        product_result = await db.execute(select(Product).where(Product.id == product_id))
+        product = product_result.scalar_one_or_none()
+        if not product:
+            return
+        text = _render_crosspost_template(template, product, tenant)
+        photo_url = product.images[0] if product.images else None
+        tenant_bot = await get_tenant_bot(tenant.id)
+        if not tenant_bot:
+            return
+        post_status = "failed"
+        try:
+            if photo_url:
+                await tenant_bot.send_photo(chat_id=channel, photo=photo_url, caption=text, parse_mode="Markdown")
+            else:
+                await tenant_bot.send_message(chat_id=channel, text=text, parse_mode="Markdown")
+            post_status = "sent"
+        except Exception:
+            pass
+        finally:
+            await tenant_bot.session.close()
+        post = {"id": str(uuid.uuid4()), "product_name": product.name, "type": "auto", "status": post_status, "created_at": datetime.now(timezone.utc).isoformat()}
+        settings_data = dict(tenant.settings or {})
+        posts = list(settings_data.get("channel_posts", []))
+        posts.insert(0, post)
+        settings_data["channel_posts"] = posts[:50]
+        tenant.settings = settings_data
+        await db.commit()
 
 
 @router.get("/channel-posts")
