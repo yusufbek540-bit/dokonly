@@ -1,0 +1,264 @@
+- generic [ref=e4]:
+  - banner [ref=e6]:
+    - generic [ref=e7]:
+      - link "Railway Logo" [ref=e8] [cursor=pointer]:
+        - /url: /dashboard
+        - img "Railway Logo" [ref=e10]
+      - generic [ref=e13]:
+        - button "dokonly-backend" [ref=e16] [cursor=pointer]:
+          - generic "yusufbek540-bit's Projects" [ref=e17]
+          - generic [ref=e19]: dokonly-backend
+          - img [ref=e21]
+        - button "production" [ref=e25] [cursor=pointer]:
+          - generic [ref=e26]: production
+          - img [ref=e28]
+    - navigation [ref=e30]:
+      - generic [ref=e32]:
+        - button "Toggle activity" [ref=e34] [cursor=pointer]:
+          - img [ref=e36]
+        - button "10" [ref=e38] [cursor=pointer]:
+          - generic [ref=e39]:
+            - img [ref=e41]
+            - generic [ref=e43]: "10"
+        - button "Agent" [ref=e45] [cursor=pointer]:
+          - img [ref=e47]
+          - text: Agent
+  - generic [ref=e49]:
+    - navigation "Project navigation" [ref=e50]:
+      - generic [ref=e51]:
+        - link "Architecture" [ref=e54] [cursor=pointer]:
+          - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+          - img [ref=e56]
+        - link "Observability" [ref=e62] [cursor=pointer]:
+          - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/observability?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+          - img [ref=e64]
+        - link "Logs" [ref=e67] [cursor=pointer]:
+          - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/logs?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+          - img [ref=e69]
+        - link "Settings" [ref=e73] [cursor=pointer]:
+          - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/settings?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+          - img [ref=e75]
+      - button [ref=e78] [cursor=pointer]:
+        - generic "yusufbek540@gmail.com" [ref=e80]
+    - region [ref=e86]:
+      - generic [ref=e87]:
+        - generic [ref=e91]:
+          - generic [ref=e92]:
+            - paragraph [ref=e94]: Apply 1 change
+            - generic [ref=e95]:
+              - button "Details" [ref=e96] [cursor=pointer]:
+                - generic [ref=e97]: Details
+              - button "Deploy ⇧+Enter" [ref=e98] [cursor=pointer]:
+                - generic [ref=e99]: Deploy ⇧+Enter
+              - button "Staged changes actions" [ref=e100] [cursor=pointer]:
+                - img [ref=e102]
+          - generic [ref=e106]:
+            - img [ref=e108]
+            - text: Service deployment rate limit exceeded
+        - generic [ref=e125]:
+          - img [ref=e126]
+          - generic [ref=e127]:
+            - generic [ref=e129]:
+              - generic:
+                - img
+                - generic:
+                  - button "dokonly-postgres Online" [ref=e130]:
+                    - link "dokonly-postgres Online" [active] [ref=e133] [cursor=pointer]:
+                      - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+                      - generic [ref=e134]:
+                        - img [ref=e136]
+                        - paragraph [ref=e140]: dokonly-postgres
+                      - generic [ref=e142]:
+                        - img [ref=e143]
+                        - paragraph [ref=e146]: Online
+                  - button "dokonly-backend dokonly-backend-production.up.railway.app Edited 1 Change" [ref=e147]:
+                    - link "dokonly-backend dokonly-backend-production.up.railway.app Edited 1 Change" [ref=e150] [cursor=pointer]:
+                      - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+                      - generic [ref=e151]:
+                        - img [ref=e153]
+                        - generic [ref=e155]:
+                          - paragraph [ref=e156]: dokonly-backend
+                          - paragraph [ref=e157]: dokonly-backend-production.up.railway.app
+                      - generic [ref=e158]: Edited
+                      - generic [ref=e159]:
+                        - img [ref=e161]
+                        - paragraph [ref=e164]: 1 Change
+                  - button "Redis Online redis-volume" [ref=e165]:
+                    - generic [ref=e166]:
+                      - link "Redis Online" [ref=e168] [cursor=pointer]:
+                        - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/7c1b34b0-d942-4729-9df2-0ddad48bbaf3/database?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+                        - paragraph [ref=e172]: Redis
+                        - generic [ref=e174]:
+                          - img [ref=e175]
+                          - paragraph [ref=e178]: Online
+                      - link "redis-volume" [ref=e180] [cursor=pointer]:
+                        - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/volume/a618ea5a-47c3-47ec-813e-77381411b56e/metrics?
+                        - generic [ref=e182]:
+                          - img [ref=e184]
+                          - paragraph [ref=e186]: redis-volume
+            - toolbar "Canvas options" [ref=e188]:
+              - button "Canvas settings" [ref=e189] [cursor=pointer]:
+                - img [ref=e191]
+              - group "canvas action" [ref=e201]:
+                - button "Zoom in" [ref=e202] [cursor=pointer]:
+                  - img [ref=e204]
+                - button "Zoom out" [ref=e206] [cursor=pointer]:
+                  - img [ref=e208]
+                - button "Center canvas" [ref=e209] [cursor=pointer]:
+                  - img [ref=e211]
+              - group "canvas action" [ref=e216]:
+                - button "Undo" [ref=e217] [cursor=pointer]:
+                  - img [ref=e219]
+                - button "Redo" [ref=e222] [cursor=pointer]:
+                  - img [ref=e224]
+              - button "Visibility layers" [ref=e227] [cursor=pointer]:
+                - img [ref=e229]
+            - img [ref=e239]
+        - generic [ref=e244]:
+          - generic [ref=e245]:
+            - generic [ref=e246]:
+              - generic [ref=e248]:
+                - button [ref=e249] [cursor=pointer]:
+                  - img [ref=e251]
+                - heading "dokonly-postgres" [level=1] [ref=e254]:
+                  - button "dokonly-postgres" [ref=e255] [cursor=pointer]
+              - link [ref=e257] [cursor=pointer]:
+                - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+                - img [ref=e259]
+            - generic [ref=e261]:
+              - link "Deployments" [ref=e262] [cursor=pointer]:
+                - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+                - generic [ref=e263]: Deployments
+              - link "Variables" [ref=e265] [cursor=pointer]:
+                - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55/variables?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+                - generic [ref=e266]: Variables
+              - link "Metrics" [ref=e267] [cursor=pointer]:
+                - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55/metrics?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+                - generic [ref=e268]: Metrics
+              - link "Settings" [ref=e269] [cursor=pointer]:
+                - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55/settings?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+                - generic [ref=e270]: Settings
+          - generic [ref=e273]:
+            - generic [ref=e274]:
+              - generic [ref=e275]:
+                - img [ref=e277]
+                - link "Unexposed service" [ref=e279] [cursor=pointer]:
+                  - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55/settings?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55#networking-public
+              - generic [ref=e280]:
+                - generic [ref=e281]:
+                  - img [ref=e283]
+                  - link "US West" [ref=e286] [cursor=pointer]:
+                    - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55/settings?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55#deploy-region-config
+                - generic [ref=e287]:
+                  - img [ref=e289]
+                  - link "1 Replica" [ref=e291] [cursor=pointer]:
+                    - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55/settings?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55#deploy-region-config
+            - generic [ref=e293]:
+              - link "Active postgres:15-alpine 20 hours ago via Docker View logs" [ref=e294] [cursor=pointer]:
+                - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=a5f60ed7-d546-4697-a75b-7d6920963821#deploy
+                - generic [ref=e296]:
+                  - generic [ref=e298]: Active
+                  - img [ref=e304]
+                  - generic [ref=e307]:
+                    - paragraph [ref=e308]: postgres:15-alpine
+                    - paragraph [ref=e309]:
+                      - time [ref=e310]: 20 hours ago
+                      - text: via Docker
+                  - generic [ref=e311]:
+                    - button "Deployment actions" [ref=e312]:
+                      - img [ref=e314]
+                    - link "View logs" [ref=e318]:
+                      - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=a5f60ed7-d546-4697-a75b-7d6920963821#deploy
+                      - generic [ref=e319]: View logs
+              - button "Deployment successful" [ref=e322] [cursor=pointer]:
+                - generic [ref=e323]:
+                  - img [ref=e325]
+                  - paragraph [ref=e328]: Deployment successful
+                - img [ref=e330]
+            - generic [ref=e334]:
+              - generic [ref=e335]:
+                - button "History" [expanded] [ref=e336] [cursor=pointer]:
+                  - img [ref=e338]
+                  - paragraph [ref=e340]: History
+                - button "Hide Skipped" [ref=e341] [cursor=pointer]
+              - region "History" [ref=e342]:
+                - link "Removed postgres:15-alpine 20 hours ago via Docker View logs" [ref=e343] [cursor=pointer]:
+                  - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=cc0fc0c0-74cf-4069-9ecc-6e41ad0d0e4d
+                  - generic [ref=e346]:
+                    - generic [ref=e348]: Removed
+                    - img [ref=e354]
+                    - generic [ref=e357]:
+                      - paragraph [ref=e358]: postgres:15-alpine
+                      - paragraph [ref=e359]:
+                        - time [ref=e360]: 20 hours ago
+                        - text: via Docker
+                    - generic [ref=e361]:
+                      - button "Deployment actions" [ref=e362]:
+                        - img [ref=e364]
+                      - link "View logs" [ref=e369]:
+                        - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=cc0fc0c0-74cf-4069-9ecc-6e41ad0d0e4d#deploy
+                        - generic [ref=e370]: View logs
+                - link "Removed postgres:15-alpine 20 hours ago via Docker View logs" [ref=e371] [cursor=pointer]:
+                  - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=746a67f3-56ea-4102-bc25-72d04165e616
+                  - generic [ref=e374]:
+                    - generic [ref=e376]: Removed
+                    - img [ref=e382]
+                    - generic [ref=e385]:
+                      - paragraph [ref=e386]: postgres:15-alpine
+                      - paragraph [ref=e387]:
+                        - time [ref=e388]: 20 hours ago
+                        - text: via Docker
+                    - generic [ref=e389]:
+                      - button "Deployment actions" [ref=e390]:
+                        - img [ref=e392]
+                      - link "View logs" [ref=e397]:
+                        - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=746a67f3-56ea-4102-bc25-72d04165e616#deploy
+                        - generic [ref=e398]: View logs
+                - link "Removed postgres:15-alpine 20 hours ago via Docker View logs" [ref=e399] [cursor=pointer]:
+                  - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=fef32b94-76a5-495e-887f-928da224c491
+                  - generic [ref=e402]:
+                    - generic [ref=e404]: Removed
+                    - img [ref=e410]
+                    - generic [ref=e413]:
+                      - paragraph [ref=e414]: postgres:15-alpine
+                      - paragraph [ref=e415]:
+                        - time [ref=e416]: 20 hours ago
+                        - text: via Docker
+                    - generic [ref=e417]:
+                      - button "Deployment actions" [ref=e418]:
+                        - img [ref=e420]
+                      - link "View logs" [ref=e425]:
+                        - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=fef32b94-76a5-495e-887f-928da224c491#deploy
+                        - generic [ref=e426]: View logs
+                - link "Removed postgres:15-alpine 20 hours ago via Docker View logs" [ref=e427] [cursor=pointer]:
+                  - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=a46d3bdc-ee9e-41b9-93df-cea396aa9b28
+                  - generic [ref=e430]:
+                    - generic [ref=e432]: Removed
+                    - img [ref=e438]
+                    - generic [ref=e441]:
+                      - paragraph [ref=e442]: postgres:15-alpine
+                      - paragraph [ref=e443]:
+                        - time [ref=e444]: 20 hours ago
+                        - text: via Docker
+                    - generic [ref=e445]:
+                      - button "Deployment actions" [ref=e446]:
+                        - img [ref=e448]
+                      - link "View logs" [ref=e453]:
+                        - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=a46d3bdc-ee9e-41b9-93df-cea396aa9b28#deploy
+                        - generic [ref=e454]: View logs
+                - link "Removed postgres:15-alpine 20 hours ago via Docker View logs" [ref=e455] [cursor=pointer]:
+                  - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=2f5d6185-0cb7-4f35-ae06-dc5d19323dee
+                  - generic [ref=e458]:
+                    - generic [ref=e460]: Removed
+                    - img [ref=e466]
+                    - generic [ref=e469]:
+                      - paragraph [ref=e470]: postgres:15-alpine
+                      - paragraph [ref=e471]:
+                        - time [ref=e472]: 20 hours ago
+                        - text: via Docker
+                    - generic [ref=e473]:
+                      - button "Deployment actions" [ref=e474]:
+                        - img [ref=e476]
+                      - link "View logs" [ref=e481]:
+                        - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=2f5d6185-0cb7-4f35-ae06-dc5d19323dee#deploy
+                        - generic [ref=e482]: View logs

@@ -1,0 +1,405 @@
+- generic [ref=e4]:
+  - banner [ref=e6]:
+    - generic [ref=e7]:
+      - link "Railway Logo" [ref=e8] [cursor=pointer]:
+        - /url: /dashboard
+        - img "Railway Logo" [ref=e10]
+      - generic [ref=e13]:
+        - button "dokonly-backend" [ref=e16] [cursor=pointer]:
+          - generic "yusufbek540-bit's Projects" [ref=e17]
+          - generic [ref=e19]: dokonly-backend
+          - img [ref=e21]
+        - button "production" [ref=e25] [cursor=pointer]:
+          - generic [ref=e26]: production
+          - img [ref=e28]
+    - navigation [ref=e30]:
+      - generic [ref=e32]:
+        - button "Toggle activity" [ref=e34] [cursor=pointer]:
+          - img [ref=e36]
+        - button "1" [ref=e38] [cursor=pointer]:
+          - generic [ref=e39]:
+            - img [ref=e41]
+            - generic [ref=e43]: "1"
+        - button "Agent" [ref=e45] [cursor=pointer]:
+          - img [ref=e47]
+          - text: Agent
+  - generic [ref=e49]:
+    - navigation "Project navigation" [ref=e50]:
+      - generic [ref=e51]:
+        - link "Architecture" [ref=e54] [cursor=pointer]:
+          - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+          - img [ref=e56]
+        - link "Observability" [ref=e62] [cursor=pointer]:
+          - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/observability?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+          - img [ref=e64]
+        - link "Logs" [ref=e67] [cursor=pointer]:
+          - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/logs?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+          - img [ref=e69]
+        - link "Settings" [ref=e73] [cursor=pointer]:
+          - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/settings?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+          - img [ref=e75]
+      - button [ref=e78] [cursor=pointer]:
+        - generic "yusufbek540@gmail.com" [ref=e80]
+    - region [ref=e86]:
+      - generic [ref=e87]:
+        - generic [ref=e91]:
+          - generic [ref=e92]:
+            - paragraph [ref=e94]: Apply 1 change
+            - generic [ref=e95]:
+              - button "Details" [ref=e96] [cursor=pointer]:
+                - generic [ref=e97]: Details
+              - button "Deploy ⇧+Enter" [ref=e98] [cursor=pointer]:
+                - generic [ref=e99]: Deploy ⇧+Enter
+              - button "Staged changes actions" [ref=e100] [cursor=pointer]:
+                - img [ref=e102]
+          - generic [ref=e106]:
+            - img [ref=e108]
+            - text: Service deployment rate limit exceeded
+        - generic [ref=e113]:
+          - img [ref=e114]
+          - generic [ref=e115]:
+            - generic [ref=e117]:
+              - generic:
+                - img
+                - generic:
+                  - button "dokonly-postgres Online" [ref=e118]:
+                    - link "dokonly-postgres Online" [ref=e121] [cursor=pointer]:
+                      - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/e417b2ad-e978-4399-aa58-14aa1e3eac55?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+                      - generic [ref=e122]:
+                        - img [ref=e124]
+                        - paragraph [ref=e128]: dokonly-postgres
+                      - generic [ref=e130]:
+                        - img [ref=e131]
+                        - paragraph [ref=e134]: Online
+                  - button "dokonly-backend dokonly-backend-production.up.railway.app Edited 1 Change" [ref=e135]:
+                    - link "dokonly-backend dokonly-backend-production.up.railway.app Edited 1 Change" [ref=e138] [cursor=pointer]:
+                      - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+                      - generic [ref=e139]:
+                        - img [ref=e141]
+                        - generic [ref=e143]:
+                          - paragraph [ref=e144]: dokonly-backend
+                          - paragraph [ref=e145]: dokonly-backend-production.up.railway.app
+                      - generic [ref=e146]: Edited
+                      - generic [ref=e147]:
+                        - img [ref=e149]
+                        - paragraph [ref=e152]: 1 Change
+                  - button "Redis Online redis-volume" [ref=e153]:
+                    - generic [ref=e154]:
+                      - link "Redis Online" [ref=e156] [cursor=pointer]:
+                        - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/7c1b34b0-d942-4729-9df2-0ddad48bbaf3/database?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+                        - paragraph [ref=e160]: Redis
+                        - generic [ref=e162]:
+                          - img [ref=e163]
+                          - paragraph [ref=e166]: Online
+                      - link "redis-volume" [ref=e168] [cursor=pointer]:
+                        - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/volume/a618ea5a-47c3-47ec-813e-77381411b56e/metrics?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+                        - generic [ref=e170]:
+                          - img [ref=e172]
+                          - paragraph [ref=e174]: redis-volume
+            - toolbar "Canvas options" [ref=e176]:
+              - button "Canvas settings" [ref=e177] [cursor=pointer]:
+                - img [ref=e179]
+              - group "canvas action" [ref=e189]:
+                - button "Zoom in" [ref=e190] [cursor=pointer]:
+                  - img [ref=e192]
+                - button "Zoom out" [ref=e194] [cursor=pointer]:
+                  - img [ref=e196]
+                - button "Center canvas" [ref=e197] [cursor=pointer]:
+                  - img [ref=e199]
+              - group "canvas action" [ref=e204]:
+                - button "Undo" [ref=e205] [cursor=pointer]:
+                  - img [ref=e207]
+                - button "Redo" [ref=e210] [cursor=pointer]:
+                  - img [ref=e212]
+              - button "Visibility layers" [ref=e215] [cursor=pointer]:
+                - img [ref=e217]
+            - img [ref=e219]
+        - generic [ref=e224]:
+          - generic [ref=e225]:
+            - generic [ref=e226]:
+              - generic [ref=e228]:
+                - button [ref=e229] [cursor=pointer]:
+                  - img [ref=e231]
+                - heading "dokonly-backend" [level=1] [ref=e233]:
+                  - button "dokonly-backend" [ref=e234] [cursor=pointer]
+              - link [ref=e236] [cursor=pointer]:
+                - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+                - img [ref=e238]
+            - generic [ref=e240]:
+              - link "Deployments" [ref=e241] [cursor=pointer]:
+                - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+                - generic [ref=e242]: Deployments
+              - link "Variables" [ref=e244] [cursor=pointer]:
+                - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c/variables?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+                - generic [ref=e245]: Variables
+              - link "Metrics" [ref=e246] [cursor=pointer]:
+                - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c/metrics?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+                - generic [ref=e247]: Metrics
+              - link "Settings" [ref=e248] [cursor=pointer]:
+                - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c/settings?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55
+                - generic [ref=e249]: Settings
+          - generic [ref=e252]:
+            - generic [ref=e253]:
+              - generic [ref=e254]:
+                - img [ref=e256]
+                - link "dokonly-backend-production.up.railway.app" [ref=e259] [cursor=pointer]:
+                  - /url: https://dokonly-backend-production.up.railway.app
+              - generic [ref=e260]:
+                - generic [ref=e261]:
+                  - img [ref=e263]
+                  - link "US West" [ref=e266] [cursor=pointer]:
+                    - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c/settings?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55#deploy-region-config
+                - generic [ref=e267]:
+                  - img [ref=e269]
+                  - link "1 Replica" [ref=e271] [cursor=pointer]:
+                    - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c/settings?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55#deploy-region-config
+            - generic [ref=e276]:
+              - 'link "Active fix: correct Railway backend URL in both frontend .env.production files Was: https://dokonly-backend.up.railway.app Now: https://dokonly-backend-production.up.railway.app Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com> 19 hours ago via GitHub View logs" [ref=e277] [cursor=pointer]':
+                - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=7156f3e0-d403-40e8-ba8d-1286d066fc63#deploy
+                - generic [ref=e279]:
+                  - generic [ref=e281]: Active
+                  - generic [ref=e283]:
+                    - generic "yusufbek540-bit" [ref=e284]
+                    - img [ref=e287]
+                  - generic [ref=e290]:
+                    - paragraph [ref=e291]: "fix: correct Railway backend URL in both frontend .env.production files Was: https://dokonly-backend.up.railway.app Now: https://dokonly-backend-production.up.railway.app Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+                    - paragraph [ref=e292]:
+                      - time [ref=e293]: 19 hours ago
+                      - text: via GitHub
+                  - generic [ref=e294]:
+                    - button "Deployment actions" [ref=e295]:
+                      - img [ref=e297]
+                    - link "View logs" [ref=e301]:
+                      - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=7156f3e0-d403-40e8-ba8d-1286d066fc63#deploy
+                      - generic [ref=e302]: View logs
+              - button "Deployment successful" [ref=e305] [cursor=pointer]:
+                - generic [ref=e306]:
+                  - img [ref=e308]
+                  - paragraph [ref=e311]: Deployment successful
+                - img [ref=e313]
+            - generic [ref=e317]:
+              - generic [ref=e318]:
+                - button "History" [expanded] [ref=e319] [cursor=pointer]:
+                  - img [ref=e321]
+                  - paragraph [ref=e323]: History
+                - button "Hide Skipped" [ref=e324] [cursor=pointer]
+              - region "History" [ref=e325]:
+                - generic [ref=e326]:
+                  - 'link "Failed fix: lazy OpenAI client init to prevent startup crash when OPENAI_API_KEY unset AsyncOpenAI was constructed at module import time, causing openai.OpenAIError at startup on Railway when the env var is not set — crashing the entire app before the health check could pass. Now created on first use via get_openai_client(). Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com> 8 minutes ago via GitHub View logs" [ref=e327] [cursor=pointer]':
+                    - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=6e8d999a-1fdb-4940-9c83-55c4fb7ff1e6#details
+                    - generic [ref=e329]:
+                      - generic [ref=e331]: Failed
+                      - generic [ref=e333]:
+                        - generic "yusufbek540-bit" [ref=e334]
+                        - img [ref=e337]
+                      - generic [ref=e340]:
+                        - paragraph [ref=e341]: "fix: lazy OpenAI client init to prevent startup crash when OPENAI_API_KEY unset AsyncOpenAI was constructed at module import time, causing openai.OpenAIError at startup on Railway when the env var is not set — crashing the entire app before the health check could pass. Now created on first use via get_openai_client(). Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+                        - paragraph [ref=e342]:
+                          - time [ref=e343]: 8 minutes ago
+                          - text: via GitHub
+                      - generic [ref=e344]:
+                        - button "Deployment actions" [ref=e345]:
+                          - img [ref=e347]
+                        - link "View logs" [ref=e351]:
+                          - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=6e8d999a-1fdb-4940-9c83-55c4fb7ff1e6#details
+                          - generic [ref=e352]: View logs
+                  - generic [ref=e354]:
+                    - button "Deployment failed during build process (00:10)" [expanded] [ref=e355] [cursor=pointer]:
+                      - generic [ref=e356]:
+                        - generic [ref=e357]:
+                          - img [ref=e359]
+                          - paragraph [ref=e361]: Deployment failed during build process
+                        - paragraph [ref=e362]:
+                          - text: (
+                          - time [ref=e363]: 00:10
+                          - text: )
+                      - img [ref=e365]
+                    - region "Deployment failed during build process (00:10)" [ref=e367]:
+                      - generic [ref=e369]:
+                        - img [ref=e371]
+                        - generic [ref=e373]:
+                          - paragraph [ref=e375]: Initialization
+                          - paragraph [ref=e376]:
+                            - text: (
+                            - time [ref=e377]: 00:09
+                            - text: )
+                      - generic [ref=e378]:
+                        - generic [ref=e379]:
+                          - img [ref=e381]
+                          - generic [ref=e383]:
+                            - paragraph [ref=e385]:
+                              - text: Build
+                              - generic [ref=e386]: › Build image
+                            - paragraph [ref=e387]:
+                              - text: (
+                              - time [ref=e388]: 00:09
+                              - text: )
+                        - paragraph [ref=e391]:
+                          - text: Failed to build an image.
+                          - link "Please check the build logs for more details." [ref=e392] [cursor=pointer]:
+                            - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=6e8d999a-1fdb-4940-9c83-55c4fb7ff1e6#build
+                      - generic [ref=e394]:
+                        - img [ref=e396]
+                        - generic [ref=e399]:
+                          - paragraph [ref=e400]: Try running a diagnosis to understand why this deployment failed.
+                          - button "Diagnose" [ref=e402] [cursor=pointer]:
+                            - generic [ref=e403]: Diagnose
+                      - generic [ref=e405]:
+                        - img [ref=e407]
+                        - generic [ref=e409]:
+                          - paragraph [ref=e411]: Deploy
+                          - paragraph [ref=e412]: Not started
+                      - generic [ref=e414]:
+                        - img [ref=e416]
+                        - generic [ref=e418]:
+                          - paragraph [ref=e420]: Network
+                          - paragraph [ref=e421]: Not started
+                      - generic [ref=e423]:
+                        - img [ref=e425]
+                        - generic [ref=e427]:
+                          - paragraph [ref=e429]: Post-deploy
+                          - paragraph [ref=e430]: Not started
+                - 'link "Failed revert: remove explicit build section from railway.toml The [build] builder=\"DOCKERFILE\" section was confusing Railway''s Dockerfile detection. Reverted to let Railway auto-detect the Dockerfile (which was working before). Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com> 12 minutes ago via GitHub View logs" [ref=e431] [cursor=pointer]':
+                  - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=7573b4ff-409b-422b-ab9f-7dac21cf194c
+                  - generic [ref=e434]:
+                    - generic [ref=e436]: Failed
+                    - generic [ref=e438]:
+                      - generic "yusufbek540-bit" [ref=e439]
+                      - img [ref=e442]
+                    - generic [ref=e445]:
+                      - paragraph [ref=e446]: "revert: remove explicit build section from railway.toml The [build] builder=\"DOCKERFILE\" section was confusing Railway's Dockerfile detection. Reverted to let Railway auto-detect the Dockerfile (which was working before). Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+                      - paragraph [ref=e447]:
+                        - time [ref=e448]: 12 minutes ago
+                        - text: via GitHub
+                    - generic [ref=e449]:
+                      - button "Deployment actions" [ref=e450]:
+                        - img [ref=e452]
+                      - link "View logs" [ref=e457]:
+                        - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=7573b4ff-409b-422b-ab9f-7dac21cf194c#build
+                        - generic [ref=e458]: View logs
+                - 'link "Failed chore: fix railway.toml builder casing (must be DOCKERFILE not dockerfile) Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com> 20 minutes ago via GitHub View logs" [ref=e459] [cursor=pointer]':
+                  - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=7b42bac8-1477-4a4b-a268-5230a8c0fc9f
+                  - generic [ref=e462]:
+                    - generic [ref=e464]: Failed
+                    - generic [ref=e466]:
+                      - generic "yusufbek540-bit" [ref=e467]
+                      - img [ref=e470]
+                    - generic [ref=e473]:
+                      - paragraph [ref=e474]: "chore: fix railway.toml builder casing (must be DOCKERFILE not dockerfile) Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+                      - paragraph [ref=e475]:
+                        - time [ref=e476]: 20 minutes ago
+                        - text: via GitHub
+                    - generic [ref=e477]:
+                      - button "Deployment actions" [ref=e478]:
+                        - img [ref=e480]
+                      - link "View logs" [ref=e485]:
+                        - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=7b42bac8-1477-4a4b-a268-5230a8c0fc9f#build
+                        - generic [ref=e486]: View logs
+                - 'link "Failed chore: explicitly set Dockerfile builder in railway.toml Prevents Railway from falling back to Nixpacks auto-detection on redeploy. Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com> 21 minutes ago via GitHub View logs" [ref=e487] [cursor=pointer]':
+                  - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=bc6c7dcf-d2e8-4c06-ba23-455b45d06d58
+                  - generic [ref=e490]:
+                    - generic [ref=e492]: Failed
+                    - generic [ref=e494]:
+                      - generic "yusufbek540-bit" [ref=e495]
+                      - img [ref=e498]
+                    - generic [ref=e501]:
+                      - paragraph [ref=e502]: "chore: explicitly set Dockerfile builder in railway.toml Prevents Railway from falling back to Nixpacks auto-detection on redeploy. Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+                      - paragraph [ref=e503]:
+                        - time [ref=e504]: 21 minutes ago
+                        - text: via GitHub
+                    - generic [ref=e505]:
+                      - button "Deployment actions" [ref=e506]:
+                        - img [ref=e508]
+                      - link "View logs" [ref=e513]:
+                        - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=bc6c7dcf-d2e8-4c06-ba23-455b45d06d58#build
+                        - generic [ref=e514]: View logs
+                - 'link "Failed fix: splash screen timeout prevents permanent blank mini app Added 8-second timeout fallback: if React fails to mount (uncaught JS error before ErrorBoundary), the splash is forcibly removed so the user sees the actual state instead of a stuck loading spinner (blank page). Previously the interval polled forever with no escape hatch. Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com> 25 minutes ago via GitHub View logs" [ref=e515] [cursor=pointer]':
+                  - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=ff5c0c3a-875f-48d1-8976-716baa05d6d6
+                  - generic [ref=e518]:
+                    - generic [ref=e520]: Failed
+                    - generic [ref=e522]:
+                      - generic "yusufbek540-bit" [ref=e523]
+                      - img [ref=e526]
+                    - generic [ref=e529]:
+                      - paragraph [ref=e530]: "fix: splash screen timeout prevents permanent blank mini app Added 8-second timeout fallback: if React fails to mount (uncaught JS error before ErrorBoundary), the splash is forcibly removed so the user sees the actual state instead of a stuck loading spinner (blank page). Previously the interval polled forever with no escape hatch. Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+                      - paragraph [ref=e531]:
+                        - time [ref=e532]: 25 minutes ago
+                        - text: via GitHub
+                    - generic [ref=e533]:
+                      - button "Deployment actions" [ref=e534]:
+                        - img [ref=e536]
+                      - link "View logs" [ref=e541]:
+                        - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=ff5c0c3a-875f-48d1-8976-716baa05d6d6#build
+                        - generic [ref=e542]: View logs
+                - 'link "Failed fix: bot middleware resilience + webhook status diagnostic endpoint TenantMiddleware now: - Caches bot username by bot_id (extracted from token, no API call) to avoid a Telegram API roundtrip on every single incoming update - Wraps the lookup in try/except so one failed bot.get_me() call cannot silence the entire bot — tenant defaults to None and processing continues Add GET /api/v1/webhook/bot-status endpoint: - Returns bot identity, webhook URL, pending updates, and last error - Safe to call publicly (no tokens exposed) - Used to diagnose \"bot not responding\" without Railway log access Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com> 27 minutes ago via GitHub View logs" [ref=e543] [cursor=pointer]':
+                  - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=68d594ad-e130-4af3-93a8-6ada570c35a4
+                  - generic [ref=e546]:
+                    - generic [ref=e548]: Failed
+                    - generic [ref=e550]:
+                      - generic "yusufbek540-bit" [ref=e551]
+                      - img [ref=e554]
+                    - generic [ref=e557]:
+                      - paragraph [ref=e558]: "fix: bot middleware resilience + webhook status diagnostic endpoint TenantMiddleware now: - Caches bot username by bot_id (extracted from token, no API call) to avoid a Telegram API roundtrip on every single incoming update - Wraps the lookup in try/except so one failed bot.get_me() call cannot silence the entire bot — tenant defaults to None and processing continues Add GET /api/v1/webhook/bot-status endpoint: - Returns bot identity, webhook URL, pending updates, and last error - Safe to call publicly (no tokens exposed) - Used to diagnose \"bot not responding\" without Railway log access Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+                      - paragraph [ref=e559]:
+                        - time [ref=e560]: 27 minutes ago
+                        - text: via GitHub
+                    - generic [ref=e561]:
+                      - button "Deployment actions" [ref=e562]:
+                        - img [ref=e564]
+                      - link "View logs" [ref=e569]:
+                        - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=68d594ad-e130-4af3-93a8-6ada570c35a4#build
+                        - generic [ref=e570]: View logs
+                - 'link "Failed fix: master bot now shows web_app button; configure-bot uses merchant''s own bot token - _send_master_welcome now includes a web_app button opening MINIAPP_BASE (no ?shop) so sellers can reach the admin panel from the master Dokonly bot. This was the root cause of the blank-page issue — there was no web_app entry point via the master bot at all. - configure_bot_menu endpoint now uses the merchant''s encrypted bot token instead of the master bot token. Previously it set the master bot''s global menu button to ?shop={slug}, poisoning it for every user of the platform. Now it configures the merchant''s own bot, and returns 400 if no bot is set up. Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com> 1 hour ago via GitHub View logs" [ref=e571] [cursor=pointer]':
+                  - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=188e6c38-a92f-4e52-80bd-719e4cb1875b
+                  - generic [ref=e574]:
+                    - generic [ref=e576]: Failed
+                    - generic [ref=e578]:
+                      - generic "yusufbek540-bit" [ref=e579]
+                      - img [ref=e582]
+                    - generic [ref=e585]:
+                      - paragraph [ref=e586]: "fix: master bot now shows web_app button; configure-bot uses merchant's own bot token - _send_master_welcome now includes a web_app button opening MINIAPP_BASE (no ?shop) so sellers can reach the admin panel from the master Dokonly bot. This was the root cause of the blank-page issue — there was no web_app entry point via the master bot at all. - configure_bot_menu endpoint now uses the merchant's encrypted bot token instead of the master bot token. Previously it set the master bot's global menu button to ?shop={slug}, poisoning it for every user of the platform. Now it configures the merchant's own bot, and returns 400 if no bot is set up. Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+                      - paragraph [ref=e587]:
+                        - time [ref=e588]: 1 hour ago
+                        - text: via GitHub
+                    - generic [ref=e589]:
+                      - button "Deployment actions" [ref=e590]:
+                        - img [ref=e592]
+                      - link "View logs" [ref=e597]:
+                        - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=188e6c38-a92f-4e52-80bd-719e4cb1875b#build
+                        - generic [ref=e598]: View logs
+                - 'link "Failed fix: validate initData against merchant''s own bot token as fallback When a seller opens their own bot''s mini app (?shop=slug), Telegram signs initData with THAT bot''s secret key — not the platform master bot. Previously this caused get_shop_role to return ''buyer'' (showing the storefront instead of admin panel) and all /miniapp/* calls to return 401 (showing \"No connection\" in the seller panel). Changes: - _validate_init_data() accepts optional bot_token parameter - get_shop_role: tries tenant''s own bot token if master bot fails - get_tg_user: looks up owner''s tenant by Telegram user ID, retries with that tenant''s decrypted bot token if master fails Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com> 3 hours ago via GitHub View logs" [ref=e599] [cursor=pointer]':
+                  - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=781f7343-cd8f-4233-9a04-12599d59a9eb
+                  - generic [ref=e602]:
+                    - generic [ref=e604]: Failed
+                    - generic [ref=e606]:
+                      - generic "yusufbek540-bit" [ref=e607]
+                      - img [ref=e610]
+                    - generic [ref=e613]:
+                      - paragraph [ref=e614]: "fix: validate initData against merchant's own bot token as fallback When a seller opens their own bot's mini app (?shop=slug), Telegram signs initData with THAT bot's secret key — not the platform master bot. Previously this caused get_shop_role to return 'buyer' (showing the storefront instead of admin panel) and all /miniapp/* calls to return 401 (showing \"No connection\" in the seller panel). Changes: - _validate_init_data() accepts optional bot_token parameter - get_shop_role: tries tenant's own bot token if master bot fails - get_tg_user: looks up owner's tenant by Telegram user ID, retries with that tenant's decrypted bot token if master fails Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+                      - paragraph [ref=e615]:
+                        - time [ref=e616]: 3 hours ago
+                        - text: via GitHub
+                    - generic [ref=e617]:
+                      - button "Deployment actions" [ref=e618]:
+                        - img [ref=e620]
+                      - link "View logs" [ref=e625]:
+                        - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=781f7343-cd8f-4233-9a04-12599d59a9eb#build
+                        - generic [ref=e626]: View logs
+                - 'link "Failed feat: add web storefront Next.js app skeleton Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com> 19 hours ago via GitHub View logs" [ref=e627] [cursor=pointer]':
+                  - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=86d04f87-8d0f-420d-8ef1-59bd36934271
+                  - generic [ref=e630]:
+                    - generic [ref=e632]: Failed
+                    - generic [ref=e634]:
+                      - generic "yusufbek540-bit" [ref=e635]
+                      - img [ref=e638]
+                    - generic [ref=e641]:
+                      - paragraph [ref=e642]: "feat: add web storefront Next.js app skeleton Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
+                      - paragraph [ref=e643]:
+                        - time [ref=e644]: 19 hours ago
+                        - text: via GitHub
+                    - generic [ref=e645]:
+                      - button "Deployment actions" [ref=e646]:
+                        - img [ref=e648]
+                      - link "View logs" [ref=e653]:
+                        - /url: /project/cc5785fb-309d-4d8f-bfbb-96feb34076ba/service/902435f6-2efc-4d8f-9f57-fca314584f9c?environmentId=09f19dc1-5bda-490f-b808-2f72ff671f55&id=86d04f87-8d0f-420d-8ef1-59bd36934271#build
+                        - generic [ref=e654]: View logs

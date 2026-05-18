@@ -1399,6 +1399,20 @@ def _render_crosspost_template(template: str, product, tenant) -> str:
     return text
 
 
+def _build_crosspost_keyboard(product, tenant):
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    shop_url = f"https://t.me/{tenant.bot_username}" if tenant.bot_username else None
+    product_url = f"{shop_url}?start=product_{product.id}" if shop_url else None
+    buttons = []
+    if product_url:
+        buttons.append(InlineKeyboardButton(text="🛒 Купить", url=product_url))
+    if shop_url:
+        buttons.append(InlineKeyboardButton(text="🏪 Магазин", url=shop_url))
+    if not buttons:
+        return None
+    return InlineKeyboardMarkup(inline_keyboard=[buttons])
+
+
 async def _do_crosspost(tenant_id: str, product_id: str) -> None:
     from app.core.bot_utils import get_tenant_bot
     from app.core.database import AsyncSessionLocal
@@ -1409,7 +1423,7 @@ async def _do_crosspost(tenant_id: str, product_id: str) -> None:
             return
         settings_data = tenant.settings or {}
         channel = settings_data.get("crosspost_channel") or settings_data.get("channel_username")
-        template = settings_data.get("crosspost_template", "🛍 {product_name}\n\n{description}\n\n💰 {price}\n\n[Купить]({url})")
+        template = settings_data.get("crosspost_template", "🛍 {product_name}\n\n{description}\n\n💰 {price}")
         if not channel:
             return
         product_result = await db.execute(select(Product).where(Product.id == product_id))
@@ -1418,15 +1432,16 @@ async def _do_crosspost(tenant_id: str, product_id: str) -> None:
             return
         text = _render_crosspost_template(template, product, tenant)
         photo_url = product.images[0] if product.images else None
+        keyboard = _build_crosspost_keyboard(product, tenant)
         tenant_bot = await get_tenant_bot(tenant.id)
         if not tenant_bot:
             return
         post_status = "failed"
         try:
             if photo_url:
-                await tenant_bot.send_photo(chat_id=channel, photo=photo_url, caption=text, parse_mode="Markdown")
+                await tenant_bot.send_photo(chat_id=channel, photo=photo_url, caption=text, parse_mode="Markdown", reply_markup=keyboard)
             else:
-                await tenant_bot.send_message(chat_id=channel, text=text, parse_mode="Markdown")
+                await tenant_bot.send_message(chat_id=channel, text=text, parse_mode="Markdown", reply_markup=keyboard)
             post_status = "sent"
         except Exception:
             pass
@@ -1464,7 +1479,7 @@ async def create_channel_post(
         raise HTTPException(400, "No channel configured")
 
     # Resolve template variables using the latest product
-    template = body.get("text") or settings_data.get("crosspost_template", "🛍 {product_name}\n\n{description}\n\n💰 {price}\n\n[Купить]({url})")
+    template = body.get("text") or settings_data.get("crosspost_template", "🛍 {product_name}\n\n{description}\n\n💰 {price}")
     product_id = body.get("product_id")
     if product_id:
         prod_result = await db.execute(select(Product).where(Product.id == product_id, Product.tenant_id == tenant.id))
@@ -1478,19 +1493,21 @@ async def create_channel_post(
 
     if product:
         text = _render_crosspost_template(template, product, tenant)
-        photo_url = (product.images[0] if product.images else None)
+        photo_url = product.images[0] if product.images else None
+        keyboard = _build_crosspost_keyboard(product, tenant)
     else:
         text = template
         photo_url = None
+        keyboard = None
 
     tenant_bot = await get_tenant_bot(tenant.id)
     if not tenant_bot:
         raise HTTPException(400, "Merchant bot not configured")
     try:
         if photo_url:
-            await tenant_bot.send_photo(chat_id=channel_username, photo=photo_url, caption=text, parse_mode="Markdown")
+            await tenant_bot.send_photo(chat_id=channel_username, photo=photo_url, caption=text, parse_mode="Markdown", reply_markup=keyboard)
         else:
-            await tenant_bot.send_message(chat_id=channel_username, text=text, parse_mode="Markdown")
+            await tenant_bot.send_message(chat_id=channel_username, text=text, parse_mode="Markdown", reply_markup=keyboard)
     except Exception as e:
         raise HTTPException(502, f"Failed to post to channel: {e}")
     finally:

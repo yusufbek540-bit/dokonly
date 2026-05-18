@@ -1,0 +1,123 @@
+- generic [ref=e2]:
+  - banner [ref=e4]:
+    - link "Railway Logo" [ref=e6] [cursor=pointer]:
+      - /url: /
+      - img "Railway Logo" [ref=e8]
+    - navigation [ref=e11]:
+      - link "Help" [ref=e12] [cursor=pointer]:
+        - /url: https://station.railway.com
+      - button [ref=e13] [cursor=pointer]
+  - main [ref=e15]:
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - generic [ref=e25]:
+          - img "Railway Logo" [ref=e27]
+          - generic [ref=e30]:
+            - paragraph [ref=e31]: Welcome to Railway
+            - paragraph [ref=e32]: Instant deployments, effortless scale
+        - button "Continue with GitHub" [ref=e34] [cursor=pointer]:
+          - img [ref=e36]
+          - generic [ref=e38]: Continue with GitHub
+      - button "Log in using email" [ref=e39] [cursor=pointer]
+  - contentinfo [ref=e40]:
+    - generic [ref=e41]:
+      - generic [ref=e42]:
+        - generic [ref=e43]:
+          - generic [ref=e44]:
+            - link "Railway Logo" [ref=e45] [cursor=pointer]:
+              - /url: /
+              - img "Railway Logo" [ref=e46]
+            - link "All systems operational" [ref=e49] [cursor=pointer]:
+              - /url: https://status.railway.com
+              - generic [ref=e50]: All systems operational
+              - generic [ref=e51]: ↗
+            - separator [ref=e52]
+          - generic [ref=e53]:
+            - text: Copyright © 2026 Railway Corp.
+            - text: All rights reserved.
+        - link "Railway Compliance" [ref=e54] [cursor=pointer]:
+          - /url: https://trust.railway.com
+          - img [ref=e55]
+          - img [ref=e57]
+      - generic [ref=e69]:
+        - paragraph [ref=e70]: Product
+        - list [ref=e71]:
+          - listitem [ref=e72]:
+            - link "Features" [ref=e73] [cursor=pointer]:
+              - /url: /features
+          - listitem [ref=e74]:
+            - link "Docs" [ref=e75] [cursor=pointer]:
+              - /url: https://docs.railway.com
+          - listitem [ref=e76]:
+            - link "Changelog" [ref=e77] [cursor=pointer]:
+              - /url: /changelog
+          - listitem [ref=e78]:
+            - link "Pricing" [ref=e79] [cursor=pointer]:
+              - /url: /pricing
+          - listitem [ref=e80]:
+            - link "Templates" [ref=e81] [cursor=pointer]:
+              - /url: /deploy
+          - listitem [ref=e82]:
+            - link "OSS Kickback" [ref=e83] [cursor=pointer]:
+              - /url: /open-source-kickback
+          - listitem [ref=e84]:
+            - link "Migrate from Heroku" [ref=e85] [cursor=pointer]:
+              - /url: /heroku
+      - generic [ref=e86]:
+        - paragraph [ref=e87]: Company
+        - list [ref=e88]:
+          - listitem [ref=e89]:
+            - link "About" [ref=e90] [cursor=pointer]:
+              - /url: /about
+          - listitem [ref=e91]:
+            - link "Careers" [ref=e92] [cursor=pointer]:
+              - /url: /careers
+          - listitem [ref=e93]:
+            - link "Blog" [ref=e94] [cursor=pointer]:
+              - /url: https://blog.railway.com
+          - listitem [ref=e95]:
+            - link "Shop" [ref=e96] [cursor=pointer]:
+              - /url: https://shop.railway.com
+          - listitem [ref=e97]:
+            - link "Trust" [ref=e98] [cursor=pointer]:
+              - /url: https://trust.railway.com
+      - generic [ref=e99]:
+        - paragraph [ref=e100]: Contact
+        - list [ref=e101]:
+          - listitem [ref=e102]:
+            - link "Support" [ref=e103] [cursor=pointer]:
+              - /url: https://station.railway.com
+          - listitem [ref=e104]:
+            - link "Discord" [ref=e105] [cursor=pointer]:
+              - /url: https://discord.gg/railway
+          - listitem [ref=e106]:
+            - link "Twitter" [ref=e107] [cursor=pointer]:
+              - /url: https://twitter.com/Railway
+          - listitem [ref=e108]:
+            - link "GitHub" [ref=e109] [cursor=pointer]:
+              - /url: https://github.com/railwayapp
+          - listitem [ref=e110]:
+            - link "Email" [ref=e111] [cursor=pointer]:
+              - /url: mailto:team@railway.com
+          - listitem [ref=e112]:
+            - link "Enterprise" [ref=e113] [cursor=pointer]:
+              - /url: /login/#enterprise-calendar-embed
+      - generic [ref=e114]:
+        - paragraph [ref=e115]: Legal
+        - list [ref=e116]:
+          - listitem [ref=e117]:
+            - link "Acceptable Use" [ref=e118] [cursor=pointer]:
+              - /url: /legal/acceptable-use
+          - listitem [ref=e119]:
+            - link "Privacy Policy" [ref=e120] [cursor=pointer]:
+              - /url: /legal/privacy
+          - listitem [ref=e121]:
+            - link "Terms of Service" [ref=e122] [cursor=pointer]:
+              - /url: /legal/terms
+          - listitem [ref=e123]:
+            - link "Enterprise Agreement" [ref=e124] [cursor=pointer]:
+              - /url: /legal/enterprise-agreement
+          - button "Cookie Preferences" [ref=e125] [cursor=pointer]
+          - listitem [ref=e126]:
+            - link "Bug Bounty Program" [ref=e127] [cursor=pointer]:
+              - /url: /bug-bounty

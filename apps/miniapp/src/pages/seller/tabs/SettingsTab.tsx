@@ -1430,7 +1430,7 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
   const qc = useQueryClient()
   const [channelUsername, setChannelUsername] = useState(tenant.settings?.crosspost_channel ?? '')
   const [autoPost, setAutoPost] = useState(tenant.settings?.auto_crosspost ?? false)
-  const [template, setTemplate] = useState(tenant.settings?.crosspost_template ?? '🛍 {product_name}\n\n{description}\n\n💰 {price}\n\n[Купить]({url})')
+  const [template, setTemplate] = useState(tenant.settings?.crosspost_template ?? '🛍 {product_name}\n\n{description}\n\n💰 {price}')
   const [saving, setSaving] = useState(false)
   const [verifyStatus, setVerifyStatus] = useState<'idle' | 'loading' | 'ok' | 'fail'>('idle')
   const [verifyChannelTitle, setVerifyChannelTitle] = useState<string | null>(null)
@@ -1541,7 +1541,7 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
           />
         </div>
         <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 20, lineHeight: 1.5 }}>
-          Переменные: {'{product_name}'} {'{description}'} {'{price}'} {'{url}'}
+          Переменные: {'{product_name}'} {'{description}'} {'{price}'} — кнопки «Купить» и «Магазин» добавляются автоматически
         </div>
 
         {/* Save button */}
