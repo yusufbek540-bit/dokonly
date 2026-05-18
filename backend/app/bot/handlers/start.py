@@ -95,11 +95,11 @@ async def cmd_start(message: Message, tenant: Tenant | None):
 
 async def _send_master_welcome(message: Message) -> None:
     kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text="🛍 Открыть панель продавца",
+            web_app=WebAppInfo(url=MINIAPP_BASE),
+        )],
         [InlineKeyboardButton(text="🏪 Создать магазин", callback_data="register_shop")],
-        [
-            InlineKeyboardButton(text="📦 Каталог товаров", callback_data="browse_catalog"),
-            InlineKeyboardButton(text="🧾 Мои заказы", callback_data="my_orders"),
-        ],
     ])
     await message.answer(
         "👋 Добро пожаловать в <b>Dokonly</b>!\n\n"

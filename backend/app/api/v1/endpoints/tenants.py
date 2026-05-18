@@ -66,15 +66,23 @@ async def configure_bot_menu(
     user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    from app.core.crypto import decrypt
     result = await db.execute(select(Tenant).where(Tenant.owner_id == user["sub"]))
     tenant = result.scalar_one_or_none()
     if not tenant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No tenant found")
+    if not tenant.bot_token_enc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No merchant bot configured. Set up your own bot first.")
+
+    try:
+        raw_token = decrypt(tenant.bot_token_enc)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to decrypt bot token")
 
     mini_app_url = f"https://dokonly-miniapp.pages.dev?shop={tenant.slug}"
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            f"https://api.telegram.org/bot{settings.telegram_bot_token}/setChatMenuButton",
+            f"https://api.telegram.org/bot{raw_token}/setChatMenuButton",
             json={"menu_button": {"type": "web_app", "text": "Открыть магазин", "web_app": {"url": mini_app_url}}},
         )
     return {"ok": resp.status_code == 200, "url": mini_app_url}
