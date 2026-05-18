@@ -586,32 +586,56 @@ export function HomeTab({ tenant, onTabChange }: Props) {
             : trialState === 'warning' ? '#F59E0B'
             : '#EF4444'
 
+          const cardBg = trialState === 'offer50'
+            ? 'linear-gradient(135deg, #1a0a00 0%, #2d1200 100%)'
+            : trialState === 'expired_winback' || trialState === 'expired'
+            ? 'linear-gradient(135deg, #1a0000 0%, #2d0808 100%)'
+            : 'linear-gradient(135deg, #0a1628 0%, #0f2744 50%, #0a1e38 100%)'
+
           return (
             <div style={{
               padding: '16px',
-              borderRadius: 16,
-              border: trialState === 'offer50' ? '1px solid #FF6B3540'
-                : trialState === 'expired_winback' ? '1px solid #EF444440'
-                : '1px solid var(--border)',
-              background: trialState === 'offer50'
-                ? 'linear-gradient(135deg, rgba(255,107,53,0.06) 0%, rgba(225,29,72,0.06) 100%)'
-                : 'var(--card)',
+              borderRadius: 20,
+              border: trialState === 'offer50' ? '1px solid rgba(255,107,53,0.3)'
+                : trialState === 'expired_winback' ? '1px solid rgba(239,68,68,0.3)'
+                : '1px solid rgba(99,163,255,0.2)',
+              background: cardBg,
+              position: 'relative',
+              overflow: 'hidden',
             }}>
+              <style>{`
+                @keyframes ctaPulse {
+                  0%, 100% { box-shadow: 0 0 0 0 rgba(0,179,131,0.5); }
+                  60% { box-shadow: 0 0 0 10px rgba(0,179,131,0); }
+                }
+                @keyframes offerPulse {
+                  0%, 100% { box-shadow: 0 0 0 0 rgba(255,107,53,0.5); }
+                  60% { box-shadow: 0 0 0 10px rgba(255,107,53,0); }
+                }
+              `}</style>
+              {/* Subtle glow orb */}
+              <div style={{
+                position: 'absolute', top: -30, right: -30,
+                width: 120, height: 120, borderRadius: '50%',
+                background: trialState === 'offer50' ? 'rgba(255,107,53,0.12)'
+                  : 'rgba(99,163,255,0.1)',
+                pointerEvents: 'none',
+              }} />
               {/* Header row */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                 <div>
-                  <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 15, color: 'var(--ink)', marginBottom: 2 }}>
+                  <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 15, color: 'white', marginBottom: 2 }}>
                     {trialState === 'offer50' ? 'Ограниченное предложение'
                       : trialState === 'expired_winback' || trialState === 'expired' ? 'Пробный период завершён'
                       : 'Пробный период'}
                   </div>
                   {(trialState === 'early' || trialState === 'warning') && (
-                    <div style={{ fontSize: 13, color: 'var(--muted-strong)', fontWeight: 600 }}>
+                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
                       Осталось {daysRemaining} {daysWord(daysRemaining)}
                     </div>
                   )}
                   {trialState === 'expired_winback' && (
-                    <div style={{ fontSize: 13, color: '#EF4444', fontWeight: 600 }}>
+                    <div style={{ fontSize: 13, color: '#FCA5A5', fontWeight: 600 }}>
                       Истёк {trialExpiredDaysAgo} {daysWord(trialExpiredDaysAgo)} назад
                     </div>
                   )}
@@ -632,7 +656,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
               {/* Progress bar — only for early/warning states */}
               {(trialState === 'early' || trialState === 'warning') && (
                 <>
-                  <div style={{ height: 6, borderRadius: 999, background: 'var(--subtle)', overflow: 'hidden', marginBottom: 8 }}>
+                  <div style={{ height: 5, borderRadius: 999, background: 'rgba(255,255,255,0.12)', overflow: 'hidden', marginBottom: 8 }}>
                     <div style={{
                       height: '100%',
                       width: `${trialProgressPct}%`,
@@ -641,7 +665,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
                       transition: 'width 0.4s ease',
                     }} />
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 12 }}>
                     Истекает {trialEndFormatted}
                   </div>
                 </>
@@ -649,7 +673,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
 
               {/* Warning state sub-text */}
               {trialState === 'warning' && (
-                <div style={{ fontSize: 13, color: '#D97706', fontWeight: 500, marginBottom: 4 }}>
+                <div style={{ fontSize: 13, color: '#FCD34D', fontWeight: 500, marginBottom: 4 }}>
                   Подпишитесь сейчас, чтобы сохранить все функции
                 </div>
               )}
@@ -704,20 +728,22 @@ export function HomeTab({ tenant, onTabChange }: Props) {
                 onClick={() => setShowPlanPicker(true)}
                 style={{
                   width: '100%',
-                  height: 44,
-                  borderRadius: 12,
+                  height: 48,
+                  borderRadius: 14,
                   background: trialState === 'offer50' ? 'linear-gradient(135deg, #FF6B35 0%, #E11D48 100%)'
                     : trialState === 'expired_winback' ? '#EF4444'
                     : 'var(--accent)',
                   color: 'white',
                   fontWeight: 700,
-                  fontSize: 14,
+                  fontSize: 15,
                   cursor: 'pointer',
                   border: 'none',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 6,
+                  animation: trialState === 'offer50' ? 'offerPulse 2s ease-in-out infinite'
+                    : 'ctaPulse 2.5s ease-in-out infinite',
                 }}
               >
                 {trialState === 'early' ? 'Выбрать тариф'
