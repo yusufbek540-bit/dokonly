@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Outlet, useNavigate } from 'react-router-dom'
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Sidebar } from './Sidebar'
 import { GlobalSearch } from './GlobalSearch'
@@ -21,6 +21,7 @@ export function Layout() {
   const [aiOpen, setAiOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
   const qc = useQueryClient()
   const gKeyRef = useRef(false)
   const gTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -198,8 +199,10 @@ export function Layout() {
           </div>
         </div>
 
-        <main className="flex-1 p-8 overflow-auto">
-          <Outlet />
+        <main className="flex-1 p-8 overflow-auto" style={{ overflowX: 'hidden' }}>
+          <div key={location.pathname} className="page-enter">
+            <Outlet />
+          </div>
         </main>
       </div>
 

@@ -272,6 +272,7 @@ function OrderSettingsSection({ settings }: { settings: any }) {
 function BotSection({ settings }: { settings: any }) {
   const [welcome, setWelcome] = useState(settings?.welcome_message ?? '')
   const [groupChatId, setGroupChatId] = useState(String(settings?.group_chat_id ?? ''))
+  const [fullscreen, setFullscreen] = useState(() => localStorage.getItem('tg_fullscreen') === '1')
 
   return (
     <div className="space-y-4">
@@ -296,6 +297,28 @@ function BotSection({ settings }: { settings: any }) {
           placeholder="-100123456789"
         />
         <p className="text-xs text-gray-400 mt-1">Новые заказы будут пересылаться в эту группу.</p>
+      </div>
+      <div className="p-4 border rounded-xl">
+        <label className="flex items-center justify-between cursor-pointer">
+          <div>
+            <p className="text-sm font-medium">Полноэкранный режим</p>
+            <p className="text-xs text-gray-400 mt-0.5">Открывать приложение на весь экран</p>
+          </div>
+          <div
+            onClick={() => {
+              const next = !fullscreen
+              setFullscreen(next)
+              localStorage.setItem('tg_fullscreen', next ? '1' : '0')
+              const tg = (window as any).Telegram?.WebApp
+              if (next) tg?.requestFullscreen?.()
+              else tg?.exitFullscreen?.()
+            }}
+            className={`w-11 h-6 rounded-full transition-colors cursor-pointer ${fullscreen ? 'bg-accent' : 'bg-gray-200'}`}
+            style={{ position: 'relative', flexShrink: 0 }}
+          >
+            <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${fullscreen ? 'left-6' : 'left-1'}`} />
+          </div>
+        </label>
       </div>
       <div className="flex justify-end">
         <button className="bg-accent text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-accent/90 transition-colors">
