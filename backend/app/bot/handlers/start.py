@@ -38,18 +38,19 @@ async def cmd_start_deep_link(message: Message, command: CommandObject, tenant: 
                 product = result.scalar_one_or_none()
 
             if product:
-                shop_url = f"{MINIAPP_BASE}?shop={tenant.slug}"
+                shop_url = f"{MINIAPP_BASE}?shop={tenant.slug}&product={product.id}"
                 kb = InlineKeyboardMarkup(inline_keyboard=[[
                     InlineKeyboardButton(
-                        text="🛍 Открыть магазин",
+                        text="🛍 Открыть товар",
                         web_app=WebAppInfo(url=shop_url),
                     )
                 ]])
-                price_str = f"{int(product.price):,} {product.currency}".replace(",", " ")
+                price_str = f"{int(product.price):,} сум".replace(",", " ")
                 await message.answer(
                     f"<b>{product.name}</b>\n💰 {price_str}\n\n"
-                    f"Нажмите кнопку ниже, чтобы открыть магазин {tenant.name}.",
+                    f"Нажмите кнопку ниже, чтобы открыть товар в магазине {tenant.name}.",
                     reply_markup=kb,
+                    parse_mode="HTML",
                 )
                 return
 

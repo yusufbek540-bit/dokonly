@@ -445,6 +445,9 @@ function ShopApp() {
   const [productId, setProductId] = useState<string | null>(() => {
     const param = (window as any).Telegram?.WebApp?.initDataUnsafe?.start_param ?? ''
     if (param.startsWith('product_')) return param.replace('product_', '')
+    // Fallback: ?product=uuid passed when bot opens miniapp via WebAppInfo URL
+    const urlProduct = new URLSearchParams(window.location.search).get('product')
+    if (urlProduct) return urlProduct
     return null
   })
   const [showCheckout, setShowCheckout] = useState(false)

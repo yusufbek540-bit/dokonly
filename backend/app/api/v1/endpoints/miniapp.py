@@ -1386,7 +1386,7 @@ async def update_team_member_notifications(
 
 def _render_crosspost_template(template: str, product, tenant) -> str:
     shop_url = f"https://t.me/{tenant.bot_username}" if tenant.bot_username else ""
-    product_url = f"{shop_url}/store?startapp=product_{product.id}" if shop_url else ""
+    product_url = f"{shop_url}?start=product_{product.id}" if shop_url else ""
     price_str = ""
     if product.price is not None:
         currency = tenant.currency or "UZS"
@@ -1401,13 +1401,13 @@ def _render_crosspost_template(template: str, product, tenant) -> str:
 
 def _build_crosspost_keyboard(product, tenant):
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-    shop_url = f"https://t.me/{tenant.bot_username}" if tenant.bot_username else None
-    product_url = f"{shop_url}/store?startapp=product_{product.id}" if shop_url else None
+    bot_url = f"https://t.me/{tenant.bot_username}" if tenant.bot_username else None
+    product_url = f"{bot_url}?start=product_{product.id}" if bot_url else None
     buttons = []
     if product_url:
         buttons.append(InlineKeyboardButton(text="🛒 Купить", url=product_url))
-    if shop_url:
-        buttons.append(InlineKeyboardButton(text="🏪 Магазин", url=f"{shop_url}/store"))
+    if bot_url:
+        buttons.append(InlineKeyboardButton(text="🏪 Магазин", url=bot_url))
     if not buttons:
         return None
     return InlineKeyboardMarkup(inline_keyboard=[buttons])
