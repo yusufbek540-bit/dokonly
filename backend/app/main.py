@@ -108,15 +108,44 @@ async def run_migrations() -> None:
         logger.warning(f"Migration warning (may already exist): {e}")
 
 
+async def _ensure_all_menu_buttons() -> None:
+    """Set web_app menu button on every tenant bot so ?startapp= deep links work."""
+    import httpx
+    from app.core.crypto import decrypt
+    from app.models.tenant import Tenant
+    from sqlalchemy import select
+    try:
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(Tenant).where(Tenant.bot_token_enc.isnot(None), Tenant.is_active == True)  # noqa: E712
+            )
+            tenants = result.scalars().all()
+        async with httpx.AsyncClient(timeout=10) as client:
+            for tenant in tenants:
+                try:
+                    raw_token = decrypt(tenant.bot_token_enc)
+                    mini_app_url = f"{settings.miniapp_url}?shop={tenant.slug}"
+                    await client.post(
+                        f"https://api.telegram.org/bot{raw_token}/setChatMenuButton",
+                        json={"menu_button": {"type": "web_app", "text": "Открыть магазин", "web_app": {"url": mini_app_url}}},
+                    )
+                except Exception:
+                    pass
+        logger.info(f"Menu buttons refreshed for {len(tenants)} tenant(s)")
+    except Exception as e:
+        logger.warning(f"Menu button refresh warning: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Dokonly backend starting — build 2026-05-18-v4")
+    logger.info("Dokonly backend starting — build 2026-05-18-v5")
     await run_migrations()
     await init_pool()
     if settings.webhook_base_url:
         await bot.set_webhook(f"{settings.webhook_base_url}/api/v1/webhook/telegram")
     else:
         asyncio.create_task(dp.start_polling(bot, handle_signals=False))
+    asyncio.create_task(_ensure_all_menu_buttons())
     yield
     await dp.stop_polling()
     await close_pool()

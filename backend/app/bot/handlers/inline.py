@@ -59,7 +59,7 @@ async def handle_product_inline_query(query: InlineQuery, tenant: Tenant | None)
 
     shop_url = f"{MINIAPP_BASE}?shop={tenant.slug}"
     deep_link = (
-        f"https://t.me/{tenant.bot_username}?start=product_{product.id}"
+        f"https://t.me/{tenant.bot_username}?startapp=product_{product.id}"
         if tenant.bot_username
         else shop_url
     )
