@@ -159,7 +159,6 @@ async def onboard_seller(
     return tenant
 
 
-@router.post("/setup-bot")
 async def _auto_pin_store_card(tenant_id: str) -> None:
     """Background task: pin store card in channel if one is configured."""
     from app.core.bot_utils import get_tenant_bot
@@ -179,7 +178,7 @@ async def _auto_pin_store_card(tenant_id: str) -> None:
         tenant_bot = await get_tenant_bot(tenant.id)
         if not tenant_bot:
             return
-        shop_url = f"https://t.me/{tenant.bot_username}"
+        shop_url = f"https://t.me/{tenant.bot_username}?startapp=store"
         description = settings_data.get("description") or ""
         text_lines = [f"🏪 *{tenant.name}*"]
         if description:
@@ -198,6 +197,7 @@ async def _auto_pin_store_card(tenant_id: str) -> None:
             await tenant_bot.session.close()
 
 
+@router.post("/setup-bot")
 async def setup_bot(
     body: dict,
     background_tasks: BackgroundTasks,
@@ -1426,7 +1426,7 @@ async def update_team_member_notifications(
 
 def _render_crosspost_template(template: str, product, tenant) -> str:
     shop_url = f"https://t.me/{tenant.bot_username}" if tenant.bot_username else ""
-    product_url = f"{shop_url}?start=product_{product.id}" if shop_url else ""
+    product_url = f"{shop_url}?startapp=product_{product.id}" if shop_url else ""
     price_str = ""
     if product.price is not None:
         currency = tenant.currency or "UZS"
@@ -1441,13 +1441,14 @@ def _render_crosspost_template(template: str, product, tenant) -> str:
 
 def _build_crosspost_keyboard(product, tenant):
     from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-    bot_url = f"https://t.me/{tenant.bot_username}" if tenant.bot_username else None
-    product_url = f"{bot_url}?start=product_{product.id}" if bot_url else None
+    bot_base = f"https://t.me/{tenant.bot_username}" if tenant.bot_username else None
+    product_url = f"{bot_base}?startapp=product_{product.id}" if bot_base else None
+    shop_url = f"{bot_base}?startapp=store" if bot_base else None
     buttons = []
     if product_url:
         buttons.append(InlineKeyboardButton(text="🛒 Купить", url=product_url))
-    if bot_url:
-        buttons.append(InlineKeyboardButton(text="🏪 Магазин", url=bot_url))
+    if shop_url:
+        buttons.append(InlineKeyboardButton(text="🏪 Магазин", url=shop_url))
     if not buttons:
         return None
     return InlineKeyboardMarkup(inline_keyboard=[buttons])
@@ -1613,8 +1614,7 @@ async def pin_channel_store_card(
         raise HTTPException(400, "Merchant bot not configured")
 
     bot_username = tenant.bot_username
-    shop_url = f"https://t.me/{bot_username}" if bot_username else None
-    if not shop_url:
+    if not bot_username:
         raise HTTPException(400, "Bot username not set")
 
     description = (tenant.settings or {}).get("description") or ""
@@ -1625,7 +1625,7 @@ async def pin_channel_store_card(
     text = "\n".join(text_lines)
 
     kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🛍 Открыть магазин", url=shop_url)
+        InlineKeyboardButton(text="🛍 Открыть магазин", url=f"https://t.me/{bot_username}?startapp=store")
     ]])
 
     try:
