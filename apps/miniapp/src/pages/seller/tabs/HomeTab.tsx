@@ -393,12 +393,6 @@ export function HomeTab({ tenant, onTabChange }: Props) {
 
   const { data: achievements } = useQuery({ queryKey: ['seller-achievements'], queryFn: api.seller.achievements })
 
-  const { data: aiInsightsData } = useQuery({
-    queryKey: ['seller-ai-insights'],
-    queryFn: api.seller.aiInsights,
-    retry: false,
-    staleTime: 5 * 60 * 1000,
-  })
 
   // Subscription state machine
   const isTrial = !tenant.tier || tenant.tier === 'trial' || tenant.tier === 'start'
@@ -535,83 +529,43 @@ export function HomeTab({ tenant, onTabChange }: Props) {
           </div>
         </div>
 
-        {/* Top-right actions */}
-        <div style={{
-          position: 'absolute',
-          top: 12,
-          right: 12,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          zIndex: 1,
-        }}>
-          {tenant.bot_username && (
-            <div style={{
-              height: 30,
-              display: 'flex',
-              alignItems: 'center',
-              padding: '0 10px',
-              borderRadius: 999,
-              background: 'rgba(255,255,255,0.15)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255,255,255,0.3)',
-              color: 'white',
-              fontSize: 12,
-              fontWeight: 600,
-              whiteSpace: 'nowrap',
-            }}>
-              t.me/{tenant.bot_username}
-            </div>
-          )}
-          <button
-            onClick={() => {
-              if ((window as any).Telegram?.WebApp?.openLink) {
-                (window as any).Telegram.WebApp.openLink(shopUrl)
-              } else {
-                window.open(shopUrl, '_blank')
-              }
-            }}
-            style={{
-              height: 30,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '0 12px',
-              borderRadius: 999,
-              background: 'rgba(255,255,255,0.92)',
-              border: '1px solid rgba(255,255,255,0.3)',
-              color: 'var(--accent)',
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Открыть магазин ›
-          </button>
-          <button
-            onClick={() => navigator.clipboard?.writeText(shopUrl)}
-            style={{
-              height: 30,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '0 12px',
-              borderRadius: 999,
-              background: 'rgba(255,255,255,0.15)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255,255,255,0.3)',
-              color: 'white',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <Icon name="copy" size={12} color="white" />
-            Ссылка
-          </button>
-        </div>
+        {/* Top-right: open bot button */}
+        {tenant.bot_username && (
+          <div style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            zIndex: 1,
+          }}>
+            <button
+              onClick={() => {
+                const url = `https://t.me/${tenant.bot_username}`
+                if ((window as any).Telegram?.WebApp?.openTelegramLink) {
+                  (window as any).Telegram.WebApp.openTelegramLink(url)
+                } else {
+                  window.open(url, '_blank')
+                }
+              }}
+              style={{
+                height: 30,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '0 12px',
+                borderRadius: 999,
+                background: 'rgba(255,255,255,0.92)',
+                border: '1px solid rgba(255,255,255,0.3)',
+                color: 'var(--accent)',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Открыть магазин ›
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Padded content area ── */}
@@ -945,145 +899,6 @@ export function HomeTab({ tenant, onTabChange }: Props) {
           </button>
         </div>
 
-        {/* ── AI Insights ── */}
-        {summary && (() => {
-          const s = summary as any
-
-          // Use LLM-generated insights from backend when available, fall back to rule-based
-          const aiInsights = aiInsightsData?.insights
-          if (aiInsights && aiInsights.length > 0) {
-            const typeToIcon: Record<string, string> = {
-              inventory: '⚠️',
-              revenue: '📈',
-              customer: '🎁',
-              product: '💡',
-            }
-            return (
-              <div style={{
-                borderRadius: 16,
-                border: '1px solid var(--border)',
-                background: 'var(--card)',
-                overflow: 'hidden',
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px 16px',
-                  borderBottom: '1px solid var(--border)',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 16 }}>💡</span>
-                    <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>AI Insights</span>
-                  </div>
-                </div>
-                {aiInsights.slice(0, 3).map((ins, i, arr) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      width: '100%',
-                      padding: '12px 16px',
-                      background: 'transparent',
-                      borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
-                    }}
-                  >
-                    <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>
-                      {typeToIcon[ins.type] ?? '💡'}
-                    </span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, color: 'var(--ink)', marginBottom: 2, lineHeight: 1.4 }}>{ins.message}</div>
-                      {ins.action && <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>{ins.action}</div>}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )
-          }
-
-          // Rule-based fallback
-          const insights: { icon: string; iconColor?: string; text: string; action: string; onPress?: () => void }[] = []
-
-          if (s.out_of_stock_count > 0) {
-            insights.push({
-              icon: '🔴',
-              text: `${s.out_of_stock_count} ${s.out_of_stock_count === 1 ? 'товар закончился' : s.out_of_stock_count < 5 ? 'товара закончились' : 'товаров закончились'}`,
-              action: 'Обновить склад →',
-              onPress: () => onTabChange?.('catalog'),
-            })
-          }
-          if (s.low_stock_count > 0) {
-            insights.push({
-              icon: 'alertTriangle',
-              iconColor: '#F59E0B',
-              text: `${s.low_stock_count} ${s.low_stock_count === 1 ? 'товар заканчивается' : 'товара заканчиваются'} (остаток ≤ 5)`,
-              action: 'Пополнить',
-              onPress: () => onTabChange?.('catalog'),
-            })
-          }
-          if (s.pending_too_long_count > 0) {
-            insights.push({
-              icon: 'clock',
-              iconColor: '#EF4444',
-              text: `${s.pending_too_long_count} ${s.pending_too_long_count === 1 ? 'заказ ожидает' : 'заказа ожидают'} подтверждения 2+ дня`,
-              action: 'Обработать',
-              onPress: () => onTabChange?.('orders'),
-            })
-          }
-          if (s.no_images_count > 0 && insights.length < 3) {
-            insights.push({
-              icon: 'image',
-              iconColor: '#3B82F6',
-              text: `${s.no_images_count} ${s.no_images_count === 1 ? 'товар без фото' : 'товара без фото'} — добавьте фото`,
-              action: 'Добавить фото',
-              onPress: () => onTabChange?.('catalog'),
-            })
-          }
-          if (s.no_description_count > 0 && insights.length < 3) {
-            insights.push({
-              icon: 'pen',
-              iconColor: '#8B5CF6',
-              text: `${s.no_description_count} ${s.no_description_count === 1 ? 'товар без описания' : 'товара без описания'}`,
-              action: 'Заполнить',
-              onPress: () => onTabChange?.('catalog'),
-            })
-          }
-
-          if (insights.length === 0) return null
-
-          return (
-            <HomeSection title="Требует внимания">
-              {insights.slice(0, 3).map((ins, i, arr) => (
-                <button
-                  key={i}
-                  onClick={ins.onPress}
-                  disabled={!ins.onPress}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 12, width: '100%',
-                    padding: '14px 16px', background: 'var(--card)', textAlign: 'left',
-                    borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
-                    cursor: ins.onPress ? 'pointer' : 'default',
-                  }}
-                >
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                    background: 'var(--subtle)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <Icon name={ins.icon} size={16} color={ins.iconColor ?? 'var(--muted-strong)'} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.4 }}>{ins.text}</div>
-                    {ins.onPress && <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, marginTop: 2 }}>{ins.action}</div>}
-                  </div>
-                  {ins.onPress && <Icon name="chevronRight" size={16} color="var(--muted)" />}
-                </button>
-              ))}
-            </HomeSection>
-          )
-        })()}
 
         {/* ── Stats Section ── */}
         <HomeSection title="Статистика">

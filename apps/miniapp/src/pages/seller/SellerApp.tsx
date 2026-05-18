@@ -162,35 +162,6 @@ export function SellerApp({ tenantSlug, shop }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
-      {/* Top header */}
-      <div style={{
-        position: 'sticky', top: 0, zIndex: 20,
-        background: 'var(--bg)', borderBottom: '1px solid var(--border)',
-        padding: '12px 16px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>
-          {tab === 'home'      && currentShop.name}
-          {tab === 'catalog'   && 'Каталог'}
-          {tab === 'orders'    && `Заказы${newOrdersCount ? ` (${newOrdersCount})` : ''}`}
-          {tab === 'analytics' && 'Аналитика'}
-          {tab === 'customers' && 'Клиенты'}
-          {tab === 'more'      && 'Ещё'}
-        </div>
-        {tab === 'home' && (() => {
-          const tier = tenant.tier ?? 'start'
-          const isTrial = !tenant.tier || tier === 'trial' || tier === 'start'
-          const tierLabel = isTrial ? 'Trial' : tier.charAt(0).toUpperCase() + tier.slice(1)
-          return (
-            <span style={{
-              fontSize: 11, padding: '3px 9px', borderRadius: 999,
-              background: isTrial ? 'var(--accent-soft)' : 'rgba(0,179,131,0.15)',
-              color: 'var(--accent)', fontWeight: 700,
-            }}>{tierLabel}</span>
-          )
-        })()}
-      </div>
-
       {/* Tab content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingBottom: 64 }}>
         {tab === 'home'      && <HomeTab      tenant={tenant} onTabChange={(t, deepLink) => { setTab(t as Tab); if (deepLink) setMoreDeepLink(deepLink) }} />}
