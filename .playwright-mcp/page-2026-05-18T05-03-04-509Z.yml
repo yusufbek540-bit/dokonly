@@ -1,6 +1,0 @@
-- generic [active] [ref=e1]:
-  - paragraph [ref=e4]: Загрузка...
-  - generic [ref=e6]:
-    - generic [ref=e7]: 🔒
-    - heading "Откройте через Telegram" [level=2] [ref=e8]
-    - paragraph [ref=e9]: Панель продавца доступна только через Telegram Mini App.
