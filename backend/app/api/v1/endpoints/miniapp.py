@@ -385,6 +385,7 @@ async def seller_list_products(
 @router.post("/products", response_model=ProductResponse, status_code=201)
 async def seller_create_product(
     body: ProductCreate,
+    background_tasks: BackgroundTasks,
     user: dict = Depends(get_tg_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -404,6 +405,8 @@ async def seller_create_product(
     db.add(product)
     await db.commit()
     await db.refresh(product)
+    if (tenant.settings or {}).get("auto_crosspost") and (tenant.settings or {}).get("crosspost_channel"):
+        background_tasks.add_task(_do_crosspost, str(tenant.id), str(product.id), db)
     return product
 
 
@@ -1381,6 +1384,59 @@ async def update_team_member_notifications(
 # ---------------------------------------------------------------------------
 
 
+def _render_crosspost_template(template: str, product, tenant) -> str:
+    shop_url = f"https://t.me/{tenant.bot_username}" if tenant.bot_username else ""
+    product_url = f"{shop_url}?start=product_{product.id}" if shop_url else ""
+    price_str = ""
+    if product.price is not None:
+        currency = tenant.currency or "UZS"
+        price_str = f"{product.price:g} {currency}"
+    text = template
+    text = text.replace("{product_name}", product.name or "")
+    text = text.replace("{description}", product.description or "")
+    text = text.replace("{price}", price_str)
+    text = text.replace("{url}", product_url)
+    return text
+
+
+async def _do_crosspost(tenant_id: str, product_id: str, db: AsyncSession) -> None:
+    from app.core.bot_utils import get_tenant_bot
+    tenant_result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+    tenant = tenant_result.scalar_one_or_none()
+    if not tenant:
+        return
+    settings_data = tenant.settings or {}
+    channel = settings_data.get("crosspost_channel") or settings_data.get("channel_username")
+    template = settings_data.get("crosspost_template", "🛍 {product_name}\n\n{description}\n\n💰 {price}\n\n[Купить]({url})")
+    if not channel:
+        return
+    product_result = await db.execute(select(Product).where(Product.id == product_id))
+    product = product_result.scalar_one_or_none()
+    if not product:
+        return
+    text = _render_crosspost_template(template, product, tenant)
+    photo_url = (product.images or [None])[0] if product.images else None
+    tenant_bot = await get_tenant_bot(tenant.id)
+    if not tenant_bot:
+        return
+    try:
+        if photo_url:
+            await tenant_bot.send_photo(chat_id=channel, photo=photo_url, caption=text, parse_mode="Markdown")
+        else:
+            await tenant_bot.send_message(chat_id=channel, text=text, parse_mode="Markdown")
+        post = {"id": str(uuid.uuid4()), "product_name": product.name, "type": "auto", "status": "sent", "created_at": datetime.now(timezone.utc).isoformat()}
+    except Exception:
+        post = {"id": str(uuid.uuid4()), "product_name": product.name, "type": "auto", "status": "failed", "created_at": datetime.now(timezone.utc).isoformat()}
+    finally:
+        await tenant_bot.session.close()
+    settings_data = dict(tenant.settings or {})
+    posts = list(settings_data.get("channel_posts", []))
+    posts.insert(0, post)
+    settings_data["channel_posts"] = posts[:50]
+    tenant.settings = settings_data
+    await db.commit()
+
+
 @router.get("/channel-posts")
 async def list_channel_posts(
     user: dict = Depends(get_tg_user),
@@ -1398,25 +1454,46 @@ async def create_channel_post(
 ):
     from app.core.bot_utils import get_tenant_bot
     tenant = await _require_tenant(user, db)
-    settings = tenant.settings or {}
-    channel_username = settings.get("crosspost_channel") or settings.get("channel_username")
-    text = body.get("text", "")
-    photo_url = body.get("photo_url")
+    settings_data = tenant.settings or {}
+    channel_username = settings_data.get("crosspost_channel") or settings_data.get("channel_username")
     if not channel_username:
         raise HTTPException(400, "No channel configured")
+
+    # Resolve template variables using the latest product
+    template = body.get("text") or settings_data.get("crosspost_template", "🛍 {product_name}\n\n{description}\n\n💰 {price}\n\n[Купить]({url})")
+    product_id = body.get("product_id")
+    if product_id:
+        prod_result = await db.execute(select(Product).where(Product.id == product_id, Product.tenant_id == tenant.id))
+        product = prod_result.scalar_one_or_none()
+    else:
+        prod_result = await db.execute(
+            select(Product).where(Product.tenant_id == tenant.id, Product.is_active == True)
+            .order_by(Product.created_at.desc()).limit(1)
+        )
+        product = prod_result.scalar_one_or_none()
+
+    if product:
+        text = _render_crosspost_template(template, product, tenant)
+        photo_url = (product.images[0] if product.images else None)
+    else:
+        text = template
+        photo_url = None
+
     tenant_bot = await get_tenant_bot(tenant.id)
     if not tenant_bot:
         raise HTTPException(400, "Merchant bot not configured")
     try:
         if photo_url:
-            await tenant_bot.send_photo(chat_id=channel_username, photo=photo_url, caption=text, parse_mode="HTML")
+            await tenant_bot.send_photo(chat_id=channel_username, photo=photo_url, caption=text, parse_mode="Markdown")
         else:
-            await tenant_bot.send_message(chat_id=channel_username, text=text, parse_mode="HTML")
+            await tenant_bot.send_message(chat_id=channel_username, text=text, parse_mode="Markdown")
     except Exception as e:
         raise HTTPException(502, f"Failed to post to channel: {e}")
     finally:
         await tenant_bot.session.close()
-    post = {"id": str(uuid.uuid4()), "text": text, "photo_url": photo_url, "posted_at": datetime.now(timezone.utc).isoformat()}
+
+    product_name = product.name if product else None
+    post = {"id": str(uuid.uuid4()), "product_name": product_name, "type": "manual", "status": "sent", "created_at": datetime.now(timezone.utc).isoformat()}
     settings_data = dict(tenant.settings or {})
     posts = list(settings_data.get("channel_posts", []))
     posts.insert(0, post)
