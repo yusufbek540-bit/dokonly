@@ -143,11 +143,16 @@ async def get_shop_role(
     if not x_telegram_init_data:
         return {"role": "buyer"}
 
+    # Try master bot first, then tenant's own bot (seller opens their own bot's mini app)
     tg_user = _validate_init_data(x_telegram_init_data)
+    if tg_user is None and tenant.bot_token_enc:
+        from app.core.crypto import decrypt
+        try:
+            raw_token = decrypt(tenant.bot_token_enc)
+            tg_user = _validate_init_data(x_telegram_init_data, bot_token=raw_token)
+        except Exception:
+            pass
     if tg_user is None:
-        # Dev mode: no bot token configured → treat as buyer
-        if not settings.telegram_bot_token:
-            return {"role": "buyer"}
         return {"role": "buyer"}
 
     owner_id = str(_owner_id_from_tg(tg_user["id"]))

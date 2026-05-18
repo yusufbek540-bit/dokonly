@@ -6,9 +6,12 @@ import uuid
 
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 import jwt
 
 from app.core.config import settings
+from app.core.database import get_db
 
 bearer = HTTPBearer()
 
@@ -43,8 +46,15 @@ def _owner_id_from_tg(telegram_user_id: int) -> uuid.UUID:
     return uuid.uuid5(uuid.NAMESPACE_X500, f"telegram:{telegram_user_id}")
 
 
-def _validate_init_data(init_data: str) -> dict | None:
-    """Validate Telegram WebApp initData and return the user dict."""
+def _validate_init_data(init_data: str, bot_token: str | None = None) -> dict | None:
+    """Validate Telegram WebApp initData and return the user dict.
+
+    Pass bot_token to validate against a specific bot (e.g. a merchant's own bot).
+    Defaults to the platform master bot token.
+    """
+    effective_token = bot_token or settings.telegram_bot_token
+    if not effective_token:
+        return None
     try:
         params = dict(urllib.parse.parse_qsl(init_data, keep_blank_values=True))
     except Exception:
@@ -53,7 +63,7 @@ def _validate_init_data(init_data: str) -> dict | None:
     if not hash_:
         return None
     data_check = "\n".join(f"{k}={v}" for k, v in sorted(params.items()))
-    secret_key = hmac.new(b"WebAppData", settings.telegram_bot_token.encode(), hashlib.sha256).digest()
+    secret_key = hmac.new(b"WebAppData", effective_token.encode(), hashlib.sha256).digest()
     computed = hmac.new(secret_key, data_check.encode(), hashlib.sha256).hexdigest()
     if not hmac.compare_digest(computed, hash_):
         return None
@@ -66,13 +76,35 @@ def _validate_init_data(init_data: str) -> dict | None:
         return None
 
 
-def get_tg_user(x_telegram_init_data: str = Header(default="")) -> dict:
-    """Auth dependency for Mini App seller endpoints — validates Telegram initData."""
+def _parse_tg_user_id(init_data: str) -> int | None:
+    """Extract Telegram user ID from initData without validating the HMAC."""
+    try:
+        params = dict(urllib.parse.parse_qsl(init_data, keep_blank_values=True))
+        user_str = params.get("user")
+        if user_str:
+            return json.loads(user_str).get("id")
+    except Exception:
+        pass
+    return None
+
+
+async def get_tg_user(
+    x_telegram_init_data: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Auth dependency for Mini App seller endpoints — validates Telegram initData.
+
+    Tries the platform master bot token first.  If that fails (seller opened via
+    their own merchant bot), looks up the tenant that owns this Telegram user and
+    re-validates against that tenant's encrypted bot token.
+    """
     if not x_telegram_init_data:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Telegram initData")
+
     tg_user = _validate_init_data(x_telegram_init_data)
+
     if tg_user is None:
-        # In development with empty bot token, allow any initData for testing
+        # Dev mode: no master bot token — accept any initData for local testing
         if not settings.telegram_bot_token:
             try:
                 params = dict(urllib.parse.parse_qsl(x_telegram_init_data))
@@ -81,6 +113,26 @@ def get_tg_user(x_telegram_init_data: str = Header(default="")) -> dict:
             except Exception:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Telegram initData")
         else:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Telegram initData")
+            # Master bot validation failed — try the tenant's own bot token.
+            # Parse the user ID without HMAC to look up which tenant this user owns.
+            raw_tg_id = _parse_tg_user_id(x_telegram_init_data)
+            if raw_tg_id is not None:
+                from app.models.tenant import Tenant
+                from app.core.crypto import decrypt
+                owner_id = _owner_id_from_tg(raw_tg_id)
+                result = await db.execute(
+                    select(Tenant).where(Tenant.owner_id == owner_id, Tenant.is_active == True)  # noqa: E712
+                )
+                tenant = result.scalar_one_or_none()
+                if tenant and tenant.bot_token_enc:
+                    try:
+                        raw_token = decrypt(tenant.bot_token_enc)
+                        tg_user = _validate_init_data(x_telegram_init_data, bot_token=raw_token)
+                    except Exception:
+                        pass
+
+            if tg_user is None:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Telegram initData")
+
     owner_id = _owner_id_from_tg(tg_user["id"])
     return {"sub": str(owner_id), "tg_id": tg_user["id"], "tg_user": tg_user}
