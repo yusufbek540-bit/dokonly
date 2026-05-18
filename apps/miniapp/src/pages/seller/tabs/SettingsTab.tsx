@@ -1490,6 +1490,8 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
   const [verifyStatus, setVerifyStatus] = useState<'idle' | 'loading' | 'ok' | 'fail'>('idle')
   const [verifyChannelTitle, setVerifyChannelTitle] = useState<string | null>(null)
 
+  useEffect(() => { window.scrollTo(0, 0) }, [])
+
   const { data: posts = [] } = useQuery({
     queryKey: ['seller-channel-posts'],
     queryFn: () => api.seller.channelPosts(),
