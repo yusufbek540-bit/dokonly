@@ -5,6 +5,8 @@ import { api } from '@/lib/api'
 import { useTelegramMainButton } from '@/hooks/useTelegram'
 import { PlanPicker } from '../PlanPicker'
 import { tgConfirm } from '@/lib/tgConfirm'
+import { AchievementsPage } from '../AchievementsPage'
+import { StreakDetailPage } from '../StreakDetailPage'
 
 interface Props {
   tenant: any
@@ -1969,6 +1971,15 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
   // Plan picker state
   const [showPlanPicker, setShowPlanPicker] = useState(false)
 
+  // Achievements & streak
+  const [showAchievements, setShowAchievements] = useState(false)
+  const [showStreak, setShowStreak] = useState(false)
+  const { data: achievements } = useQuery({ queryKey: ['seller-achievements'], queryFn: api.seller.achievements, retry: false })
+  const createdAt = tenant.created_at ? new Date(tenant.created_at) : new Date()
+  const daysPassed = Math.floor((Date.now() - createdAt.getTime()) / 86400000)
+  const daysWord = (n: number) => n === 1 ? 'день' : n < 5 ? 'дня' : 'дней'
+  const isTrial = !tenant.tier || tenant.tier === 'trial' || tenant.tier === 'start'
+
   // Delete store confirmation state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteText, setDeleteText] = useState('')
@@ -2367,6 +2378,28 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
           }}
         >
           <Icon name="moreH" size={16} />
+        </button>
+      </div>
+
+      {/* ── Plan / Achievements / Streak badges ─────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
+        <button onClick={() => setShowPlanPicker(true)} style={{ padding: '12px 10px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
+          <div style={{ fontSize: 18, marginBottom: 4 }}>🏆</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Тариф</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{isTrial ? 'Trial' : (tenant.tier ?? 'Trial')}</div>
+          <div style={{ fontSize: 10, color: 'var(--accent)', marginTop: 2, fontWeight: 600 }}>→ Статус</div>
+        </button>
+        <button onClick={() => setShowAchievements(true)} style={{ padding: '12px 10px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
+          <div style={{ fontSize: 18, marginBottom: 4 }}>🎖</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Достижения</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{achievements ? `${(achievements as any[]).filter((a: any) => a.unlocked).length}/${(achievements as any[]).length}` : '—'}</div>
+          <div style={{ fontSize: 10, color: 'var(--accent)', marginTop: 2, fontWeight: 600 }}>→ Открыть</div>
+        </button>
+        <button onClick={() => setShowStreak(true)} style={{ padding: '12px 10px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
+          <div style={{ fontSize: 18, marginBottom: 4 }}>🔥</div>
+          <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Стрик</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{daysPassed} {daysWord(daysPassed)}</div>
+          <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>работа ›</div>
         </button>
       </div>
 
@@ -4113,6 +4146,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       )}
 
       {showPlanPicker && <PlanPicker onBack={() => setShowPlanPicker(false)} />}
+      {showAchievements && <AchievementsPage onBack={() => setShowAchievements(false)} />}
+      {showStreak && <StreakDetailPage onBack={() => setShowStreak(false)} daysPassed={daysPassed} />}
 
       {showInvoices && <InvoicesView onBack={() => setShowInvoices(false)} />}
 

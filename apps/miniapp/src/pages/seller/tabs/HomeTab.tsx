@@ -836,192 +836,49 @@ export function HomeTab({ tenant, onTabChange }: Props) {
           )
         })()}
 
-        {/* ── Status Badges Row (Plan / Achievements / Streak) ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-          {/* Plan */}
-          <button
-            onClick={() => setShowPlanPicker(true)}
-            style={{
-              padding: '12px 10px',
-              borderRadius: 14,
-              background: 'var(--card)',
-              border: '1px solid var(--border)',
-              cursor: 'pointer',
-              textAlign: 'left',
-            }}
-          >
-            <div style={{ fontSize: 18, marginBottom: 4 }}>🏆</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Тариф</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>
-              {isTrial ? 'Trial' : (tenant.tier ?? 'Trial')}
-            </div>
-            <div style={{ fontSize: 10, color: 'var(--accent)', marginTop: 2, fontWeight: 600 }}>→ Статус</div>
-          </button>
-
-          {/* Achievements */}
-          <button
-            onClick={() => setShowAchievements(true)}
-            style={{
-              padding: '12px 10px',
-              borderRadius: 14,
-              background: 'var(--card)',
-              border: '1px solid var(--border)',
-              cursor: 'pointer',
-              textAlign: 'left',
-            }}
-          >
-            <div style={{ fontSize: 18, marginBottom: 4 }}>🎖</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Достижения</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>
-              {achievements ? `${achievements.filter((a: any) => a.unlocked).length}/${achievements.length}` : '—'}
-            </div>
-            <div style={{ fontSize: 10, color: 'var(--accent)', marginTop: 2, fontWeight: 600 }}>→ Открыть</div>
-          </button>
-
-          {/* Streak */}
-          <button
-            onClick={() => setShowStreak(true)}
-            style={{
-              padding: '12px 10px',
-              borderRadius: 14,
-              background: 'var(--card)',
-              border: '1px solid var(--border)',
-              textAlign: 'left',
-              cursor: 'pointer',
-            }}
-          >
-            <div style={{ fontSize: 18, marginBottom: 4 }}>🔥</div>
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Стрик</div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>
-              {daysPassed} {daysWord(daysPassed)}
-            </div>
-            <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2 }}>работа ›</div>
-          </button>
-        </div>
-
-
-        {/* ── Stats Section ── */}
-        <HomeSection title="Статистика">
-          {stats.map((s, i) => (
-            <HomeRow
-              key={s.label}
-              icon={s.icon}
-              label={s.label}
-              value={s.value}
-              noBorder={i === stats.length - 1}
-            />
-          ))}
-        </HomeSection>
-
-        {/* ── Period Section ── */}
-        {(summary || weekSummary || monthSummary) && (
-          <HomeSection title="Выручка за период">
-            {[
-              { icon: 'clock', label: 'Сегодня', value: summary?.today_revenue != null ? fmtPrice(summary.today_revenue, tenant.currency) : '—', sub: summary?.today_orders != null ? `${summary.today_orders} заказов` : undefined },
-              { icon: 'barChart', label: 'Неделя', value: weekSummary?.total_revenue != null ? fmtPrice(weekSummary.total_revenue, tenant.currency) : '—', sub: weekSummary?.total_orders != null ? `${weekSummary.total_orders} заказов` : undefined },
-              { icon: 'flag', label: 'Месяц', value: monthSummary?.total_revenue != null ? fmtPrice(monthSummary.total_revenue, tenant.currency) : '—', sub: monthSummary?.total_orders != null ? `${monthSummary.total_orders} заказов` : undefined },
-            ].map((s, i, arr) => (
-              <HomeRow key={s.label} icon={s.icon} label={s.label} value={s.value} sub={s.sub} noBorder={i === arr.length - 1} />
-            ))}
-          </HomeSection>
-        )}
-
-        {/* ── Today's Pulse Strip ── */}
-        {summary && (() => {
-          const chips = [
-            {
-              label: 'Сегодня',
-              value: fmtPrice(summary.today_revenue ?? 0, tenant.currency),
-              trend: summary.yesterday_revenue != null
-                ? (summary.today_revenue ?? 0) > summary.yesterday_revenue ? '▲' : (summary.today_revenue ?? 0) < summary.yesterday_revenue ? '▼' : null
-                : null,
-              trendUp: (summary.today_revenue ?? 0) >= (summary.yesterday_revenue ?? 0),
-            },
-            {
-              label: 'Заказов сегодня',
-              value: String(summary.today_orders ?? 0),
-              trend: summary.yesterday_orders != null
-                ? (summary.today_orders ?? 0) > summary.yesterday_orders ? '▲' : (summary.today_orders ?? 0) < summary.yesterday_orders ? '▼' : null
-                : null,
-              trendUp: (summary.today_orders ?? 0) >= (summary.yesterday_orders ?? 0),
-            },
-            {
-              label: 'Вчера выручка',
-              value: fmtPrice(summary.yesterday_revenue ?? 0, tenant.currency),
-              trend: null,
-              trendUp: true,
-            },
-            {
-              label: 'Вчера заказов',
-              value: String(summary.yesterday_orders ?? 0),
-              trend: null,
-              trendUp: true,
-            },
-          ]
-          return (
-            <div style={{
-              display: 'flex',
-              overflowX: 'auto',
-              gap: 8,
-              margin: '0 -16px',
-              padding: '0 16px 4px',
-              scrollbarWidth: 'none',
-            }}>
-              {chips.map(chip => (
-                <div key={chip.label} style={{
-                  flexShrink: 0,
-                  padding: '10px 14px',
-                  borderRadius: 14,
-                  background: 'var(--card)',
-                  border: '1px solid var(--border)',
-                  minWidth: 120,
-                }}>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>{chip.label}</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                    <span style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>
-                      {chip.value}
-                    </span>
-                    {chip.trend && (
-                      <span style={{ fontSize: 11, fontWeight: 700, color: chip.trendUp ? '#10B981' : '#EF4444' }}>
-                        {chip.trend}
-                      </span>
-                    )}
-                  </div>
+        {/* ── Dashboard ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {/* Hero revenue card */}
+          <div style={{ borderRadius: 16, background: 'var(--card)', border: '1px solid var(--border)', padding: '18px 18px 16px' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Выручка всего</div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+              <div>
+                <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 28, color: 'var(--ink)', lineHeight: 1.15 }}>
+                  {summary ? fmtPrice(summary.total_revenue, tenant.currency) : '—'}
                 </div>
-              ))}
+                {summary?.yesterday_revenue != null && (
+                  <div style={{ fontSize: 12, marginTop: 6, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4,
+                    color: (summary.today_revenue ?? 0) >= summary.yesterday_revenue ? '#10B981' : '#EF4444' }}>
+                    {(summary.today_revenue ?? 0) >= summary.yesterday_revenue ? '▲' : '▼'} Сегодня: {fmtPrice(summary.today_revenue ?? 0, tenant.currency)}
+                  </div>
+                )}
+              </div>
+              <svg width="72" height="36" viewBox="0 0 72 36" fill="none" style={{ flexShrink: 0, marginTop: 2 }}>
+                {[5,9,7,14,11,18,13,22,17,26,20,28].map((h, i) => (
+                  <rect key={i} x={i * 6} y={36 - h} width={4} height={h} rx={1.5}
+                    fill={i === 11 ? 'var(--accent)' : 'var(--accent-soft)'} />
+                ))}
+              </svg>
             </div>
-          )
-        })()}
+          </div>
 
-        {/* ── Quick Actions (horizontal scroll) ── */}
-        <div style={{
-          display: 'flex',
-          overflowX: 'auto',
-          gap: 8,
-          margin: '0 -16px',
-          padding: '0 16px 4px',
-          scrollbarWidth: 'none',
-        }}>
-          {quickActions.map(action => (
-            <button
-              key={action.label}
-              onClick={action.onPress}
-              style={{
-                padding: '10px 16px',
-                borderRadius: 999,
-                background: 'var(--card)',
-                border: '1px solid var(--border)',
-                fontSize: 13,
-                fontWeight: 600,
-                color: 'var(--ink)',
-                flexShrink: 0,
-                whiteSpace: 'nowrap',
-                cursor: 'pointer',
-              }}
-            >
-              {action.label}
-            </button>
-          ))}
+          {/* 2-column metrics grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {[
+              { label: 'Заказы', value: String(summary?.total_orders ?? '—'), sub: 'всего' },
+              { label: 'Новые', value: String(summary?.new_orders ?? '—'), sub: 'ожидают' },
+              { label: 'Сегодня', value: summary?.today_revenue != null ? fmtPrice(summary.today_revenue, tenant.currency) : '—', sub: summary?.today_orders != null ? `${summary.today_orders} заказов` : undefined },
+              { label: 'Неделя', value: weekSummary?.total_revenue != null ? fmtPrice(weekSummary.total_revenue, tenant.currency) : '—', sub: weekSummary?.total_orders != null ? `${weekSummary.total_orders} заказов` : undefined },
+              { label: 'Месяц', value: monthSummary?.total_revenue != null ? fmtPrice(monthSummary.total_revenue, tenant.currency) : '—', sub: monthSummary?.total_orders != null ? `${monthSummary.total_orders} заказов` : undefined },
+              { label: 'Товары', value: String(summary?.product_count ?? '—'), sub: 'активных' },
+            ].map(metric => (
+              <div key={metric.label} style={{ borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)', padding: '14px' }}>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6, fontWeight: 500 }}>{metric.label}</div>
+                <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 20, color: 'var(--ink)', lineHeight: 1.2 }}>{metric.value}</div>
+                {metric.sub && <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>{metric.sub}</div>}
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* ── Onboarding Checklist (shown only when brand new: no products AND no orders) ── */}
