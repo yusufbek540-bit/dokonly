@@ -4,6 +4,7 @@ import { Icon } from '@/components/Icon'
 import { api } from '@/lib/api'
 import { useTelegramMainButton } from '@/hooks/useTelegram'
 import { PlanPicker } from '../PlanPicker'
+import { tgConfirm } from '@/lib/tgConfirm'
 
 interface Props {
   tenant: any
@@ -1031,7 +1032,7 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
                       </div>
                     </div>
                     <button
-                      onClick={() => confirm('Удалить story?') && deleteMutation.mutate(s.id)}
+                      onClick={() => tgConfirm('Удалить story?', () => deleteMutation.mutate(s.id))}
                       style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--danger-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', flexShrink: 0 }}
                     >
                       <Icon name="x" size={14} color="var(--danger)" />
@@ -1741,7 +1742,7 @@ export function TeamView({ onBack }: { onBack: () => void }) {
                   >⚙</button>
                   {m.role !== 'owner' && (
                     <button
-                      onClick={() => confirm(`Удалить ${m.name ?? m.username ?? 'участника'} из команды?`) && removeMutation.mutate(m.id)}
+                      onClick={() => tgConfirm(`Удалить ${m.name ?? m.username ?? 'участника'} из команды?`, () => removeMutation.mutate(m.id))}
                       style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--danger-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', flexShrink: 0 }}
                     >
                       <Icon name="x" size={13} color="var(--danger)" />

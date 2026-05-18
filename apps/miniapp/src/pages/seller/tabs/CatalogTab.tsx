@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
 import { useTelegramMainButton } from '@/hooks/useTelegram'
+import { tgConfirm } from '@/lib/tgConfirm'
 import { AIPhotoImport } from '../AIPhotoImport'
 import { CSVImport } from '../CSVImport'
 import { VoiceImport } from '../VoiceImport'
@@ -695,7 +696,7 @@ function CategoriesView({ tenant }: { tenant: any }) {
               </div>
               <span style={{ flex:1, fontSize:14, fontWeight:500, color:'var(--ink)' }}>{cat.name}</span>
               <button
-                onClick={() => confirm(`Удалить "${cat.name}"?`) && deleteMutation.mutate(cat.id)}
+                onClick={() => tgConfirm(`Удалить "${cat.name}"?`, () => deleteMutation.mutate(cat.id))}
                 style={{ width:32, height:32, borderRadius:8, background:'var(--danger-soft)', display:'flex', alignItems:'center', justifyContent:'center' }}
               >
                 <Icon name="x" size={14} color="var(--danger)"/>
@@ -917,10 +918,7 @@ export function CatalogTab({ tenant }: Props) {
                 👁 Скрыть
               </button>
               <button
-                onClick={() => {
-                  if (confirm(`Удалить ${selected.size} товаров?`))
-                    bulkDeleteMutation.mutate(Array.from(selected))
-                }}
+                onClick={() => tgConfirm(`Удалить ${selected.size} товаров?`, () => bulkDeleteMutation.mutate(Array.from(selected)))}
                 style={{ padding: '6px 12px', borderRadius: 8, background: 'rgba(239,68,68,0.4)', color: 'white', fontSize: 12, fontWeight: 600 }}
               >
                 🗑 Удалить
@@ -1025,7 +1023,7 @@ export function CatalogTab({ tenant }: Props) {
                         Изменить
                       </button>
                       <button
-                        onClick={() => confirm('Удалить товар?') && deleteMutation.mutate(p.id)}
+                        onClick={() => tgConfirm('Удалить товар?', () => deleteMutation.mutate(p.id))}
                         style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--danger-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
                         <Icon name="x" size={13} color="var(--danger)"/>
