@@ -22,17 +22,27 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Remove splash once React renders
-      document.addEventListener('DOMContentLoaded', function() {
+      // Remove splash once React renders, or after 8s timeout (prevents permanent blank if JS crashes)
+      (function() {
+        var removed = false;
+        function removeSplash() {
+          if (removed) return;
+          removed = true;
+          var splash = document.getElementById('splash');
+          if (splash) splash.style.display = 'none';
+        }
         var check = setInterval(function() {
           var root = document.getElementById('root');
           if (root && root.children.length > 0) {
-            var splash = document.getElementById('splash');
-            if (splash) splash.style.display = 'none';
             clearInterval(check);
+            removeSplash();
           }
         }, 100);
-      });
+        setTimeout(function() {
+          clearInterval(check);
+          removeSplash();
+        }, 8000);
+      })();
     </script>
   </body>
 </html>
