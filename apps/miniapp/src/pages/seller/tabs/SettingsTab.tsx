@@ -113,9 +113,15 @@ function ToggleRow({ icon, label, value, onChange }: {
 // ─── Bottom-sheet shell ────────────────────────────────────────────────────────
 
 function BottomSheet({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [])
   return (
     <div
       onClick={onClose}
+      onTouchMove={e => e.preventDefault()}
       style={{
         position: 'fixed', inset: 0, zIndex: 50,
         background: 'rgba(0,0,0,0.4)',
@@ -124,10 +130,12 @@ function BottomSheet({ onClose, children }: { onClose: () => void; children: Rea
     >
       <div
         onClick={e => e.stopPropagation()}
+        onTouchMove={e => e.stopPropagation()}
         style={{
           width: '100%', background: 'var(--bg)',
           borderRadius: '20px 20px 0 0',
-          maxHeight: '90vh', overflow: 'auto',
+          maxHeight: '90vh', overflowY: 'auto',
+          overscrollBehavior: 'contain',
           animation: 'slideUp 0.25s cubic-bezier(0.16,1,0.3,1)',
         }}
       >
@@ -1453,11 +1461,6 @@ function PinCardButton() {
   )
 }
 
-function PageSlide({ children }: { children: React.ReactNode }) {
-  useEffect(() => { window.scrollTo(0, 0) }, [])
-  return <div className="page-enter">{children}</div>
-}
-
 function MiniAppUrlCopy({ url }: { url: string }) {
   const [copied, setCopied] = useState(false)
   function handleCopy() {
@@ -2371,14 +2374,14 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
     onDeepLinkConsumed?.()
   }, [deepLink])
 
-  if (showCoupons) return <PageSlide><CouponsView onBack={() => setShowCoupons(false)} /></PageSlide>
-  if (showMailings) return <PageSlide><MailingsView onBack={() => setShowMailings(false)} /></PageSlide>
-  if (showTeam) return <PageSlide><TeamView onBack={() => setShowTeam(false)} /></PageSlide>
-  if (showAbandonedCarts) return <PageSlide><AbandonedCartsView onBack={() => setShowAbandonedCarts(false)} /></PageSlide>
-  if (showStories) return <PageSlide><StoriesView onBack={() => setShowStories(false)} /></PageSlide>
-  if (showLoyaltyProgram) return <PageSlide><LoyaltyProgramView onBack={() => setShowLoyaltyProgram(false)} /></PageSlide>
-  if (showReferralProgram) return <PageSlide><ReferralProgramView onBack={() => setShowReferralProgram(false)} /></PageSlide>
-  if (showChannelCrossposting) return <PageSlide><ChannelCrosspostingView tenant={tenant} onBack={() => setShowChannelCrossposting(false)} /></PageSlide>
+  if (showCoupons) return <CouponsView onBack={() => setShowCoupons(false)} />
+  if (showMailings) return <MailingsView onBack={() => setShowMailings(false)} />
+  if (showTeam) return <TeamView onBack={() => setShowTeam(false)} />
+  if (showAbandonedCarts) return <AbandonedCartsView onBack={() => setShowAbandonedCarts(false)} />
+  if (showStories) return <StoriesView onBack={() => setShowStories(false)} />
+  if (showLoyaltyProgram) return <LoyaltyProgramView onBack={() => setShowLoyaltyProgram(false)} />
+  if (showReferralProgram) return <ReferralProgramView onBack={() => setShowReferralProgram(false)} />
+  if (showChannelCrossposting) return <ChannelCrosspostingView tenant={tenant} onBack={() => setShowChannelCrossposting(false)} />
 
   return (
     <div className="screen-scroll" style={{ flex: 1, padding: '16px 16px 100px' }}>
@@ -2868,7 +2871,7 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
                   {/* Live preview area */}
                   <div style={{ padding: '14px 16px 10px', background: pickedTypo === typo.id ? 'var(--accent-soft)' : 'var(--card)' }}>
                     {/* Store name in display font */}
-                    <div style={{ fontFamily: `'${typo.display}', serif`, fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 6, lineHeight: 1.2 }}>
+                    <div style={{ fontFamily: `'${typo.display}', sans-serif`, fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 6, lineHeight: 1.2 }}>
                       {tenant.name ?? 'Название магазина'}
                     </div>
                     {/* Mini product card preview */}

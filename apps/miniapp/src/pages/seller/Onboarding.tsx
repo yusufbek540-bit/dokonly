@@ -53,7 +53,7 @@ const LEGAL_OPTIONS = [
 
 const TYPOGRAPHY_BUNDLES = [
   { id: 'modern',    label: 'Современный', desc: 'Чистый и технологичный',   style: { fontWeight: 600, letterSpacing: '0.03em' } },
-  { id: 'editorial', label: 'Editorial',   desc: 'Премиум, классика',         style: { fontStyle: 'italic' as const, fontFamily: 'Georgia, serif' } },
+  { id: 'editorial', label: 'Editorial',   desc: 'Премиум, классика',         style: { fontStyle: 'italic' as const, fontFamily: 'Sora, sans-serif' } },
   { id: 'bold',      label: 'Жирный',      desc: 'Выразительный, яркий',      style: { fontWeight: 800, textTransform: 'uppercase' as const, letterSpacing: '0.05em' } },
   { id: 'warm',      label: 'Тёплый',      desc: 'Дружелюбный, уютный',       style: { fontWeight: 500, letterSpacing: '-0.01em' } },
   { id: 'minimal',   label: 'Минимал',     desc: 'Сдержанный, воздушный',     style: { fontWeight: 300, letterSpacing: '0.12em' } },
