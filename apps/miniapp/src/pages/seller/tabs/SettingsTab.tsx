@@ -2799,6 +2799,13 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
                 </button>
               ))}
             </div>
+            <div style={{ padding: '0 0 8px' }}>
+              <button
+                onClick={() => appearanceMutation.mutate(pickedColor)}
+                disabled={appearanceMutation.isPending}
+                style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: appearanceMutation.isPending ? 'not-allowed' : 'pointer', opacity: appearanceMutation.isPending ? 0.7 : 1 }}
+              >{appearanceMutation.isPending ? 'Сохранение...' : 'Сохранить'}</button>
+            </div>
           </div>
         </BottomSheet>
       )}
@@ -2866,6 +2873,13 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
                   </div>
                 </button>
               ))}
+            </div>
+            <div style={{ padding: '0 0 8px' }}>
+              <button
+                onClick={() => typographyMutation.mutate(pickedTypo)}
+                disabled={typographyMutation.isPending}
+                style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: typographyMutation.isPending ? 'not-allowed' : 'pointer', opacity: typographyMutation.isPending ? 0.7 : 1 }}
+              >{typographyMutation.isPending ? 'Сохранение...' : 'Сохранить'}</button>
             </div>
           </div>
         </BottomSheet>
@@ -2952,6 +2966,12 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
                 style={{ width: '100%', padding: '12px 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
               />
             </label>
+
+            <button
+              onClick={saveOrderSettings}
+              disabled={orderSettingsMutation.isPending}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: orderSettingsMutation.isPending ? 'not-allowed' : 'pointer', opacity: orderSettingsMutation.isPending ? 0.7 : 1 }}
+            >{orderSettingsMutation.isPending ? 'Сохранение...' : 'Сохранить'}</button>
 
           </div>
         </BottomSheet>
@@ -3422,6 +3442,12 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
               </div>
             )}
 
+            <button
+              onClick={handleSaveProfile}
+              disabled={updateSettingsMutation.isPending}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: updateSettingsMutation.isPending ? 'not-allowed' : 'pointer', opacity: updateSettingsMutation.isPending ? 0.7 : 1, marginTop: 8 }}
+            >{updateSettingsMutation.isPending ? 'Сохранение...' : 'Сохранить'}</button>
+
           </div>
         </BottomSheet>
       )}
@@ -3490,6 +3516,12 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
                 </div>
               ))}
             </div>
+
+            <button
+              onClick={() => deliveryMutation.mutate({ delivery_methods: deliveryMethods })}
+              disabled={deliveryMutation.isPending}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: deliveryMutation.isPending ? 'not-allowed' : 'pointer', opacity: deliveryMutation.isPending ? 0.7 : 1 }}
+            >{deliveryMutation.isPending ? 'Сохранение...' : 'Сохранить'}</button>
 
           </div>
         </BottomSheet>
@@ -3600,6 +3632,12 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
                 </div>
               </div>
             )}
+
+            <button
+              onClick={savePaymentSettings}
+              disabled={paymentMutation.isPending}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: paymentMutation.isPending ? 'not-allowed' : 'pointer', opacity: paymentMutation.isPending ? 0.7 : 1 }}
+            >{paymentMutation.isPending ? 'Сохранение...' : 'Сохранить'}</button>
 
           </div>
         </BottomSheet>
