@@ -167,7 +167,7 @@ export function SellerApp({ tenantSlug, shop }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--bg)', paddingTop: safeTop }}>
       {/* Tab content */}
-      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         {tab === 'home'      && <HomeTab      tenant={tenant} onTabChange={(t, deepLink) => { setTab(t as Tab); if (deepLink) setMoreDeepLink(deepLink) }} />}
         {tab === 'catalog'   && <CatalogTab   tenant={tenant} />}
         {tab === 'orders'    && <OrdersTab    tenant={tenant} />}

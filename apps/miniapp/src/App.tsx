@@ -579,7 +579,7 @@ function ShopApp() {
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--bg)', paddingTop: safeTop }}>
-      <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+      <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
         {content}
       </div>
 
@@ -588,8 +588,8 @@ function ShopApp() {
         <button
           onClick={() => setShowAiConsultant(true)}
           style={{
-            position: 'absolute',
-            bottom: 8,
+            position: 'fixed',
+            bottom: `calc(64px + env(safe-area-inset-bottom) + 8px)`,
             right: 16,
             width: 52, height: 52,
             borderRadius: 999,
