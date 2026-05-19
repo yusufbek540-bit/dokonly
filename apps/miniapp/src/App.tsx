@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { useTelegram } from '@/hooks/useTelegram'
+import { useTelegram, useSafeTop } from '@/hooks/useTelegram'
 import { CatalogContent } from '@/pages/customer/Storefront'
 import { HomeTab } from '@/pages/customer/HomeTab'
 import { CartTab } from '@/pages/customer/CartTab'
@@ -439,6 +439,7 @@ function AiConsultantView({ tenantId, onClose }: { tenantId: string; onClose: ()
  */
 function ShopApp() {
   useTelegram()
+  const safeTop = useSafeTop()
   const slug = SHOP_SLUG!
 
   const [tab, setTab] = useState<BuyerTab>('home')
@@ -534,7 +535,7 @@ function ShopApp() {
   // Product detail overlay (over current tab)
   if (productId) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)', paddingTop: safeTop }}>
         <ProductPage
           tenantId={shop.id}
           productId={productId}
@@ -550,7 +551,7 @@ function ShopApp() {
   }
 
   return (
-    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)', paddingTop: 'var(--tg-safe-top)' }}>
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)', paddingTop: safeTop }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         {tab === 'home' && (
           <HomeTab

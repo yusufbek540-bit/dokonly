@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSafeTop } from '@/hooks/useTelegram'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
@@ -67,6 +68,8 @@ function Spinner({ label }: { label: string }) {
 }
 
 export function SellerApp({ tenantSlug, shop }: Props) {
+  const safeTop = useSafeTop()
+
   useEffect(() => {
     const pref = localStorage.getItem('dokonly_admin_theme') ?? 'system'
     const tgScheme = (window as any).Telegram?.WebApp?.colorScheme ?? 'light'
@@ -161,7 +164,7 @@ export function SellerApp({ tenantSlug, shop }: Props) {
   const currentShop = shop ?? { id: tenant.id, name: tenant.name, currency: tenant.currency, logo_url: tenant.logo_url }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)', paddingTop: 'var(--tg-safe-top)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)', paddingTop: safeTop }}>
       {/* Tab content */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingBottom: 64 }}>
         {tab === 'home'      && <HomeTab      tenant={tenant} onTabChange={(t, deepLink) => { setTab(t as Tab); if (deepLink) setMoreDeepLink(deepLink) }} />}

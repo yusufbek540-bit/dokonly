@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 declare global {
   interface Window {
@@ -39,6 +39,32 @@ interface TelegramWebApp {
   openLink: (url: string) => void
   switchInlineQuery: (query: string, types?: string[]) => void
   shareToStory: (media_url: string, params?: object) => void
+}
+
+function computeSafeTop(): number {
+  const tg = (window as any).Telegram?.WebApp
+  if (!tg) return 0
+  if (tg.isFullscreen) return 0
+  const apiTop = (tg.safeAreaInset?.top ?? 0) + (tg.contentSafeAreaInset?.top ?? 0)
+  if (apiTop > 0) return apiTop
+  const diff = Math.round(window.screen.height - (tg.viewportHeight || window.innerHeight))
+  if (diff > 20 && diff < 200) return diff
+  return 56
+}
+
+export function useSafeTop(): number {
+  const [safeTop, setSafeTop] = useState<number>(computeSafeTop)
+  useEffect(() => {
+    const tg = (window as any).Telegram?.WebApp
+    const update = () => setSafeTop(computeSafeTop())
+    setTimeout(update, 100)
+    setTimeout(update, 500)
+    if (!tg) return
+    const events = ['viewportChanged', 'safeAreaChanged', 'contentSafeAreaChanged', 'fullscreenChanged']
+    events.forEach(e => tg.onEvent?.(e, update))
+    return () => events.forEach(e => tg.offEvent?.(e, update))
+  }, [])
+  return safeTop
 }
 
 export function useTelegram() {
