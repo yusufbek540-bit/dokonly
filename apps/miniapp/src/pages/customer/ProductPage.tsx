@@ -4,6 +4,7 @@ import { api } from '@/lib/api'
 import { useCart } from '@/store/cart'
 import { Icon } from '@/components/Icon'
 import { useTelegramMainButton } from '@/hooks/useTelegram'
+import { FullPage } from '@/components/FullPage'
 
 interface Props {
   tenantId: string
@@ -590,24 +591,10 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
         )}
       </div>
 
-      {/* Share bottom sheet */}
+      {/* Share page */}
       {showShare && (
-        <div
-          onClick={() => setShowShare(false)}
-          onTouchMove={e => e.preventDefault()}
-          style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            onTouchMove={e => e.stopPropagation()}
-            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '0 16px calc(28px + env(safe-area-inset-bottom))' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px 8px', position: 'relative', flexShrink: 0 }}>
-              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
-              <button onClick={() => setShowShare(false)} style={{ position: 'absolute', right: 12, width: 32, height: 32, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="var(--muted-strong)" strokeWidth="2" strokeLinecap="round"/></svg>
-              </button>
-            </div>
+        <FullPage onClose={() => setShowShare(false)}>
+          <div style={{ padding: '0 16px 32px' }}>
             <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 6 }}>
               Поделиться
             </div>
@@ -701,7 +688,7 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
               </div>
             </button>
           </div>
-        </div>
+        </FullPage>
       )}
 
       {/* Image viewer overlay */}

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
 import { useTelegramMainButton } from '@/hooks/useTelegram'
+import { FullPage } from '@/components/FullPage'
 
 interface Props {
   tenantId: string
@@ -692,14 +693,8 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
       )}
 
       {showReturnWizard && (
-        <div onTouchMove={e => e.preventDefault()} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'flex-end' }}>
-          <div onTouchMove={e => e.stopPropagation()} style={{ width: '100%', maxHeight: 'calc(90vh - var(--tg-safe-top, 0px))', overflowY: 'auto', overscrollBehavior: 'contain', background: 'var(--card)', borderRadius: '20px 20px 0 0', padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px 8px', position: 'relative', flexShrink: 0 }}>
-              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
-              <button onClick={resetReturnWizard} style={{ position: 'absolute', right: 12, width: 32, height: 32, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="var(--muted-strong)" strokeWidth="2" strokeLinecap="round"/></svg>
-              </button>
-            </div>
+        <FullPage onClose={resetReturnWizard}>
+          <div style={{ padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
@@ -711,7 +706,6 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>Шаг {returnStep} из 5</div>
               </div>
-              <button onClick={resetReturnWizard} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--muted)' }}>✕</button>
             </div>
 
             {/* Step 1: Select items */}
@@ -928,7 +922,7 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
               </div>
             )}
           </div>
-        </div>
+        </FullPage>
       )}
     </div>
   )
@@ -2400,7 +2394,7 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
           )}
         </div>
 
-        {/* Wishlist share bottom sheet */}
+        {/* Wishlist share page */}
         {wishlistShareProd && (() => {
           const botUsername = shop?.settings?.bot_username
           const prodUrl = botUsername
@@ -2408,22 +2402,8 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
             : `https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(wishlistShareProd.name)}`
           const tg = (window as any).Telegram?.WebApp
           return (
-            <div
-              onClick={() => { setWishlistShareProd(null); setWishlistCopied(false) }}
-              onTouchMove={e => e.preventDefault()}
-              style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
-            >
-              <div
-                onClick={e => e.stopPropagation()}
-                onTouchMove={e => e.stopPropagation()}
-                style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '0 16px calc(28px + env(safe-area-inset-bottom))' }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px 8px', position: 'relative', flexShrink: 0 }}>
-                  <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
-                  <button onClick={() => { setWishlistShareProd(null); setWishlistCopied(false) }} style={{ position: 'absolute', right: 12, width: 32, height: 32, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="var(--muted-strong)" strokeWidth="2" strokeLinecap="round"/></svg>
-                  </button>
-                </div>
+            <FullPage onClose={() => { setWishlistShareProd(null); setWishlistCopied(false) }}>
+              <div style={{ padding: '0 16px 32px' }}>
                 <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 6 }}>
                   Поделиться
                 </div>
@@ -2512,7 +2492,7 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
                   </div>
                 </button>
               </div>
-            </div>
+            </FullPage>
           )
         })()}
       </div>

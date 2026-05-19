@@ -4,6 +4,7 @@ import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
 import { useCart } from '@/store/cart'
 import { useTelegramMainButton } from '@/hooks/useTelegram'
+import { FullPage } from '@/components/FullPage'
 
 interface Props {
   shop: { id: string; name: string; currency: string; logo_url: string | null }
@@ -554,24 +555,10 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
         </div>
       </div>
 
-      {/* Sort bottom sheet */}
+      {/* Sort page */}
       {showSort && (
-        <div
-          onClick={() => setShowSort(false)}
-          onTouchMove={e => e.preventDefault()}
-          style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            onTouchMove={e => e.stopPropagation()}
-            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '0 16px 32px' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px 8px', position: 'relative', flexShrink: 0 }}>
-              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
-              <button onClick={() => setShowSort(false)} style={{ position: 'absolute', right: 12, width: 32, height: 32, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="var(--muted-strong)" strokeWidth="2" strokeLinecap="round"/></svg>
-              </button>
-            </div>
+        <FullPage onClose={() => setShowSort(false)}>
+          <div style={{ padding: '0 16px 32px' }}>
             <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 16 }}>
               Сортировка
             </div>
@@ -598,31 +585,13 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
               </button>
             ))}
           </div>
-        </div>
+        </FullPage>
       )}
 
-      {/* Filter bottom sheet */}
+      {/* Filter page */}
       {showFilter && (
-        <div
-          onClick={() => setShowFilter(false)}
-          onTouchMove={e => e.preventDefault()}
-          style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            onTouchMove={e => e.stopPropagation()}
-            style={{
-              width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0',
-              padding: '0 16px 32px', maxHeight: 'calc(80vh - var(--tg-safe-top, 0px))', overflowY: 'auto',
-              overscrollBehavior: 'contain',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px 8px', position: 'relative', flexShrink: 0 }}>
-              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
-              <button onClick={() => setShowFilter(false)} style={{ position: 'absolute', right: 12, width: 32, height: 32, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="var(--muted-strong)" strokeWidth="2" strokeLinecap="round"/></svg>
-              </button>
-            </div>
+        <FullPage onClose={() => setShowFilter(false)}>
+          <div style={{ padding: '0 16px 32px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)' }}>Фильтры</div>
               <button
@@ -778,7 +747,7 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
               Применить ({pendingFilterCount})
             </button>
           </div>
-        </div>
+        </FullPage>
       )}
 
       <div className="screen-scroll" style={{ flex: 1, paddingBottom: 24 }}>
