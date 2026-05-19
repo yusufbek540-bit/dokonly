@@ -564,8 +564,11 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
           <div
             onClick={e => e.stopPropagation()}
             onTouchMove={e => e.stopPropagation()}
-            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px 32px' }}
+            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '0 16px 32px' }}
           >
+            <button onClick={() => setShowSort(false)} style={{ display: 'flex', justifyContent: 'center', width: '100%', padding: '12px 0 16px', background: 'none', border: 'none', cursor: 'pointer' }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
+            </button>
             <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 16 }}>
               Сортировка
             </div>
@@ -607,10 +610,13 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
             onTouchMove={e => e.stopPropagation()}
             style={{
               width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0',
-              padding: '20px 16px 32px', maxHeight: '80vh', overflowY: 'auto',
+              padding: '0 16px 32px', maxHeight: '80vh', overflowY: 'auto',
               overscrollBehavior: 'contain',
             }}
           >
+            <button onClick={() => setShowFilter(false)} style={{ display: 'flex', justifyContent: 'center', width: '100%', padding: '12px 0 8px', background: 'none', border: 'none', cursor: 'pointer' }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
+            </button>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)' }}>Фильтры</div>
               <button

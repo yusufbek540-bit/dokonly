@@ -4,16 +4,23 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
 import './index.css'
 
-// Force full-height / fullscreen immediately on load
+// Force full-height / fullscreen immediately on load, set safe area CSS var
 ;(function () {
   const tg = (window as any).Telegram?.WebApp
   if (!tg) return
   tg.ready?.()
   tg.expand?.()
-  // requestFullscreen only when user has opted in via Settings
+  tg.disableVerticalSwipes?.()
   if (localStorage.getItem('tg_fullscreen') === '1') {
     tg.requestFullscreen?.()
   }
+  function updateSafeArea() {
+    const top = (tg.safeAreaInset?.top ?? 0) + (tg.contentSafeAreaInset?.top ?? 0)
+    document.documentElement.style.setProperty('--tg-safe-top', `${top}px`)
+  }
+  updateSafeArea()
+  tg.onEvent?.('safeAreaChanged', updateSafeArea)
+  tg.onEvent?.('contentSafeAreaChanged', updateSafeArea)
 })()
 
 const queryClient = new QueryClient({

@@ -140,6 +140,12 @@ function BottomSheet({ onClose, children }: { onClose: () => void; children: Rea
         }}
       >
         <style>{`@keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }`}</style>
+        <button
+          onClick={onClose}
+          style={{ display: 'flex', justifyContent: 'center', width: '100%', padding: '12px 0 4px', background: 'none', border: 'none', cursor: 'pointer' }}
+        >
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
+        </button>
         {children}
       </div>
     </div>
@@ -339,10 +345,7 @@ export function MailingsView({ onBack }: { onBack: () => void }) {
       {/* Create form BottomSheet */}
       {showForm && (
         <BottomSheet onClose={() => setShowForm(false)}>
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)' }} />
-          </div>
-          <div style={{ padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ padding: '8px 20px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>Новая рассылка</div>
             <input
               placeholder="Заголовок"

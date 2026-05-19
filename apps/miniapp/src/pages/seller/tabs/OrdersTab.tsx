@@ -383,9 +383,9 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
             onTouchMove={e => e.stopPropagation()}
             style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', maxHeight: '80vh', overflow: 'auto', overscrollBehavior: 'contain' }}
           >
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
-              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)' }} />
-            </div>
+            <button onClick={() => setShowPicking(false)} style={{ display: 'flex', justifyContent: 'center', width: '100%', padding: '12px 0 4px', background: 'none', border: 'none', cursor: 'pointer' }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
+            </button>
             <div style={{ padding: '12px 20px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>
                 📋 Чеклист сборки
@@ -600,8 +600,11 @@ function OrderCard({ order, currency, onAdvance, onCancel, onTap }: { order: any
         <div
           onClick={e => e.stopPropagation()}
           onTouchMove={e => e.stopPropagation()}
-          style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px 32px' }}
+          style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '0 16px 32px' }}
         >
+          <button onClick={() => setShowCancelConfirm(false)} style={{ display: 'flex', justifyContent: 'center', width: '100%', padding: '12px 0 16px', background: 'none', border: 'none', cursor: 'pointer' }}>
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
+          </button>
           <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 8 }}>
             Отменить заказ?
           </div>
@@ -792,7 +795,10 @@ function ReturnsView({ currency }: { currency: string }) {
             display: 'flex', alignItems: 'flex-end',
           }}
         >
-          <div onTouchMove={e => e.stopPropagation()} style={{ background: 'var(--card)', borderRadius: '20px 20px 0 0', padding: 24, width: '100%' }}>
+          <div onTouchMove={e => e.stopPropagation()} style={{ background: 'var(--card)', borderRadius: '20px 20px 0 0', padding: '0 24px 24px', width: '100%' }}>
+            <button onClick={() => { setRejectId(null); setRejectReason('') }} style={{ display: 'flex', justifyContent: 'center', width: '100%', padding: '12px 0 16px', background: 'none', border: 'none', cursor: 'pointer' }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
+            </button>
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Причина отклонения</div>
             <textarea
               value={rejectReason}

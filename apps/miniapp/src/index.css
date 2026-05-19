@@ -23,6 +23,7 @@
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
   --tg-viewport-height: 100vh;
+  --tg-safe-top: 0px;
   --font-display: 'Sora', system-ui, sans-serif;
   --font-body: 'Outfit', system-ui, sans-serif;
 }
@@ -112,14 +113,6 @@ input, textarea { font: inherit; color: inherit; }
 }
 .fade-in { animation: fadeUp 0.28s cubic-bezier(0.16, 1, 0.3, 1); }
 
-@keyframes slideInFromRight {
-  from { transform: translateX(100%); }
-  to   { transform: translateX(0); }
-}
-.page-enter {
-  animation: slideInFromRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  overflow-x: hidden;
-}
 
 @keyframes slideUp {
   from { transform: translateY(100%); }

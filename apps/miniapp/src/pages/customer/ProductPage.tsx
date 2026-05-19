@@ -600,9 +600,11 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
           <div
             onClick={e => e.stopPropagation()}
             onTouchMove={e => e.stopPropagation()}
-            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px calc(28px + env(safe-area-inset-bottom))' }}
+            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '0 16px calc(28px + env(safe-area-inset-bottom))' }}
           >
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 20px' }}/>
+            <button onClick={() => setShowShare(false)} style={{ display: 'flex', justifyContent: 'center', width: '100%', padding: '12px 0 16px', background: 'none', border: 'none', cursor: 'pointer' }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
+            </button>
             <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 6 }}>
               Поделиться
             </div>
