@@ -381,7 +381,7 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
           <div
             onClick={e => e.stopPropagation()}
             onTouchMove={e => e.stopPropagation()}
-            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', maxHeight: '80vh', overflow: 'auto', overscrollBehavior: 'contain' }}
+            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', maxHeight: 'calc(80vh - var(--tg-content-safe-area-inset-top, 0px))', overflow: 'auto', overscrollBehavior: 'contain' }}
           >
             <button onClick={() => setShowPicking(false)} style={{ display: 'flex', justifyContent: 'center', width: '100%', padding: '12px 0 4px', background: 'none', border: 'none', cursor: 'pointer' }}>
               <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />

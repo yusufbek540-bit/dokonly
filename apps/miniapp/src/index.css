@@ -23,7 +23,8 @@
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
   --tg-viewport-height: 100vh;
-  --tg-safe-top: 0px;
+  /* Telegram injects --tg-safe-area-inset-top and --tg-content-safe-area-inset-top automatically */
+  --tg-safe-top: calc(var(--tg-safe-area-inset-top, 0px) + var(--tg-content-safe-area-inset-top, 0px));
   --font-display: 'Sora', system-ui, sans-serif;
   --font-body: 'Outfit', system-ui, sans-serif;
 }

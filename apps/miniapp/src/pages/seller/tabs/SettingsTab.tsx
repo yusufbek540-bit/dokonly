@@ -134,7 +134,7 @@ function BottomSheet({ onClose, children }: { onClose: () => void; children: Rea
         style={{
           width: '100%', background: 'var(--bg)',
           borderRadius: '20px 20px 0 0',
-          maxHeight: '90vh', overflowY: 'auto',
+          maxHeight: 'calc(90vh - var(--tg-content-safe-area-inset-top, 0px))', overflowY: 'auto',
           overscrollBehavior: 'contain',
           animation: 'slideUp 0.25s cubic-bezier(0.16,1,0.3,1)',
         }}
