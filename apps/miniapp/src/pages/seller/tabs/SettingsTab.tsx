@@ -513,12 +513,8 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
       </div>
 
       {showForm && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}
-          onClick={() => setShowForm(false)}>
-          <div style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px 32px' }}
-            onClick={e => e.stopPropagation()}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 16 }}>Новый купон</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <BottomSheet onClose={() => setShowForm(false)} title="Новый купон">
+          <div style={{ padding: '16px 16px 32px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <input
                 placeholder="Код (напр. SALE20)"
                 value={code}
@@ -607,9 +603,13 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
                 </div>
               )}
               {error && <div style={{ fontSize: 13, color: 'var(--danger)' }}>{error}</div>}
-            </div>
+            <button
+              onClick={() => { if (canCreateCode) createCode() }}
+              disabled={!canCreateCode}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: canCreateCode ? 'pointer' : 'not-allowed', opacity: canCreateCode ? 1 : 0.5, marginTop: 4 }}
+            >{creating ? 'Создание...' : 'Создать купон'}</button>
           </div>
-        </div>
+        </BottomSheet>
       )}
     </div>
   )
@@ -1655,14 +1655,8 @@ function InvoicesView({ onBack }: { onBack: () => void }) {
   const STATUS_COLORS: Record<string, string> = { paid: 'var(--accent)', pending: '#F59E0B', failed: 'var(--danger)', refunded: 'var(--muted)' }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 10, padding: '16px 16px 12px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid var(--border)' }}>
-        <button onClick={onBack} style={{ width: 34, height: 34, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Icon name="arrowLeft" size={18} color="var(--ink)" />
-        </button>
-        <span style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>История платежей</span>
-      </div>
-      <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
+    <FullPage onClose={onBack} title="История платежей">
+      <div style={{ padding: 16 }}>
         {isLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
             <div style={{ width: 28, height: 28, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
@@ -1700,7 +1694,7 @@ function InvoicesView({ onBack }: { onBack: () => void }) {
           </div>
         )}
       </div>
-    </div>
+    </FullPage>
   )
 }
 
@@ -2888,8 +2882,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       {/* ── Order settings modal ─────────────────────────────────────────────── */}
       {editOrderSettings && (
         <BottomSheet onClose={() => setEditOrderSettings(false)}>
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          </div>
           <div style={{ padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>
               Настройки заказов
@@ -3210,10 +3202,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       ══════════════════════════════════════════════════════════════════════ */}
       {editProfile && (
         <BottomSheet onClose={() => setEditProfile(false)}>
-          {/* drag handle */}
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          </div>
-
           <div style={{ padding: '16px 20px 32px' }}>
             <div style={{
               fontFamily: 'Sora', fontWeight: 700, fontSize: 18,
@@ -3457,9 +3445,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       ══════════════════════════════════════════════════════════════════════ */}
       {editDelivery && (
         <BottomSheet onClose={() => setEditDelivery(false)}>
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          </div>
-
           <div style={{ padding: '16px 20px 32px' }}>
             <div style={{
               fontFamily: 'Sora', fontWeight: 700, fontSize: 18,
@@ -3532,9 +3517,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       ══════════════════════════════════════════════════════════════════════ */}
       {editPayment && (
         <BottomSheet onClose={() => setEditPayment(false)}>
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          </div>
-
           <div style={{ padding: '16px 20px 32px' }}>
             <div style={{
               fontFamily: 'Sora', fontWeight: 700, fontSize: 18,
@@ -3648,10 +3630,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       ══════════════════════════════════════════════════════════════════════ */}
       {editBot && (
         <BottomSheet onClose={() => setEditBot(false)}>
-          {/* drag handle */}
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          </div>
-
           <div style={{ padding: '16px 20px 32px' }}>
             <div style={{
               fontFamily: 'Sora', fontWeight: 700, fontSize: 18,
@@ -3805,9 +3783,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
       {editGroupChat && (
         <BottomSheet onClose={() => setEditGroupChat(false)}>
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          </div>
-
           <div style={{ padding: '16px 20px 32px' }}>
             <div style={{
               fontFamily: 'Sora', fontWeight: 700, fontSize: 18,
@@ -3907,8 +3882,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       {/* ── Notifications modal ─────────────────────────────────────────────── */}
       {editNotifications && (
         <BottomSheet onClose={() => setEditNotifications(false)}>
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          </div>
           <NotificationsSheet tenant={tenant} onClose={() => setEditNotifications(false)} />
         </BottomSheet>
       )}
@@ -3916,8 +3889,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       {/* ── Localization modal ──────────────────────────────────────────────── */}
       {editLocalization && (
         <BottomSheet onClose={() => setEditLocalization(false)}>
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          </div>
           <LocalizationSheet tenant={tenant} onClose={() => setEditLocalization(false)} />
         </BottomSheet>
       )}
@@ -4122,9 +4093,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
       {/* ── Bot menu button modal ───────────────────────────────────────────── */}
       {editBotMenu && (
-        <div onClick={() => setEditBotMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px calc(32px + env(safe-area-inset-bottom))' }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 16 }}>Кнопка меню бота</div>
+        <BottomSheet onClose={() => setEditBotMenu(false)} title="Кнопка меню бота">
+          <div style={{ padding: '16px 16px 32px' }}>
             <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>Текст кнопки, которую видит покупатель при открытии бота</div>
             <input
               value={botMenuText}
@@ -4151,14 +4121,13 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
               Сохранить
             </button>
           </div>
-        </div>
+        </BottomSheet>
       )}
 
       {/* ── Bot commands modal ──────────────────────────────────────────────── */}
       {editBotCommands && (
-        <div onClick={() => setEditBotCommands(false)} style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px calc(32px + env(safe-area-inset-bottom))', maxHeight: '80vh', overflowY: 'auto' }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 4 }}>Команды бота</div>
+        <BottomSheet onClose={() => setEditBotCommands(false)} title="Команды бота">
+          <div style={{ padding: '16px 16px 32px' }}>
             <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>Пользователи могут вызывать эти команды в чате с ботом</div>
 
             {/* Default commands (read-only) */}
@@ -4233,7 +4202,7 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
               Сохранить команды
             </button>
           </div>
-        </div>
+        </BottomSheet>
       )}
 
       {showPlanPicker && <PlanPicker onBack={() => setShowPlanPicker(false)} />}

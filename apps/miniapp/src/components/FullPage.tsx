@@ -19,23 +19,20 @@ export function FullPage({ onClose, title, children }: FullPageProps) {
 
   return (
     <div
-      onTouchMove={e => e.stopPropagation()}
       style={{
         position: 'fixed', inset: 0, zIndex: 50,
-        background: 'var(--bg)', overflowY: 'auto', overscrollBehavior: 'contain',
+        background: 'var(--bg)',
         paddingTop: safeTop,
-        paddingBottom: 'env(safe-area-inset-bottom, 24px)',
-        animation: 'slideUpFull 0.25s cubic-bezier(0.16,1,0.3,1)',
         display: 'flex', flexDirection: 'column',
+        animation: 'slideUpFull 0.25s cubic-bezier(0.16,1,0.3,1)',
       }}
     >
       <style>{`@keyframes slideUpFull { from { transform: translateY(100%) } to { transform: translateY(0) } }`}</style>
-      {/* Sticky header */}
+      {/* Fixed header — flex child, never scrolls */}
       <div style={{
-        position: 'sticky', top: 0, zIndex: 10,
+        flexShrink: 0,
         background: 'var(--bg)', borderBottom: '1px solid var(--border)',
         display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px',
-        flexShrink: 0,
       }}>
         <button
           onClick={onClose}
@@ -54,7 +51,8 @@ export function FullPage({ onClose, title, children }: FullPageProps) {
           </span>
         )}
       </div>
-      <div style={{ flex: 1 }}>
+      {/* Scrollable content only */}
+      <div style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain', paddingBottom: 'env(safe-area-inset-bottom, 24px)' }}>
         {children}
       </div>
     </div>
