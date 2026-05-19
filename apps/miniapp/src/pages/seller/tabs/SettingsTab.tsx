@@ -857,7 +857,7 @@ export function AbandonedCartsView({ onBack }: { onBack: () => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--bg)', borderBottom: '1px solid var(--border)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+        <button onClick={onBack} style={{ width: 34, height: 34, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name="arrowLeft" size={20} color="var(--ink)" />
         </button>
         <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', flex: 1 }}>Брошенные корзины</span>
@@ -963,7 +963,7 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--bg)', borderBottom: '1px solid var(--border)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+        <button onClick={onBack} style={{ width: 34, height: 34, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name="arrowLeft" size={20} color="var(--ink)" />
         </button>
         <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', flex: 1 }}>Stories и Баннеры</span>
@@ -1132,7 +1132,7 @@ export function LoyaltyProgramView({ onBack }: { onBack: () => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--bg)', borderBottom: '1px solid var(--border)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+        <button onClick={onBack} style={{ width: 34, height: 34, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name="arrowLeft" size={20} color="var(--ink)" />
         </button>
         <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>Программа лояльности</span>
@@ -1279,7 +1279,7 @@ export function ReferralProgramView({ onBack }: { onBack: () => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--bg)', borderBottom: '1px solid var(--border)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+        <button onClick={onBack} style={{ width: 34, height: 34, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name="arrowLeft" size={20} color="var(--ink)" />
         </button>
         <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>Реферальная программа</span>
@@ -1506,7 +1506,7 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--bg)', borderBottom: '1px solid var(--border)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+        <button onClick={onBack} style={{ width: 34, height: 34, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name="arrowLeft" size={20} color="var(--ink)" />
         </button>
         <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>Публикации в канале</span>
@@ -1657,8 +1657,10 @@ function InvoicesView({ onBack }: { onBack: () => void }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
       <div style={{ position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 10, padding: '16px 16px 12px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid var(--border)' }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 15, cursor: 'pointer', padding: 0 }}>← Назад</button>
-        <span style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)' }}>История платежей</span>
+        <button onClick={onBack} style={{ width: 34, height: 34, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Icon name="arrowLeft" size={18} color="var(--ink)" />
+        </button>
+        <span style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>История платежей</span>
       </div>
       <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
         {isLoading ? (
@@ -1738,7 +1740,7 @@ export function TeamView({ onBack }: { onBack: () => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--bg)', borderBottom: '1px solid var(--border)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+        <button onClick={onBack} style={{ width: 34, height: 34, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name="arrowLeft" size={20} color="var(--ink)" />
         </button>
         <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', flex: 1 }}>Команда</span>
