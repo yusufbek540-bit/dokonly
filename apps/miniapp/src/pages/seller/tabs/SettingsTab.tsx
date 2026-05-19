@@ -1022,9 +1022,8 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
       </div>
 
       {showForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 20px 40px', width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 4 }}>Новая story</div>
+        <BottomSheet onClose={() => setShowForm(false)} title="Новая story">
+          <div style={{ padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
             <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleFile} />
             <button
               onClick={() => fileRef.current?.click()}
@@ -1071,25 +1070,19 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
                 ))}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setShowForm(false)}
-                style={{ flex: 1, height: 48, borderRadius: 12, background: 'var(--subtle)', color: 'var(--ink)', fontWeight: 600, fontSize: 15, border: 'none', cursor: 'pointer' }}
-              >Отмена</button>
-              <button
-                onClick={() => createMutation.mutate({
-                  media_url: mediaUrl || null,
-                  caption: caption.trim() || null,
-                  cta_text: ctaText.trim() || null,
-                  cta_url: ctaUrl.trim() || null,
-                  expires_at: expiresHours === '0' ? null : new Date(Date.now() + Number(expiresHours) * 3600 * 1000).toISOString(),
-                })}
-                disabled={createMutation.isPending}
-                style={{ flex: 2, height: 48, borderRadius: 12, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', opacity: createMutation.isPending ? 0.7 : 1 }}
-              >{createMutation.isPending ? 'Создание...' : 'Добавить story'}</button>
-            </div>
+            <button
+              onClick={() => createMutation.mutate({
+                media_url: mediaUrl || null,
+                caption: caption.trim() || null,
+                cta_text: ctaText.trim() || null,
+                cta_url: ctaUrl.trim() || null,
+                expires_at: expiresHours === '0' ? null : new Date(Date.now() + Number(expiresHours) * 3600 * 1000).toISOString(),
+              })}
+              disabled={createMutation.isPending}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', opacity: createMutation.isPending ? 0.7 : 1 }}
+            >{createMutation.isPending ? 'Создание...' : 'Добавить story'}</button>
           </div>
-        </div>
+        </BottomSheet>
       )}
     </div>
   )
@@ -1810,11 +1803,8 @@ export function TeamView({ onBack }: { onBack: () => void }) {
       </div>
 
       {selectedMember && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 20px 40px' }}>
-            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
-              Уведомления — {selectedMember.username ?? selectedMember.name ?? 'Участник'}
-            </div>
+        <BottomSheet onClose={() => setSelectedMember(null)} title={`Уведомления — ${selectedMember.username ?? selectedMember.name ?? 'Участник'}`}>
+          <div style={{ padding: '16px 20px 32px' }}>
             <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>Выберите события для получения уведомлений</p>
             {([
               { key: 'new_orders' as const, label: 'Новые заказы' },
@@ -1841,26 +1831,22 @@ export function TeamView({ onBack }: { onBack: () => void }) {
                 </button>
               </div>
             ))}
-            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-              <button onClick={() => setSelectedMember(null)} style={{ flex: 1, height: 48, borderRadius: 12, background: 'var(--subtle)', border: 'none', fontSize: 15, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }}>Отмена</button>
-              <button
-                onClick={async () => {
-                  await api.seller.updateTeamMemberNotifications(selectedMember.id, memberPrefs).catch(() => {})
-                  setSelectedMember(null)
-                }}
-                style={{ flex: 2, height: 48, borderRadius: 12, background: 'var(--accent)', border: 'none', fontSize: 15, fontWeight: 700, color: 'white', cursor: 'pointer' }}
-              >
-                Сохранить
-              </button>
-            </div>
+            <button
+              onClick={async () => {
+                await api.seller.updateTeamMemberNotifications(selectedMember.id, memberPrefs).catch(() => {})
+                setSelectedMember(null)
+              }}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', border: 'none', fontSize: 15, fontWeight: 700, color: 'white', cursor: 'pointer', marginTop: 20 }}
+            >
+              Сохранить
+            </button>
           </div>
-        </div>
+        </BottomSheet>
       )}
 
       {showInvite && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 20px 40px', width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)' }}>Пригласить в команду</div>
+        <BottomSheet onClose={() => setShowInvite(false)} title="Пригласить в команду">
+          <div style={{ padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
             <input
               value={inviteUsername}
               onChange={e => setInviteUsername(e.target.value)}
@@ -1879,19 +1865,13 @@ export function TeamView({ onBack }: { onBack: () => void }) {
                 ))}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setShowInvite(false)}
-                style={{ flex: 1, height: 48, borderRadius: 12, background: 'var(--subtle)', color: 'var(--ink)', fontWeight: 600, fontSize: 15, border: 'none', cursor: 'pointer' }}
-              >Отмена</button>
-              <button
-                onClick={() => inviteMutation.mutate({ username: inviteUsername.replace('@', ''), role: inviteRole })}
-                disabled={!inviteUsername.trim() || inviteMutation.isPending}
-                style={{ flex: 2, height: 48, borderRadius: 12, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', opacity: (!inviteUsername.trim() || inviteMutation.isPending) ? 0.6 : 1 }}
-              >{inviteMutation.isPending ? 'Отправка...' : 'Отправить приглашение'}</button>
-            </div>
+            <button
+              onClick={() => inviteMutation.mutate({ username: inviteUsername.replace('@', ''), role: inviteRole })}
+              disabled={!inviteUsername.trim() || inviteMutation.isPending}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', opacity: (!inviteUsername.trim() || inviteMutation.isPending) ? 0.6 : 1 }}
+            >{inviteMutation.isPending ? 'Отправка...' : 'Отправить приглашение'}</button>
           </div>
-        </div>
+        </BottomSheet>
       )}
     </div>
   )
