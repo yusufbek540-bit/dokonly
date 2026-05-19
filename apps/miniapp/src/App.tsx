@@ -11,6 +11,7 @@ import { Checkout } from '@/pages/customer/Checkout'
 import { SellerApp } from '@/pages/seller/SellerApp'
 import { useCart } from '@/store/cart'
 import { Icon } from '@/components/Icon'
+import { MainButtonBar } from '@/components/MainButtonBar'
 
 /**
  * URL param logic:
@@ -518,83 +519,77 @@ function ShopApp() {
     return <AiConsultantView tenantId={shop.id} onClose={() => setShowAiConsultant(false)} />
   }
 
-  // Checkout flow (full screen, no tabs)
-  if (showCheckout) {
-    return (
-      <Checkout
-        tenantId={shop.id}
-        currency={shop.currency}
-        shopSettings={shop.settings}
-        onBack={() => setShowCheckout(false)}
-        onDone={() => { setShowCheckout(false); handleTabChange('home') }}
-        onTrackOrder={() => { setShowCheckout(false); handleTabChange('profile') }}
-      />
-    )
-  }
-
-  // Product detail overlay (over current tab)
-  if (productId) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)', paddingTop: safeTop }}>
-        <ProductPage
+  const content = showCheckout ? (
+    <Checkout
+      tenantId={shop.id}
+      currency={shop.currency}
+      shopSettings={shop.settings}
+      onBack={() => setShowCheckout(false)}
+      onDone={() => { setShowCheckout(false); handleTabChange('home') }}
+      onTrackOrder={() => { setShowCheckout(false); handleTabChange('profile') }}
+    />
+  ) : productId ? (
+    <ProductPage
+      tenantId={shop.id}
+      productId={productId}
+      currency={shop.currency}
+      shopSlug={slug}
+      botUsername={(shop as any).bot_username}
+      onBack={() => setProductId(null)}
+      onCheckout={() => setShowCheckout(true)}
+      onProduct={setProductId}
+    />
+  ) : (
+    <>
+      {tab === 'home' && (
+        <HomeTab
+          shop={shop}
           tenantId={shop.id}
-          productId={productId}
+          products={products}
+          onProduct={setProductId}
+          onShowCatalog={handleShowCatalog}
+        />
+      )}
+      {tab === 'catalog' && (
+        <CatalogContent
+          shop={shop}
+          onProduct={setProductId}
+          initialCategory={catalogInitCat}
+        />
+      )}
+      {tab === 'cart' && (
+        <CartTab
           currency={shop.currency}
-          shopSlug={slug}
-          botUsername={(shop as any).bot_username}
-          onBack={() => setProductId(null)}
+          tenantId={shop.id}
+          shopSettings={shop.settings}
           onCheckout={() => setShowCheckout(true)}
+          onShowCatalog={() => handleTabChange('catalog')}
+        />
+      )}
+      {tab === 'profile' && (
+        <ProfileTab
+          tenantId={shop.id}
+          currency={shop.currency}
+          shop={shop}
           onProduct={setProductId}
         />
-      </div>
-    )
-  }
+      )}
+    </>
+  )
 
   return (
-    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)', paddingTop: safeTop }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        {tab === 'home' && (
-          <HomeTab
-            shop={shop}
-            tenantId={shop.id}
-            products={products}
-            onProduct={setProductId}
-            onShowCatalog={handleShowCatalog}
-          />
-        )}
-        {tab === 'catalog' && (
-          <CatalogContent
-            shop={shop}
-            onProduct={setProductId}
-            initialCategory={catalogInitCat}
-          />
-        )}
-        {tab === 'cart' && (
-          <CartTab
-            currency={shop.currency}
-            tenantId={shop.id}
-            shopSettings={shop.settings}
-            onCheckout={() => setShowCheckout(true)}
-            onShowCatalog={() => handleTabChange('catalog')}
-          />
-        )}
-        {tab === 'profile' && (
-          <ProfileTab
-            tenantId={shop.id}
-            currency={shop.currency}
-            shop={shop}
-            onProduct={setProductId}
-          />
-        )}
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--bg)', paddingTop: safeTop }}>
+      <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
+        {content}
       </div>
 
       {/* AI Consultant floating button — Premium feature */}
-      {shop.settings?.ai_consultant_enabled && (
+      {shop.settings?.ai_consultant_enabled && !showCheckout && !productId && (
         <button
           onClick={() => setShowAiConsultant(true)}
           style={{
-            position: 'fixed',
-            bottom: `calc(76px + env(safe-area-inset-bottom))`,
+            position: 'absolute',
+            bottom: 8,
             right: 16,
             width: 52, height: 52,
             borderRadius: 999,
@@ -612,6 +607,7 @@ function ShopApp() {
         </button>
       )}
 
+      <MainButtonBar />
       <BottomNav tab={tab} onTab={handleTabChange} cartCount={cartCount} />
     </div>
   )

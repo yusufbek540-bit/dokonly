@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
 import { useTelegramMainButton } from '@/hooks/useTelegram'
+import { FullPage } from '@/components/FullPage'
 import { tgConfirm } from '@/lib/tgConfirm'
 import { AIPhotoImport } from '../AIPhotoImport'
 import { CSVImport } from '../CSVImport'
@@ -1163,24 +1164,10 @@ export function CatalogTab({ tenant }: Props) {
         </button>
       )}
 
-      {/* Add product options sheet */}
+      {/* Add product options */}
       {showAddSheet && (
-        <div
-          onClick={() => setShowAddSheet(false)}
-          onTouchMove={e => e.preventDefault()}
-          style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            onTouchMove={e => e.stopPropagation()}
-            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '0 16px calc(28px + env(safe-area-inset-bottom))' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px 8px', position: 'relative', flexShrink: 0 }}>
-              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
-              <button onClick={() => setShowAddSheet(false)} style={{ position: 'absolute', right: 12, width: 32, height: 32, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="var(--muted-strong)" strokeWidth="2" strokeLinecap="round"/></svg>
-              </button>
-            </div>
+        <FullPage onClose={() => setShowAddSheet(false)}>
+          <div style={{ padding: '0 16px calc(28px + env(safe-area-inset-bottom))' }}>
             <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 16 }}>
               Добавить товар
             </div>
@@ -1217,7 +1204,7 @@ export function CatalogTab({ tenant }: Props) {
               </button>
             ))}
           </div>
-        </div>
+        </FullPage>
       )}
 
       {form && (
@@ -1269,24 +1256,10 @@ export function CatalogTab({ tenant }: Props) {
 
       {showPlanPicker && <PlanPicker onBack={() => setShowPlanPicker(false)} />}
 
-      {/* Channel post sheet */}
+      {/* Channel post */}
       {channelPostSheet && (
-        <div
-          onClick={() => setChannelPostSheet(null)}
-          onTouchMove={e => e.preventDefault()}
-          style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            onTouchMove={e => e.stopPropagation()}
-            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '0 16px calc(28px + env(safe-area-inset-bottom))' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px 8px', position: 'relative', flexShrink: 0 }}>
-              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
-              <button onClick={() => setChannelPostSheet(null)} style={{ position: 'absolute', right: 12, width: 32, height: 32, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="var(--muted-strong)" strokeWidth="2" strokeLinecap="round"/></svg>
-              </button>
-            </div>
+        <FullPage onClose={() => setChannelPostSheet(null)}>
+          <div style={{ padding: '0 16px calc(28px + env(safe-area-inset-bottom))' }}>
             <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 4 }}>
               📢 Пост в канале
             </div>
@@ -1335,7 +1308,7 @@ export function CatalogTab({ tenant }: Props) {
               {sendingChannelPost ? 'Отправляем…' : 'Опубликовать'}
             </button>
           </div>
-        </div>
+        </FullPage>
       )}
     </div>
   )

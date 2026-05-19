@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
 import { useCart } from '@/store/cart'
-import { useTelegramMainButton } from '@/hooks/useTelegram'
 import { FullPage } from '@/components/FullPage'
 
 interface Props {
@@ -275,12 +274,6 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
     setActiveAttrs(filterAttrs)
     setShowFilter(false)
   }
-
-  useTelegramMainButton({
-    text: `Применить (${pendingFilterCount})`,
-    onClick: handleApplyFilter,
-    isVisible: showFilter,
-  })
 
   // Live overlay search results
   const overlayResults = debouncedOverlay.trim()

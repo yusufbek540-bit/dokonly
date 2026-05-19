@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useMainButtonStore } from '@/store/mainButton'
 
 declare global {
   interface Window {
@@ -86,32 +87,26 @@ interface MainButtonOptions {
 }
 
 export function useTelegramMainButton({ text, onClick, isVisible, color, disabled }: MainButtonOptions) {
-  const tg = window.Telegram?.WebApp
+  const setMainButton = useMainButtonStore((s) => s.setMainButton)
+  const hideMainButton = useMainButtonStore((s) => s.hideMainButton)
   const callbackRef = useRef(onClick)
   callbackRef.current = onClick
-  const disabledRef = useRef(disabled)
-  disabledRef.current = disabled
 
   useEffect(() => {
-    if (!tg) return
-    const mb = tg.MainButton
-    const handler = () => { if (!disabledRef.current) callbackRef.current() }
-    mb.onClick(handler)
-    return () => {
-      mb.offClick(handler)
-      mb.hide()
-    }
+    return () => hideMainButton()
   }, [])
 
   useEffect(() => {
-    if (!tg) return
-    const mb = tg.MainButton
     if (!isVisible) {
-      mb.hide()
+      hideMainButton()
       return
     }
-    mb.setText(text)
-    mb.setParams({ color: color ?? undefined, is_active: !disabled })
-    mb.show()
+    setMainButton({
+      text,
+      onClick: () => callbackRef.current(),
+      isVisible,
+      color,
+      disabled,
+    })
   }, [text, isVisible, color, disabled])
 }

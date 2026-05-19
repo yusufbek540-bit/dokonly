@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSafeTop } from '@/hooks/useTelegram'
+import { MainButtonBar } from '@/components/MainButtonBar'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
@@ -164,9 +165,9 @@ export function SellerApp({ tenantSlug, shop }: Props) {
   const currentShop = shop ?? { id: tenant.id, name: tenant.name, currency: tenant.currency, logo_url: tenant.logo_url }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)', paddingTop: safeTop }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--bg)', paddingTop: safeTop }}>
       {/* Tab content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingBottom: 64 }}>
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {tab === 'home'      && <HomeTab      tenant={tenant} onTabChange={(t, deepLink) => { setTab(t as Tab); if (deepLink) setMoreDeepLink(deepLink) }} />}
         {tab === 'catalog'   && <CatalogTab   tenant={tenant} />}
         {tab === 'orders'    && <OrdersTab    tenant={tenant} />}
@@ -180,9 +181,11 @@ export function SellerApp({ tenantSlug, shop }: Props) {
         <MigrationTour tour={pendingTour} onDone={() => setTourDismissed(true)} />
       )}
 
+      <MainButtonBar />
+
       {/* Bottom nav */}
       <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40,
+        flexShrink: 0, zIndex: 40,
         background: 'var(--bg)', borderTop: '1px solid var(--border)',
         display: 'flex',
         paddingBottom: 'env(safe-area-inset-bottom)',

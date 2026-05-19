@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
+import { FullPage } from '@/components/FullPage'
 
 function fmtPrice(n: number, currency: string) {
   if (currency === 'UZS') return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' сум'
@@ -371,25 +372,10 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
         </div>
       )}
 
-      {/* Picking checklist modal */}
+      {/* Picking checklist */}
       {showPicking && (
-        <div
-          onClick={() => setShowPicking(false)}
-          onTouchMove={e => e.preventDefault()}
-          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            onTouchMove={e => e.stopPropagation()}
-            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', maxHeight: 'calc(80vh - var(--tg-safe-top, 0px))', overflow: 'auto', overscrollBehavior: 'contain' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px 8px', position: 'relative', flexShrink: 0 }}>
-              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
-              <button onClick={() => setShowPicking(false)} style={{ position: 'absolute', right: 12, width: 32, height: 32, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="var(--muted-strong)" strokeWidth="2" strokeLinecap="round"/></svg>
-              </button>
-            </div>
-            <div style={{ padding: '12px 20px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <FullPage onClose={() => setShowPicking(false)}>
+            <div style={{ padding: '0 20px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>
                 📋 Чеклист сборки
               </div>
@@ -458,8 +444,7 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
                 Готово
               </button>
             </div>
-          </div>
-        </div>
+        </FullPage>
       )}
     </div>
   )
@@ -595,22 +580,8 @@ function OrderCard({ order, currency, onAdvance, onCancel, onTap }: { order: any
 
     {/* Cancel confirmation */}
     {showCancelConfirm && (
-      <div
-        onClick={() => setShowCancelConfirm(false)}
-        onTouchMove={e => e.preventDefault()}
-        style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'flex-end' }}
-      >
-        <div
-          onClick={e => e.stopPropagation()}
-          onTouchMove={e => e.stopPropagation()}
-          style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '0 16px 32px' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px 8px', position: 'relative', flexShrink: 0 }}>
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
-            <button onClick={() => setShowCancelConfirm(false)} style={{ position: 'absolute', right: 12, width: 32, height: 32, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="var(--muted-strong)" strokeWidth="2" strokeLinecap="round"/></svg>
-            </button>
-          </div>
+      <FullPage onClose={() => { setShowCancelConfirm(false); setCancelReason('') }}>
+        <div style={{ padding: '0 16px 32px' }}>
           <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 8 }}>
             Отменить заказ?
           </div>
@@ -644,7 +615,7 @@ function OrderCard({ order, currency, onAdvance, onCancel, onTap }: { order: any
             </button>
           </div>
         </div>
-      </div>
+      </FullPage>
     )}
     </>
   )
@@ -794,20 +765,8 @@ function ReturnsView({ currency }: { currency: string }) {
       ))}
 
       {rejectId && (
-        <div
-          onTouchMove={e => e.preventDefault()}
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50,
-            display: 'flex', alignItems: 'flex-end',
-          }}
-        >
-          <div onTouchMove={e => e.stopPropagation()} style={{ background: 'var(--card)', borderRadius: '20px 20px 0 0', padding: '0 24px 24px', width: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px 8px', position: 'relative', flexShrink: 0 }}>
-              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
-              <button onClick={() => { setRejectId(null); setRejectReason('') }} style={{ position: 'absolute', right: 12, width: 32, height: 32, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="var(--muted-strong)" strokeWidth="2" strokeLinecap="round"/></svg>
-              </button>
-            </div>
+        <FullPage onClose={() => { setRejectId(null); setRejectReason('') }}>
+          <div style={{ padding: '0 24px 24px' }}>
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Причина отклонения</div>
             <textarea
               value={rejectReason}
@@ -844,7 +803,7 @@ function ReturnsView({ currency }: { currency: string }) {
               </button>
             </div>
           </div>
-        </div>
+        </FullPage>
       )}
     </div>
   )

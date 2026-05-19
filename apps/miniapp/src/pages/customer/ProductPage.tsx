@@ -177,7 +177,7 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 20,
@@ -204,7 +204,7 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
         )}
       </div>
 
-      <div className="screen-scroll" style={{ flex: 1, paddingBottom: 80 }}>
+      <div className="screen-scroll" style={{ flex: 1, paddingBottom: 24 }}>
         {/* Image gallery */}
         <div
           style={{ position: 'relative', background: 'var(--subtle)' }}

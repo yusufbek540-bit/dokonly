@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
+import { FullPage } from '@/components/FullPage'
 import { PlanPicker } from '../PlanPicker'
 import { AchievementsPage } from '../AchievementsPage'
 import { StreakDetailPage } from '../StreakDetailPage'
@@ -1078,14 +1079,8 @@ export function HomeTab({ tenant, onTabChange }: Props) {
       {showAchievements && <AchievementsPage onBack={() => setShowAchievements(false)} />}
 
       {showNewOrderSheet && (
-        <div onTouchMove={e => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}>
-          <div onTouchMove={e => e.stopPropagation()} style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '0 20px 40px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px 8px', position: 'relative', flexShrink: 0 }}>
-              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
-              <button onClick={() => setShowNewOrderSheet(false)} style={{ position: 'absolute', right: 12, width: 32, height: 32, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="var(--muted-strong)" strokeWidth="2" strokeLinecap="round"/></svg>
-              </button>
-            </div>
+        <FullPage onClose={() => setShowNewOrderSheet(false)}>
+          <div style={{ padding: '0 20px 40px' }}>
             <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', marginBottom: 16 }}>Новый заказ</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <input value={newOrderName} onChange={e => setNewOrderName(e.target.value)} placeholder="Имя покупателя*" style={{ height: 46, padding: '0 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', outline: 'none', fontSize: 14, color: 'var(--ink)' }} />
@@ -1111,7 +1106,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
               </button>
             </div>
           </div>
-        </div>
+        </FullPage>
       )}
     </div>
   )
