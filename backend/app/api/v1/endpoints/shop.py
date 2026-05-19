@@ -586,16 +586,22 @@ async def check_channel_membership(
     if not x_telegram_init_data:
         return {"is_member": False}
 
+    if not tenant.bot_token_enc:
+        return {"is_member": False}
+
+    bot_token = decrypt(tenant.bot_token_enc)
+
     tg_user = _validate_init_data(x_telegram_init_data)
+    if not tg_user:
+        tg_user = _validate_init_data(x_telegram_init_data, bot_token=bot_token)
     if not tg_user:
         return {"is_member": False}
 
     tg_user_id = tg_user.get("id")
-    if not tg_user_id or not tenant.bot_token_enc:
+    if not tg_user_id:
         return {"is_member": False}
 
     try:
-        bot_token = decrypt(tenant.bot_token_enc)
         channel = channel_username.lstrip("@")
         async with httpx.AsyncClient(timeout=5) as client:
             resp = await client.get(

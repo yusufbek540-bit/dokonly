@@ -45,9 +45,9 @@ const ACCENT_COLORS: Record<string, [string, string]> = {
 
 const TYPOGRAPHY_BUNDLES: Record<string, [string, string]> = {
   modern:    ["'Sora', system-ui, sans-serif",                "'Outfit', system-ui, sans-serif"],
-  editorial: ["'Instrument Serif', Georgia, serif",           "'Inter', system-ui, sans-serif"],
+  editorial: ["'Plus Jakarta Sans', system-ui, sans-serif",   "'Inter', system-ui, sans-serif"],
   bold:      ["'Bricolage Grotesque', system-ui, sans-serif", "'Inter', system-ui, sans-serif"],
-  warm:      ["'Fraunces', Georgia, serif",                   "'Outfit', system-ui, sans-serif"],
+  warm:      ["'Nunito', system-ui, sans-serif",              "'Outfit', system-ui, sans-serif"],
 }
 
 function applyShopTheme(accentColor: string, typographyBundle?: string) {
@@ -514,22 +514,20 @@ function ShopApp() {
 
   // AI Consultant overlay
   if (showAiConsultant) {
-    return <div className="page-enter"><AiConsultantView tenantId={shop.id} onClose={() => setShowAiConsultant(false)} /></div>
+    return <AiConsultantView tenantId={shop.id} onClose={() => setShowAiConsultant(false)} />
   }
 
   // Checkout flow (full screen, no tabs)
   if (showCheckout) {
     return (
-      <div className="page-enter">
-        <Checkout
-          tenantId={shop.id}
-          currency={shop.currency}
-          shopSettings={shop.settings}
-          onBack={() => setShowCheckout(false)}
-          onDone={() => { setShowCheckout(false); handleTabChange('home') }}
-          onTrackOrder={() => { setShowCheckout(false); handleTabChange('profile') }}
-        />
-      </div>
+      <Checkout
+        tenantId={shop.id}
+        currency={shop.currency}
+        shopSettings={shop.settings}
+        onBack={() => setShowCheckout(false)}
+        onDone={() => { setShowCheckout(false); handleTabChange('home') }}
+        onTrackOrder={() => { setShowCheckout(false); handleTabChange('profile') }}
+      />
     )
   }
 

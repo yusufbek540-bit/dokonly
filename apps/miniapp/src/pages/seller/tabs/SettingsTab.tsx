@@ -2848,14 +2848,14 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
             </p>
             {/* Inject Google Fonts for live preview */}
             <style>{`
-              @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;700&family=Outfit:wght@400;600&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;600&family=Bricolage+Grotesque:wght@700&family=Fraunces:wght@400;700&display=swap');
+              @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;700&family=Outfit:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;700&family=Inter:wght@400;600&family=Bricolage+Grotesque:wght@700&family=Nunito:wght@400;600;700&display=swap');
             `}</style>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
               {([
                 { id: 'modern',    label: 'Modern',    display: 'Sora',                body: 'Outfit',            mono: 'JetBrains Mono', hint: 'Электроника, Технологии' },
-                { id: 'editorial', label: 'Editorial', display: 'Instrument Serif',    body: 'Inter',             mono: 'JetBrains Mono', hint: 'Мода, Красота' },
+                { id: 'editorial', label: 'Editorial', display: 'Plus Jakarta Sans',   body: 'Inter',             mono: 'JetBrains Mono', hint: 'Мода, Красота' },
                 { id: 'bold',      label: 'Bold',      display: 'Bricolage Grotesque', body: 'Inter',             mono: 'JetBrains Mono', hint: 'Спорт, Авто' },
-                { id: 'warm',      label: 'Warm',      display: 'Fraunces',            body: 'Outfit',            mono: 'JetBrains Mono', hint: 'Дом, Еда' },
+                { id: 'warm',      label: 'Warm',      display: 'Nunito',              body: 'Outfit',            mono: 'JetBrains Mono', hint: 'Дом, Еда' },
                 { id: 'minimal',   label: 'Minimal',   display: 'Geist',               body: 'Geist',             mono: 'JetBrains Mono', hint: 'Универсальный, Премиум' },
               ] as { id: string; label: string; display: string; body: string; mono: string; hint: string }[]).map(typo => (
                 <button
