@@ -132,17 +132,24 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
   })
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 50,
-      background: 'var(--overlay)',
-      display: 'flex', alignItems: 'flex-end',
-    }}>
-      <div style={{
-        width: '100%', background: 'var(--bg)',
-        borderRadius: '20px 20px 0 0',
-        maxHeight: '90vh', overflow: 'auto',
-        animation: 'slideUp 0.25s cubic-bezier(0.16,1,0.3,1)',
-      }}>
+    <div
+      onTouchMove={e => e.preventDefault()}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 50,
+        background: 'var(--overlay)',
+        display: 'flex', alignItems: 'flex-end',
+      }}
+    >
+      <div
+        onTouchMove={e => e.stopPropagation()}
+        style={{
+          width: '100%', background: 'var(--bg)',
+          borderRadius: '20px 20px 0 0',
+          maxHeight: '90vh', overflow: 'auto',
+          overscrollBehavior: 'contain',
+          animation: 'slideUp 0.25s cubic-bezier(0.16,1,0.3,1)',
+        }}
+      >
         <style>{`@keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }`}</style>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 0' }}>
           <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)' }}>
@@ -1160,10 +1167,12 @@ export function CatalogTab({ tenant }: Props) {
       {showAddSheet && (
         <div
           onClick={() => setShowAddSheet(false)}
+          onTouchMove={e => e.preventDefault()}
           style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
         >
           <div
             onClick={e => e.stopPropagation()}
+            onTouchMove={e => e.stopPropagation()}
             style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px calc(28px + env(safe-area-inset-bottom))' }}
           >
             <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 20px' }}/>
@@ -1259,10 +1268,12 @@ export function CatalogTab({ tenant }: Props) {
       {channelPostSheet && (
         <div
           onClick={() => setChannelPostSheet(null)}
+          onTouchMove={e => e.preventDefault()}
           style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
         >
           <div
             onClick={e => e.stopPropagation()}
+            onTouchMove={e => e.stopPropagation()}
             style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px calc(28px + env(safe-area-inset-bottom))' }}
           >
             <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }}/>

@@ -1078,8 +1078,8 @@ export function HomeTab({ tenant, onTabChange }: Props) {
       {showAchievements && <AchievementsPage onBack={() => setShowAchievements(false)} />}
 
       {showNewOrderSheet && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 20px 40px' }}>
+        <div onTouchMove={e => e.preventDefault()} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}>
+          <div onTouchMove={e => e.stopPropagation()} style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 20px 40px' }}>
             <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }} />
             <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', marginBottom: 16 }}>Новый заказ</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

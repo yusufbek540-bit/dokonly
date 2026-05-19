@@ -692,8 +692,8 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
       )}
 
       {showReturnWizard && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ width: '100%', maxHeight: '90vh', overflowY: 'auto', background: 'var(--card)', borderRadius: '20px 20px 0 0', padding: '24px 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div onTouchMove={e => e.preventDefault()} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'flex-end' }}>
+          <div onTouchMove={e => e.stopPropagation()} style={{ width: '100%', maxHeight: '90vh', overflowY: 'auto', overscrollBehavior: 'contain', background: 'var(--card)', borderRadius: '20px 20px 0 0', padding: '24px 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
@@ -2404,10 +2404,12 @@ export function ProfileTab({ tenantId, currency, shop, onProduct }: Props) {
           return (
             <div
               onClick={() => { setWishlistShareProd(null); setWishlistCopied(false) }}
+              onTouchMove={e => e.preventDefault()}
               style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
             >
               <div
                 onClick={e => e.stopPropagation()}
+                onTouchMove={e => e.stopPropagation()}
                 style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px calc(28px + env(safe-area-inset-bottom))' }}
               >
                 <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 20px' }}/>

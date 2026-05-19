@@ -594,10 +594,12 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
       {showShare && (
         <div
           onClick={() => setShowShare(false)}
+          onTouchMove={e => e.preventDefault()}
           style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
         >
           <div
             onClick={e => e.stopPropagation()}
+            onTouchMove={e => e.stopPropagation()}
             style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px calc(28px + env(safe-area-inset-bottom))' }}
           >
             <div style={{ width: 36, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 20px' }}/>

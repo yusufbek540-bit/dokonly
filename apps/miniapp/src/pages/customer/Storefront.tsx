@@ -558,10 +558,12 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
       {showSort && (
         <div
           onClick={() => setShowSort(false)}
+          onTouchMove={e => e.preventDefault()}
           style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
         >
           <div
             onClick={e => e.stopPropagation()}
+            onTouchMove={e => e.stopPropagation()}
             style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px 32px' }}
           >
             <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 16 }}>
@@ -597,13 +599,16 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
       {showFilter && (
         <div
           onClick={() => setShowFilter(false)}
+          onTouchMove={e => e.preventDefault()}
           style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}
         >
           <div
             onClick={e => e.stopPropagation()}
+            onTouchMove={e => e.stopPropagation()}
             style={{
               width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0',
               padding: '20px 16px 32px', maxHeight: '80vh', overflowY: 'auto',
+              overscrollBehavior: 'contain',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>

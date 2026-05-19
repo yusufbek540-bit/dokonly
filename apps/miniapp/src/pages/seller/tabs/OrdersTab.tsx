@@ -375,11 +375,13 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
       {showPicking && (
         <div
           onClick={() => setShowPicking(false)}
+          onTouchMove={e => e.preventDefault()}
           style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', maxHeight: '80vh', overflow: 'auto' }}
+            onTouchMove={e => e.stopPropagation()}
+            style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', maxHeight: '80vh', overflow: 'auto', overscrollBehavior: 'contain' }}
           >
             <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
               <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)' }} />
@@ -592,10 +594,12 @@ function OrderCard({ order, currency, onAdvance, onCancel, onTap }: { order: any
     {showCancelConfirm && (
       <div
         onClick={() => setShowCancelConfirm(false)}
+        onTouchMove={e => e.preventDefault()}
         style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'flex-end' }}
       >
         <div
           onClick={e => e.stopPropagation()}
+          onTouchMove={e => e.stopPropagation()}
           style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px 32px' }}
         >
           <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 8 }}>
@@ -781,11 +785,14 @@ function ReturnsView({ currency }: { currency: string }) {
       ))}
 
       {rejectId && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50,
-          display: 'flex', alignItems: 'flex-end',
-        }}>
-          <div style={{ background: 'var(--card)', borderRadius: '20px 20px 0 0', padding: 24, width: '100%' }}>
+        <div
+          onTouchMove={e => e.preventDefault()}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50,
+            display: 'flex', alignItems: 'flex-end',
+          }}
+        >
+          <div onTouchMove={e => e.stopPropagation()} style={{ background: 'var(--card)', borderRadius: '20px 20px 0 0', padding: 24, width: '100%' }}>
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Причина отклонения</div>
             <textarea
               value={rejectReason}
