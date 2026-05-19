@@ -140,12 +140,23 @@ function BottomSheet({ onClose, children }: { onClose: () => void; children: Rea
         }}
       >
         <style>{`@keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }`}</style>
-        <button
-          onClick={onClose}
-          style={{ display: 'flex', justifyContent: 'center', width: '100%', padding: '12px 0 4px', background: 'none', border: 'none', cursor: 'pointer' }}
-        >
+        {/* Sheet header: centered handle pill + close button */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px 8px', position: 'relative', flexShrink: 0 }}>
           <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
-        </button>
+          <button
+            onClick={onClose}
+            style={{
+              position: 'absolute', right: 12,
+              width: 32, height: 32, borderRadius: 999,
+              background: 'var(--subtle)', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M1 1L13 13M13 1L1 13" stroke="var(--muted-strong)" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+        </div>
         {children}
       </div>
     </div>

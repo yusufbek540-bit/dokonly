@@ -383,9 +383,12 @@ function OrderDetail({ order, currency, onBack, onStatusUpdate }: {
             onTouchMove={e => e.stopPropagation()}
             style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', maxHeight: 'calc(80vh - var(--tg-safe-top, 0px))', overflow: 'auto', overscrollBehavior: 'contain' }}
           >
-            <button onClick={() => setShowPicking(false)} style={{ display: 'flex', justifyContent: 'center', width: '100%', padding: '12px 0 4px', background: 'none', border: 'none', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px 8px', position: 'relative', flexShrink: 0 }}>
               <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
-            </button>
+              <button onClick={() => setShowPicking(false)} style={{ position: 'absolute', right: 12, width: 32, height: 32, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="var(--muted-strong)" strokeWidth="2" strokeLinecap="round"/></svg>
+              </button>
+            </div>
             <div style={{ padding: '12px 20px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>
                 📋 Чеклист сборки
@@ -602,9 +605,12 @@ function OrderCard({ order, currency, onAdvance, onCancel, onTap }: { order: any
           onTouchMove={e => e.stopPropagation()}
           style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '0 16px 32px' }}
         >
-          <button onClick={() => setShowCancelConfirm(false)} style={{ display: 'flex', justifyContent: 'center', width: '100%', padding: '12px 0 16px', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px 8px', position: 'relative', flexShrink: 0 }}>
             <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
-          </button>
+            <button onClick={() => setShowCancelConfirm(false)} style={{ position: 'absolute', right: 12, width: 32, height: 32, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="var(--muted-strong)" strokeWidth="2" strokeLinecap="round"/></svg>
+            </button>
+          </div>
           <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 8 }}>
             Отменить заказ?
           </div>
@@ -796,9 +802,12 @@ function ReturnsView({ currency }: { currency: string }) {
           }}
         >
           <div onTouchMove={e => e.stopPropagation()} style={{ background: 'var(--card)', borderRadius: '20px 20px 0 0', padding: '0 24px 24px', width: '100%' }}>
-            <button onClick={() => { setRejectId(null); setRejectReason('') }} style={{ display: 'flex', justifyContent: 'center', width: '100%', padding: '12px 0 16px', background: 'none', border: 'none', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px 8px', position: 'relative', flexShrink: 0 }}>
               <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
-            </button>
+              <button onClick={() => { setRejectId(null); setRejectReason('') }} style={{ position: 'absolute', right: 12, width: 32, height: 32, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1L13 13M13 1L1 13" stroke="var(--muted-strong)" strokeWidth="2" strokeLinecap="round"/></svg>
+              </button>
+            </div>
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Причина отклонения</div>
             <textarea
               value={rejectReason}
