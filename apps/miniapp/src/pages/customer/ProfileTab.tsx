@@ -693,7 +693,7 @@ function OrderDetail({ order: initialOrder, currency, tenantId, onBack, shop }: 
 
       {showReturnWizard && (
         <div onTouchMove={e => e.preventDefault()} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'flex-end' }}>
-          <div onTouchMove={e => e.stopPropagation()} style={{ width: '100%', maxHeight: 'calc(90vh - var(--tg-content-safe-area-inset-top, 0px))', overflowY: 'auto', overscrollBehavior: 'contain', background: 'var(--card)', borderRadius: '20px 20px 0 0', padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div onTouchMove={e => e.stopPropagation()} style={{ width: '100%', maxHeight: 'calc(90vh - var(--tg-safe-top, 0px))', overflowY: 'auto', overscrollBehavior: 'contain', background: 'var(--card)', borderRadius: '20px 20px 0 0', padding: '0 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <button onClick={resetReturnWizard} style={{ display: 'flex', justifyContent: 'center', width: '100%', padding: '12px 0 4px', background: 'none', border: 'none', cursor: 'pointer' }}>
               <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
             </button>

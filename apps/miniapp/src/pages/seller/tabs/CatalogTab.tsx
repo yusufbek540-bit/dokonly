@@ -145,7 +145,7 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
         style={{
           width: '100%', background: 'var(--bg)',
           borderRadius: '20px 20px 0 0',
-          maxHeight: 'calc(90vh - var(--tg-content-safe-area-inset-top, 0px))', overflow: 'auto',
+          maxHeight: 'calc(90vh - var(--tg-safe-top, 0px))', overflow: 'auto',
           overscrollBehavior: 'contain',
           animation: 'slideUp 0.25s cubic-bezier(0.16,1,0.3,1)',
         }}

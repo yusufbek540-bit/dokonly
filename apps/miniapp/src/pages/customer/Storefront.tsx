@@ -610,7 +610,7 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
             onTouchMove={e => e.stopPropagation()}
             style={{
               width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0',
-              padding: '0 16px 32px', maxHeight: 'calc(80vh - var(--tg-content-safe-area-inset-top, 0px))', overflowY: 'auto',
+              padding: '0 16px 32px', maxHeight: 'calc(80vh - var(--tg-safe-top, 0px))', overflowY: 'auto',
               overscrollBehavior: 'contain',
             }}
           >
