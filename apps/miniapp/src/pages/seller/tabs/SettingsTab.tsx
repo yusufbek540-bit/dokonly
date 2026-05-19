@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Icon } from '@/components/Icon'
 import { api } from '@/lib/api'
 import { useTelegramMainButton } from '@/hooks/useTelegram'
+import { FullPage } from '@/components/FullPage'
 import { PlanPicker } from '../PlanPicker'
 import { tgConfirm } from '@/lib/tgConfirm'
 import { AchievementsPage } from '../AchievementsPage'
@@ -112,56 +113,7 @@ function ToggleRow({ icon, label, value, onChange }: {
 
 // ─── Bottom-sheet shell ────────────────────────────────────────────────────────
 
-function BottomSheet({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
-  useEffect(() => {
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
-  }, [])
-  return (
-    <div
-      onClick={onClose}
-      onTouchMove={e => e.preventDefault()}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 50,
-        background: 'rgba(0,0,0,0.4)',
-        display: 'flex', alignItems: 'flex-end',
-      }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        onTouchMove={e => e.stopPropagation()}
-        style={{
-          width: '100%', background: 'var(--bg)',
-          borderRadius: '20px 20px 0 0',
-          maxHeight: 'calc(90vh - var(--tg-safe-top, 0px))', overflowY: 'auto',
-          overscrollBehavior: 'contain',
-          animation: 'slideUp 0.25s cubic-bezier(0.16,1,0.3,1)',
-        }}
-      >
-        <style>{`@keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }`}</style>
-        {/* Sheet header: centered handle pill + close button */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 16px 8px', position: 'relative', flexShrink: 0 }}>
-          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-strong)' }} />
-          <button
-            onClick={onClose}
-            style={{
-              position: 'absolute', right: 12,
-              width: 32, height: 32, borderRadius: 999,
-              background: 'var(--subtle)', border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M1 1L13 13M13 1L1 13" stroke="var(--muted-strong)" strokeWidth="2" strokeLinecap="round"/>
-            </svg>
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
-  )
-}
+const BottomSheet = FullPage
 
 // ─── Color map ─────────────────────────────────────────────────────────────────
 
@@ -1864,7 +1816,6 @@ export function TeamView({ onBack }: { onBack: () => void }) {
       {selectedMember && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}>
           <div style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 20px 40px' }}>
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }} />
             <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
               Уведомления — {selectedMember.username ?? selectedMember.name ?? 'Участник'}
             </div>
@@ -2922,7 +2873,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       {editOrderSettings && (
         <BottomSheet onClose={() => setEditOrderSettings(false)}>
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)' }} />
           </div>
           <div style={{ padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>
@@ -3240,7 +3190,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
         <BottomSheet onClose={() => setEditProfile(false)}>
           {/* drag handle */}
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)' }} />
           </div>
 
           <div style={{ padding: '16px 20px 32px' }}>
@@ -3481,7 +3430,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       {editDelivery && (
         <BottomSheet onClose={() => setEditDelivery(false)}>
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)' }} />
           </div>
 
           <div style={{ padding: '16px 20px 32px' }}>
@@ -3551,7 +3499,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       {editPayment && (
         <BottomSheet onClose={() => setEditPayment(false)}>
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)' }} />
           </div>
 
           <div style={{ padding: '16px 20px 32px' }}>
@@ -3663,7 +3610,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
         <BottomSheet onClose={() => setEditBot(false)}>
           {/* drag handle */}
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)' }} />
           </div>
 
           <div style={{ padding: '16px 20px 32px' }}>
@@ -3820,7 +3766,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       {editGroupChat && (
         <BottomSheet onClose={() => setEditGroupChat(false)}>
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)' }} />
           </div>
 
           <div style={{ padding: '16px 20px 32px' }}>
@@ -3923,7 +3868,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       {editNotifications && (
         <BottomSheet onClose={() => setEditNotifications(false)}>
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)' }} />
           </div>
           <NotificationsSheet tenant={tenant} onClose={() => setEditNotifications(false)} />
         </BottomSheet>
@@ -3933,7 +3877,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       {editLocalization && (
         <BottomSheet onClose={() => setEditLocalization(false)}>
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)' }} />
           </div>
           <LocalizationSheet tenant={tenant} onClose={() => setEditLocalization(false)} />
         </BottomSheet>
