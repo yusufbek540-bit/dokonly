@@ -1,7 +1,9 @@
+import { getTelegramInitData } from './telegramDevMock'
+
 const BASE = import.meta.env.VITE_API_URL ?? ''
 
 function getInitData(): string {
-  return window.Telegram?.WebApp?.initData ?? ''
+  return getTelegramInitData()
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
