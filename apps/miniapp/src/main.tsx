@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
 import './index.css'
+import { installTelegramDevMock } from '@/lib/telegramDevMock'
+
+installTelegramDevMock()
 
 // Force full-height / fullscreen immediately on load, detect safe area
 ;(function () {

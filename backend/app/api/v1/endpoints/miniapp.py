@@ -9,10 +9,10 @@ from uuid import UUID
 
 import boto3
 import httpx
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.auth import get_tg_user
 from app.core.config import settings
@@ -26,6 +26,13 @@ from app.models.mailing import MassMailing
 from app.schemas.tenant import TenantResponse
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse
 from app.schemas.order import OrderStatusUpdate
+from app.services.customer_crm import (
+    add_note as crm_add_note,
+    add_tag as crm_add_tag,
+    normalize_crm,
+    remove_note as crm_remove_note,
+    remove_tag as crm_remove_tag,
+)
 
 router = APIRouter(prefix="/miniapp", tags=["miniapp"])
 
@@ -75,6 +82,7 @@ async def _enrich_orders(orders: list, db: AsyncSession) -> list[dict]:
             "customer_name": getattr(o, "customer_name", None),
             "customer_phone": getattr(o, "customer_phone", None),
             "customer_email": getattr(o, "customer_email", None),
+            "customer_id": str(o.customer_id) if o.customer_id else None,
             "customer_telegram_id": customer.telegram_id if customer else None,
             "delivery_address": getattr(o, "delivery_address", None),
             "delivery_type": getattr(o, "delivery_type", None),
@@ -2220,6 +2228,16 @@ async def upgrade_subscription(
 # ---------------------------------------------------------------------------
 
 
+async def _get_customer_for_tenant(customer_id: UUID, tenant: Tenant, db: AsyncSession) -> Customer:
+    result = await db.execute(
+        select(Customer).where(Customer.id == customer_id, Customer.tenant_id == tenant.id)
+    )
+    customer = result.scalar_one_or_none()
+    if not customer:
+        raise HTTPException(404, "Customer not found")
+    return customer
+
+
 @router.get("/customers")
 async def list_customers(
     q: str = "",
@@ -2229,7 +2247,6 @@ async def list_customers(
     user: dict = Depends(get_tg_user),
     db: AsyncSession = Depends(get_db),
 ):
-    from app.models.order import Customer
     tenant = await _require_tenant(user, db)
     query = select(Customer).where(Customer.tenant_id == tenant.id, Customer.is_deleted == False)  # noqa: E712
     if q:
@@ -2251,6 +2268,7 @@ async def list_customers(
             "email": c.email,
             "total_orders": c.total_orders,
             "total_spent": float(c.total_spent or 0),
+            "tags": normalize_crm(c.crm).get("tags", []),
             "created_at": c.created_at.isoformat() if c.created_at else None,
         }
         for c in customers
@@ -2263,14 +2281,11 @@ async def get_customer(
     user: dict = Depends(get_tg_user),
     db: AsyncSession = Depends(get_db),
 ):
-    from app.models.order import Customer
     tenant = await _require_tenant(user, db)
-    result = await db.execute(select(Customer).where(Customer.id == customer_id, Customer.tenant_id == tenant.id))
-    c = result.scalar_one_or_none()
-    if not c:
-        raise HTTPException(404, "Customer not found")
+    c = await _get_customer_for_tenant(customer_id, tenant, db)
     orders_q = await db.execute(select(Order).where(Order.customer_id == c.id).order_by(Order.created_at.desc()).limit(20))
     orders = orders_q.scalars().all()
+    crm = normalize_crm(c.crm)
     return {
         "id": str(c.id),
         "telegram_id": c.telegram_id,
@@ -2281,8 +2296,8 @@ async def get_customer(
         "email": c.email,
         "total_orders": c.total_orders,
         "total_spent": float(c.total_spent or 0),
-        "tags": [],
-        "notes": [],
+        "tags": crm["tags"],
+        "notes": crm["notes"],
         "orders": [{"id": str(o.id), "status": o.status, "total": float(o.total), "currency": o.currency, "created_at": o.created_at.isoformat() if o.created_at else None} for o in orders],
         "created_at": c.created_at.isoformat() if c.created_at else None,
     }
@@ -2294,13 +2309,9 @@ async def get_customer_notes(
     user: dict = Depends(get_tg_user),
     db: AsyncSession = Depends(get_db),
 ):
-    from app.models.order import Customer
     tenant = await _require_tenant(user, db)
-    result = await db.execute(select(Customer).where(Customer.id == customer_id, Customer.tenant_id == tenant.id))
-    c = result.scalar_one_or_none()
-    if not c:
-        raise HTTPException(404, "Customer not found")
-    return []
+    c = await _get_customer_for_tenant(customer_id, tenant, db)
+    return normalize_crm(c.crm)["notes"]
 
 
 @router.post("/customers/{customer_id}/notes", status_code=201)
@@ -2310,8 +2321,15 @@ async def add_customer_note(
     user: dict = Depends(get_tg_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _require_tenant(user, db)
-    return {"id": str(uuid.uuid4()), "content": body.get("content", ""), "created_at": datetime.now(timezone.utc).isoformat()}
+    tenant = await _require_tenant(user, db)
+    c = await _get_customer_for_tenant(customer_id, tenant, db)
+    try:
+        c.crm, note = crm_add_note(c.crm, body.get("content", ""))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    flag_modified(c, "crm")
+    await db.commit()
+    return note
 
 
 @router.delete("/customers/{customer_id}/notes/{note_id}", status_code=204)
@@ -2321,7 +2339,11 @@ async def delete_customer_note(
     user: dict = Depends(get_tg_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _require_tenant(user, db)
+    tenant = await _require_tenant(user, db)
+    c = await _get_customer_for_tenant(customer_id, tenant, db)
+    c.crm = crm_remove_note(c.crm, note_id)
+    flag_modified(c, "crm")
+    await db.commit()
 
 
 @router.post("/customers/{customer_id}/tags")
@@ -2331,8 +2353,12 @@ async def add_customer_tag(
     user: dict = Depends(get_tg_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _require_tenant(user, db)
-    return {"tags": [body.get("tag", "")]}
+    tenant = await _require_tenant(user, db)
+    c = await _get_customer_for_tenant(customer_id, tenant, db)
+    c.crm = crm_add_tag(c.crm, body.get("tag", ""))
+    flag_modified(c, "crm")
+    await db.commit()
+    return {"tags": c.crm["tags"]}
 
 
 @router.delete("/customers/{customer_id}/tags/{tag}", status_code=204)
@@ -2342,7 +2368,11 @@ async def remove_customer_tag(
     user: dict = Depends(get_tg_user),
     db: AsyncSession = Depends(get_db),
 ):
-    await _require_tenant(user, db)
+    tenant = await _require_tenant(user, db)
+    c = await _get_customer_for_tenant(customer_id, tenant, db)
+    c.crm = crm_remove_tag(c.crm, tag)
+    flag_modified(c, "crm")
+    await db.commit()
 
 
 # ---------------------------------------------------------------------------

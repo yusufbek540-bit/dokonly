@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useEffect, useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
 
 const NOTES_KEY = 'dokonly_seller_customer_notes'
+interface CustomerNote { id: string; content: string; created_at: string }
 interface CustomerMeta { note: string; tags: string[] }
 
 function loadMeta(key: string): CustomerMeta {
@@ -38,7 +39,15 @@ function fmtDateFull(iso: string) {
   return new Date(iso).toLocaleDateString('ru', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+function latestNote(notes: CustomerNote[] = []): CustomerNote | null {
+  return notes.reduce<CustomerNote | null>((latest, current) => {
+    if (!latest) return current
+    return current.created_at > latest.created_at ? current : latest
+  }, null)
+}
+
 interface CustomerData {
+  id?: string | null
   name: string
   phone: string
   email?: string
@@ -61,10 +70,93 @@ const STATUS_COLORS: Record<string, string> = {
 function CustomerDetail({ customer, currency, onBack }: { customer: CustomerData; currency: string; onBack: () => void }) {
   const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'notes'>('overview')
   const storageKey = customer.telegramId ? `tg_${customer.telegramId}` : `phone_${customer.phone}`
+  const customerId = customer.id ?? null
+  const qc = useQueryClient()
+  const { data: remoteCustomer } = useQuery({
+    queryKey: ['seller-customer', customerId],
+    queryFn: () => api.seller.getCustomer(customerId!),
+    enabled: Boolean(customerId),
+  })
   const [note, setNote] = useState(() => loadMeta(storageKey).note)
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(null)
   const [tags, setTags] = useState<string[]>(() => loadMeta(storageKey).tags)
   const [tagInput, setTagInput] = useState('')
   const [noteSaved, setNoteSaved] = useState(false)
+
+  useEffect(() => {
+    if (!customerId || !remoteCustomer) return
+    const nextTags = Array.isArray(remoteCustomer.tags) ? remoteCustomer.tags : []
+    const noteRecord = latestNote(remoteCustomer.notes ?? [])
+    setTags(nextTags)
+    setNote(noteRecord?.content ?? '')
+    setActiveNoteId(noteRecord?.id ?? null)
+  }, [customerId, remoteCustomer])
+
+  const addTagMutation = useMutation({
+    mutationFn: (tag: string) => api.seller.addCustomerTag(customerId!, tag),
+    onSuccess: data => {
+      setTags(data.tags)
+      if (customerId) qc.invalidateQueries({ queryKey: ['seller-customer', customerId] })
+    },
+  })
+
+  const removeTagMutation = useMutation({
+    mutationFn: (tag: string) => api.seller.removeCustomerTag(customerId!, tag),
+    onSettled: () => {
+      if (customerId) qc.invalidateQueries({ queryKey: ['seller-customer', customerId] })
+    },
+  })
+
+  const saveNoteMutation = useMutation({
+    mutationFn: async (content: string) => {
+      if (!customerId) throw new Error('Missing customer id')
+      if (activeNoteId) await api.seller.deleteCustomerNote(customerId, activeNoteId)
+      return api.seller.addCustomerNote(customerId, content)
+    },
+    onSuccess: noteRecord => {
+      setNote(noteRecord.content)
+      setActiveNoteId(noteRecord.id)
+      setNoteSaved(true)
+      if (customerId) qc.invalidateQueries({ queryKey: ['seller-customer', customerId] })
+      setTimeout(() => setNoteSaved(false), 2000)
+    },
+  })
+
+  const handleAddTag = () => {
+    const tag = tagInput.trim()
+    if (!tag) return
+    if (customerId) {
+      addTagMutation.mutate(tag)
+    } else {
+      const newTags = tags.some(x => x.toLowerCase() === tag.toLowerCase()) ? tags : [...tags, tag]
+      setTags(newTags)
+      saveMeta(storageKey, { note, tags: newTags })
+    }
+    setTagInput('')
+  }
+
+  const handleRemoveTag = (tag: string) => {
+    const newTags = tags.filter(x => x.toLowerCase() !== tag.toLowerCase())
+    setTags(newTags)
+    if (customerId) {
+      removeTagMutation.mutate(tag)
+    } else {
+      saveMeta(storageKey, { note, tags: newTags })
+    }
+  }
+
+  const handleSaveNote = () => {
+    const trimmed = note.trim()
+    if (!trimmed) return
+    if (customerId) {
+      saveNoteMutation.mutate(trimmed)
+    } else {
+      saveMeta(storageKey, { note: trimmed, tags })
+      setNote(trimmed)
+      setNoteSaved(true)
+      setTimeout(() => setNoteSaved(false), 2000)
+    }
+  }
 
   const aov = customer.orderCount > 0 ? customer.totalSpent / customer.orderCount : 0
   const segment = customer.orderCount >= 5 ? 'VIP' : customer.orderCount >= 2 ? 'Постоянный' : 'Новый'
@@ -244,11 +336,12 @@ function CustomerDetail({ customer, currency, onBack }: { customer: CustomerData
                 {tags.map(tag => (
                   <div key={tag} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 999, background: 'var(--accent-soft)', border: '1px solid var(--accent)' }}>
                     <span style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 500 }}>{tag}</span>
-                    <button onClick={() => {
-                      const newTags = tags.filter(x => x !== tag)
-                      setTags(newTags)
-                      saveMeta(storageKey, { note, tags: newTags })
-                    }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                    <button
+                      onClick={() => handleRemoveTag(tag)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: 14, lineHeight: 1, padding: 0 }}
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>
@@ -257,25 +350,14 @@ function CustomerDetail({ customer, currency, onBack }: { customer: CustomerData
                   value={tagInput}
                   onChange={e => setTagInput(e.target.value)}
                   onKeyDown={e => {
-                    if (e.key === 'Enter' && tagInput.trim()) {
-                      const newTags = [...tags, tagInput.trim()]
-                      setTags(newTags)
-                      setTagInput('')
-                      saveMeta(storageKey, { note, tags: newTags })
-                    }
+                    if (e.key === 'Enter') handleAddTag()
                   }}
                   placeholder="Добавить тег..."
                   style={{ flex: 1, height: 40, padding: '0 12px', borderRadius: 10, background: 'var(--card)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--ink)', outline: 'none' }}
                 />
                 <button
-                  onClick={() => {
-                    if (tagInput.trim()) {
-                      const newTags = [...tags, tagInput.trim()]
-                      setTags(newTags)
-                      setTagInput('')
-                      saveMeta(storageKey, { note, tags: newTags })
-                    }
-                  }}
+                  onClick={handleAddTag}
+                  disabled={addTagMutation.isPending}
                   style={{ height: 40, padding: '0 14px', borderRadius: 10, background: 'var(--accent)', color: 'white', fontSize: 13, fontWeight: 600 }}
                 >
                   +
@@ -300,14 +382,11 @@ function CustomerDetail({ customer, currency, onBack }: { customer: CustomerData
               />
               {note && (
                 <button
-                  onClick={() => {
-                    saveMeta(storageKey, { note, tags })
-                    setNoteSaved(true)
-                    setTimeout(() => setNoteSaved(false), 2000)
-                  }}
+                  onClick={handleSaveNote}
+                  disabled={saveNoteMutation.isPending}
                   style={{ marginTop: 10, height: 40, padding: '0 20px', borderRadius: 10, background: 'var(--accent)', color: 'white', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}
                 >
-                  {noteSaved ? '✓ Сохранено' : 'Сохранить'}
+                  {saveNoteMutation.isPending ? 'Сохранение...' : noteSaved ? '✓ Сохранено' : 'Сохранить'}
                 </button>
               )}
             </div>
@@ -334,11 +413,14 @@ export function CustomersTab({ tenant }: Props) {
     const map = new Map<string, CustomerData>()
 
     for (const order of orders as any[]) {
-      const key = order.customer_telegram_id
+      const key = order.customer_id
+        ? `id_${order.customer_id}`
+        : order.customer_telegram_id
         ? String(order.customer_telegram_id)
         : `${order.customer_name}_${order.customer_phone}`
       const existing = map.get(key)
       if (existing) {
+        if (order.customer_id && !existing.id) existing.id = order.customer_id
         existing.orderCount++
         existing.totalSpent += Number(order.total ?? 0)
         if (order.created_at > existing.lastOrderAt) existing.lastOrderAt = order.created_at
@@ -346,6 +428,7 @@ export function CustomersTab({ tenant }: Props) {
         existing.orders.push(order)
       } else {
         map.set(key, {
+          id: order.customer_id ?? null,
           name: order.customer_name ?? 'Покупатель',
           phone: order.customer_phone ?? '',
           email: order.customer_email ?? undefined,
@@ -361,10 +444,6 @@ export function CustomersTab({ tenant }: Props) {
     return Array.from(map.values()).sort((a, b) => b.totalSpent - a.totalSpent)
   }, [orders])
 
-  if (selectedCustomer) {
-    return <CustomerDetail customer={selectedCustomer} currency={tenant.currency} onBack={() => setSelectedCustomer(null)} />
-  }
-
   const filtered = useMemo(() => {
     return customers.filter(c => {
       if (search.trim()) {
@@ -378,6 +457,10 @@ export function CustomersTab({ tenant }: Props) {
       return true
     })
   }, [customers, search, segmentFilter])
+
+  if (selectedCustomer) {
+    return <CustomerDetail customer={selectedCustomer} currency={tenant.currency} onBack={() => setSelectedCustomer(null)} />
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -493,7 +576,7 @@ export function CustomersTab({ tenant }: Props) {
           <div>
             {filtered.map((c, i) => (
               <div
-                key={i}
+                key={c.id ?? `${c.telegramId ?? c.phone}_${i}`}
                 onClick={() => setSelectedCustomer(c)}
                 style={{
                   display: 'flex',
