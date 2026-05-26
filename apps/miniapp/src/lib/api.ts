@@ -1,4 +1,4 @@
-import { getTelegramInitData } from './telegramDevMock'
+import { getTelegramDevApiResponse, getTelegramInitData } from './telegramDevMock'
 
 const BASE = import.meta.env.VITE_API_URL ?? ''
 
@@ -7,15 +7,26 @@ function getInitData(): string {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Telegram-Init-Data': getInitData(),
-      ...init?.headers,
-    },
-  })
-  if (!res.ok) throw new Error(await res.text())
+  let res: Response
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Telegram-Init-Data': getInitData(),
+        ...init?.headers,
+      },
+    })
+  } catch (error) {
+    const fallback = getTelegramDevApiResponse<T>(path, init)
+    if (fallback !== undefined) return fallback
+    throw error
+  }
+  if (!res.ok) {
+    const fallback = getTelegramDevApiResponse<T>(path, init)
+    if (fallback !== undefined) return fallback
+    throw new Error(await res.text())
+  }
   if (res.status === 204) return undefined as T
   const text = await res.text()
   if (!text) return undefined as T

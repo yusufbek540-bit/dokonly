@@ -30,6 +30,105 @@ export function getTelegramInitData(): string {
   return window.Telegram?.WebApp?.initData ?? (isLocalTelegramDevMockEnabled() ? createDevInitData() : '')
 }
 
+function getDevUser() {
+  const initData = getTelegramInitData()
+  return JSON.parse(new URLSearchParams(initData).get('user') ?? '{}')
+}
+
+function getDevTenant() {
+  const now = new Date().toISOString()
+  return {
+    id: '00000000-0000-4000-8000-000000000001',
+    owner_id: '00000000-0000-4000-8000-000000000002',
+    name: 'Local Dev Shop',
+    slug: 'local-dev-shop',
+    country: 'UZ',
+    currency: 'UZS',
+    locale: 'ru',
+    tier: 'business',
+    subscription_status: 'active',
+    bot_username: 'local_dev_bot',
+    logo_url: null,
+    cover_url: null,
+    accent_color: 'emerald',
+    typography_bundle: 'modern',
+    layout: 'boutique',
+    category: 'fashion',
+    description: 'Local development store',
+    contact_info: {},
+    settings: {
+      delivery_methods: ['pickup', 'courier'],
+      payment_methods: ['cash_on_delivery'],
+      notification_preferences: {},
+    },
+    is_active: true,
+    created_at: now,
+    updated_at: now,
+  }
+}
+
+function getDevAnalytics() {
+  return {
+    total_revenue: 0,
+    today_revenue: 0,
+    yesterday_revenue: 0,
+    total_orders: 0,
+    today_orders: 0,
+    new_orders: 0,
+    product_count: 0,
+    customer_count: 0,
+    refund_amount: 0,
+    top_products: [],
+    revenue_series: [],
+  }
+}
+
+export function getTelegramDevApiResponse<T>(path: string, init?: RequestInit): T | undefined {
+  if (!isLocalTelegramDevMockEnabled()) return undefined
+
+  const method = init?.method ?? 'GET'
+  const pathname = path.split('?')[0]
+  if (method !== 'GET') return { ok: true } as T
+
+  if (pathname === '/api/v1/miniapp/me') {
+    return { tg_user: getDevUser(), tenant: getDevTenant() } as T
+  }
+  if (pathname === '/api/v1/miniapp/analytics/summary') return getDevAnalytics() as T
+  if (pathname === '/api/v1/miniapp/analytics/viral') {
+    return { shares: 0, clicks: 0, conversions: 0, top_products: [] } as T
+  }
+  if (pathname === '/api/v1/miniapp/achievements') {
+    return { unlocked: [], locked: [], stats: { unlocked_count: 0, total_count: 0 } } as T
+  }
+  if (pathname === '/api/v1/miniapp/streak') {
+    return { current_streak: 0, best_streak: 0, today_at_risk: false, calendar: [] } as T
+  }
+  if (pathname === '/api/v1/miniapp/dashboard/badges') return {} as T
+  if (pathname === '/api/v1/miniapp/tours/pending') return null as T
+  if (pathname === '/api/v1/miniapp/subscription') {
+    return { tier: 'business', status: 'active', trial_ends_at: null, next_billing_at: null } as T
+  }
+  if (pathname === '/api/v1/public/help-articles') return [] as T
+
+  const emptyArrayPaths = [
+    '/api/v1/miniapp/products',
+    '/api/v1/miniapp/orders',
+    '/api/v1/miniapp/categories',
+    '/api/v1/miniapp/returns',
+    '/api/v1/miniapp/promo-codes',
+    '/api/v1/miniapp/mailings',
+    '/api/v1/miniapp/stories',
+    '/api/v1/miniapp/abandoned-carts',
+    '/api/v1/miniapp/team',
+    '/api/v1/miniapp/invoices',
+    '/api/v1/miniapp/channel-posts',
+    '/api/v1/miniapp/customers',
+  ]
+  if (emptyArrayPaths.includes(pathname)) return [] as T
+
+  return undefined
+}
+
 export function installTelegramDevMock() {
   if (!isLocalTelegramDevMockEnabled()) return
   if (window.Telegram?.WebApp?.initData) return
