@@ -492,7 +492,7 @@ export function Checkout({ tenantId, currency, shopSettings, onBack, onDone, onT
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Header */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 20,

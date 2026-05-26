@@ -13,11 +13,3 @@ body {
   background-color: #09090b;
   color: #fafafa;
 }
-
-@keyframes pageEnter {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.page-enter {
-  animation: pageEnter 0.22s ease-out forwards;
-}

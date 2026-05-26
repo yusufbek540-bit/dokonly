@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Icon } from '@/components/Icon'
 import { api } from '@/lib/api'
-import { useTelegramMainButton } from '@/hooks/useTelegram'
 import { FullPage } from '@/components/FullPage'
 import { PlanPicker } from '../PlanPicker'
 import { tgConfirm } from '@/lib/tgConfirm'
@@ -209,12 +208,6 @@ export function MailingsView({ onBack }: { onBack: () => void }) {
   const STATUS_LABELS: Record<string, string> = { draft: 'Черновик', sending: 'Отправка', sent: 'Отправлено', failed: 'Ошибка' }
   const STATUS_COLORS: Record<string, string> = { draft: 'var(--muted)', sending: '#F59E0B', sent: 'var(--accent)', failed: 'var(--danger)' }
 
-  useTelegramMainButton({
-    text: creating ? 'Создание...' : 'Сохранить черновик',
-    onClick: () => { if (title.trim() && text.trim() && !creating) createMailing() },
-    isVisible: showForm,
-    disabled: !title.trim() || !text.trim() || creating,
-  })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -307,9 +300,8 @@ export function MailingsView({ onBack }: { onBack: () => void }) {
 
       {/* Create form BottomSheet */}
       {showForm && (
-        <BottomSheet onClose={() => setShowForm(false)}>
+        <BottomSheet onClose={() => setShowForm(false)} title="Новая рассылка">
           <div style={{ padding: '8px 20px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>Новая рассылка</div>
             <input
               placeholder="Заголовок"
               value={title}
@@ -347,6 +339,11 @@ export function MailingsView({ onBack }: { onBack: () => void }) {
               />
             </div>
             {error && <div style={{ fontSize: 13, color: 'var(--danger)' }}>{error}</div>}
+            <button
+              onClick={() => { if (title.trim() && text.trim() && !creating) createMailing() }}
+              disabled={!title.trim() || !text.trim() || creating}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: (!title.trim() || !text.trim() || creating) ? 'not-allowed' : 'pointer', opacity: (!title.trim() || !text.trim() || creating) ? 0.5 : 1 }}
+            >{creating ? 'Создание...' : 'Сохранить черновик'}</button>
           </div>
         </BottomSheet>
       )}
@@ -403,12 +400,6 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
   })
 
   const canCreateCode = !!(code.trim() && discountValue.trim() && !creating)
-  useTelegramMainButton({
-    text: creating ? 'Создание...' : 'Создать купон',
-    onClick: () => { if (canCreateCode) createCode() },
-    isVisible: showForm,
-    disabled: !canCreateCode,
-  })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -513,12 +504,8 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
       </div>
 
       {showForm && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}
-          onClick={() => setShowForm(false)}>
-          <div style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px 32px' }}
-            onClick={e => e.stopPropagation()}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 16 }}>Новый купон</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <BottomSheet onClose={() => setShowForm(false)} title="Новый купон">
+          <div style={{ padding: '16px 16px 32px', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <input
                 placeholder="Код (напр. SALE20)"
                 value={code}
@@ -607,9 +594,13 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
                 </div>
               )}
               {error && <div style={{ fontSize: 13, color: 'var(--danger)' }}>{error}</div>}
-            </div>
+            <button
+              onClick={() => { if (canCreateCode) createCode() }}
+              disabled={!canCreateCode}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: canCreateCode ? 'pointer' : 'not-allowed', opacity: canCreateCode ? 1 : 0.5, marginTop: 4 }}
+            >{creating ? 'Создание...' : 'Создать купон'}</button>
           </div>
-        </div>
+        </BottomSheet>
       )}
     </div>
   )
@@ -647,10 +638,7 @@ function NotificationsSheet({ tenant, onClose }: { tenant: any; onClose: () => v
 
   return (
     <div style={{ padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>
-        Уведомления
-      </div>
-      <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: -8, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
         Выберите, о каких событиях вы хотите получать уведомления в Telegram.
       </div>
       <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)' }}>
@@ -738,9 +726,6 @@ function LocalizationSheet({ tenant, onClose }: { tenant: any; onClose: () => vo
 
   return (
     <div style={{ padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>
-        Язык магазина
-      </div>
 
       {/* Default language */}
       <div>
@@ -1022,9 +1007,8 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
       </div>
 
       {showForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 20px 40px', width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 4 }}>Новая story</div>
+        <BottomSheet onClose={() => setShowForm(false)} title="Новая story">
+          <div style={{ padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
             <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleFile} />
             <button
               onClick={() => fileRef.current?.click()}
@@ -1071,25 +1055,19 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
                 ))}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setShowForm(false)}
-                style={{ flex: 1, height: 48, borderRadius: 12, background: 'var(--subtle)', color: 'var(--ink)', fontWeight: 600, fontSize: 15, border: 'none', cursor: 'pointer' }}
-              >Отмена</button>
-              <button
-                onClick={() => createMutation.mutate({
-                  media_url: mediaUrl || null,
-                  caption: caption.trim() || null,
-                  cta_text: ctaText.trim() || null,
-                  cta_url: ctaUrl.trim() || null,
-                  expires_at: expiresHours === '0' ? null : new Date(Date.now() + Number(expiresHours) * 3600 * 1000).toISOString(),
-                })}
-                disabled={createMutation.isPending}
-                style={{ flex: 2, height: 48, borderRadius: 12, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', opacity: createMutation.isPending ? 0.7 : 1 }}
-              >{createMutation.isPending ? 'Создание...' : 'Добавить story'}</button>
-            </div>
+            <button
+              onClick={() => createMutation.mutate({
+                media_url: mediaUrl || null,
+                caption: caption.trim() || null,
+                cta_text: ctaText.trim() || null,
+                cta_url: ctaUrl.trim() || null,
+                expires_at: expiresHours === '0' ? null : new Date(Date.now() + Number(expiresHours) * 3600 * 1000).toISOString(),
+              })}
+              disabled={createMutation.isPending}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', opacity: createMutation.isPending ? 0.7 : 1 }}
+            >{createMutation.isPending ? 'Создание...' : 'Добавить story'}</button>
           </div>
-        </div>
+        </BottomSheet>
       )}
     </div>
   )
@@ -1655,14 +1633,8 @@ function InvoicesView({ onBack }: { onBack: () => void }) {
   const STATUS_COLORS: Record<string, string> = { paid: 'var(--accent)', pending: '#F59E0B', failed: 'var(--danger)', refunded: 'var(--muted)' }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'var(--bg)', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 10, padding: '16px 16px 12px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid var(--border)' }}>
-        <button onClick={onBack} style={{ width: 34, height: 34, borderRadius: 999, background: 'var(--subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Icon name="arrowLeft" size={18} color="var(--ink)" />
-        </button>
-        <span style={{ fontFamily: 'Sora', fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>История платежей</span>
-      </div>
-      <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
+    <FullPage onClose={onBack} title="История платежей">
+      <div style={{ padding: 16 }}>
         {isLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
             <div style={{ width: 28, height: 28, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
@@ -1700,7 +1672,7 @@ function InvoicesView({ onBack }: { onBack: () => void }) {
           </div>
         )}
       </div>
-    </div>
+    </FullPage>
   )
 }
 
@@ -1816,11 +1788,8 @@ export function TeamView({ onBack }: { onBack: () => void }) {
       </div>
 
       {selectedMember && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 20px 40px' }}>
-            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
-              Уведомления — {selectedMember.username ?? selectedMember.name ?? 'Участник'}
-            </div>
+        <BottomSheet onClose={() => setSelectedMember(null)} title={`Уведомления — ${selectedMember.username ?? selectedMember.name ?? 'Участник'}`}>
+          <div style={{ padding: '16px 20px 32px' }}>
             <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>Выберите события для получения уведомлений</p>
             {([
               { key: 'new_orders' as const, label: 'Новые заказы' },
@@ -1847,26 +1816,22 @@ export function TeamView({ onBack }: { onBack: () => void }) {
                 </button>
               </div>
             ))}
-            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-              <button onClick={() => setSelectedMember(null)} style={{ flex: 1, height: 48, borderRadius: 12, background: 'var(--subtle)', border: 'none', fontSize: 15, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }}>Отмена</button>
-              <button
-                onClick={async () => {
-                  await api.seller.updateTeamMemberNotifications(selectedMember.id, memberPrefs).catch(() => {})
-                  setSelectedMember(null)
-                }}
-                style={{ flex: 2, height: 48, borderRadius: 12, background: 'var(--accent)', border: 'none', fontSize: 15, fontWeight: 700, color: 'white', cursor: 'pointer' }}
-              >
-                Сохранить
-              </button>
-            </div>
+            <button
+              onClick={async () => {
+                await api.seller.updateTeamMemberNotifications(selectedMember.id, memberPrefs).catch(() => {})
+                setSelectedMember(null)
+              }}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', border: 'none', fontSize: 15, fontWeight: 700, color: 'white', cursor: 'pointer', marginTop: 20 }}
+            >
+              Сохранить
+            </button>
           </div>
-        </div>
+        </BottomSheet>
       )}
 
       {showInvite && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end' }}>
-          <div style={{ background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 20px 40px', width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)' }}>Пригласить в команду</div>
+        <BottomSheet onClose={() => setShowInvite(false)} title="Пригласить в команду">
+          <div style={{ padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
             <input
               value={inviteUsername}
               onChange={e => setInviteUsername(e.target.value)}
@@ -1885,19 +1850,13 @@ export function TeamView({ onBack }: { onBack: () => void }) {
                 ))}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setShowInvite(false)}
-                style={{ flex: 1, height: 48, borderRadius: 12, background: 'var(--subtle)', color: 'var(--ink)', fontWeight: 600, fontSize: 15, border: 'none', cursor: 'pointer' }}
-              >Отмена</button>
-              <button
-                onClick={() => inviteMutation.mutate({ username: inviteUsername.replace('@', ''), role: inviteRole })}
-                disabled={!inviteUsername.trim() || inviteMutation.isPending}
-                style={{ flex: 2, height: 48, borderRadius: 12, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', opacity: (!inviteUsername.trim() || inviteMutation.isPending) ? 0.6 : 1 }}
-              >{inviteMutation.isPending ? 'Отправка...' : 'Отправить приглашение'}</button>
-            </div>
+            <button
+              onClick={() => inviteMutation.mutate({ username: inviteUsername.replace('@', ''), role: inviteRole })}
+              disabled={!inviteUsername.trim() || inviteMutation.isPending}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', opacity: (!inviteUsername.trim() || inviteMutation.isPending) ? 0.6 : 1 }}
+            >{inviteMutation.isPending ? 'Отправка...' : 'Отправить приглашение'}</button>
           </div>
-        </div>
+        </BottomSheet>
       )}
     </div>
   )
@@ -2237,22 +2196,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
-  const anySettingsSheet = editProfile || editDelivery || editPayment || editAppearance || editTypography || editOrderSettings
-  const anySettingsPending = updateSettingsMutation.isPending || deliveryMutation.isPending || paymentMutation.isPending || appearanceMutation.isPending || typographyMutation.isPending || orderSettingsMutation.isPending
-
-  useTelegramMainButton({
-    text: anySettingsPending ? 'Сохранение...' : 'Сохранить',
-    onClick: () => {
-      if (editProfile) handleSaveProfile()
-      else if (editDelivery) deliveryMutation.mutate({ delivery_methods: deliveryMethods })
-      else if (editPayment) savePaymentSettings()
-      else if (editAppearance) appearanceMutation.mutate(pickedColor)
-      else if (editTypography) typographyMutation.mutate(pickedTypo)
-      else if (editOrderSettings) saveOrderSettings()
-    },
-    isVisible: anySettingsSheet,
-    disabled: anySettingsPending,
-  })
 
   const [showTeam, setShowTeam] = useState(false)
   const [editBlocks, setEditBlocks] = useState(false)
@@ -2712,11 +2655,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
       {/* ── Layout picker modal ─────────────────────────────────────────────── */}
       {editLayout && (
-        <BottomSheet onClose={() => setEditLayout(false)}>
+        <BottomSheet onClose={() => setEditLayout(false)} title="Макет магазина">
           <div style={{ padding: '20px 16px 8px' }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 4 }}>
-              Макет магазина
-            </div>
             <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
               Структура главной страницы вашего магазина
             </p>
@@ -2769,11 +2709,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
       {/* ── Color picker modal ───────────────────────────────────────────────── */}
       {editAppearance && (
-        <BottomSheet onClose={() => setEditAppearance(false)}>
+        <BottomSheet onClose={() => setEditAppearance(false)} title="Акцентный цвет">
           <div style={{ padding: '20px 16px 8px' }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 4 }}>
-              Акцентный цвет
-            </div>
             <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
               Цвет кнопок и акцентов магазина
             </p>
@@ -2799,17 +2736,21 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
                 </button>
               ))}
             </div>
+            <div style={{ padding: '0 0 8px' }}>
+              <button
+                onClick={() => appearanceMutation.mutate(pickedColor)}
+                disabled={appearanceMutation.isPending}
+                style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: appearanceMutation.isPending ? 'not-allowed' : 'pointer', opacity: appearanceMutation.isPending ? 0.7 : 1 }}
+              >{appearanceMutation.isPending ? 'Сохранение...' : 'Сохранить'}</button>
+            </div>
           </div>
         </BottomSheet>
       )}
 
       {/* ── Typography picker modal ─────────────────────────────────────────── */}
       {editTypography && (
-        <BottomSheet onClose={() => setEditTypography(false)}>
+        <BottomSheet onClose={() => setEditTypography(false)} title="Типографика">
           <div style={{ padding: '20px 16px 8px' }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 4 }}>
-              Типографика
-            </div>
             <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
               Шрифты заголовков и текста магазина
             </p>
@@ -2867,19 +2808,21 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
                 </button>
               ))}
             </div>
+            <div style={{ padding: '0 0 8px' }}>
+              <button
+                onClick={() => typographyMutation.mutate(pickedTypo)}
+                disabled={typographyMutation.isPending}
+                style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: typographyMutation.isPending ? 'not-allowed' : 'pointer', opacity: typographyMutation.isPending ? 0.7 : 1 }}
+              >{typographyMutation.isPending ? 'Сохранение...' : 'Сохранить'}</button>
+            </div>
           </div>
         </BottomSheet>
       )}
 
       {/* ── Order settings modal ─────────────────────────────────────────────── */}
       {editOrderSettings && (
-        <BottomSheet onClose={() => setEditOrderSettings(false)}>
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          </div>
+        <BottomSheet onClose={() => setEditOrderSettings(false)} title="Настройки заказов">
           <div style={{ padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>
-              Настройки заказов
-            </div>
 
             {/* Min order amount */}
             <label style={{ display: 'block' }}>
@@ -2953,17 +2896,20 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
               />
             </label>
 
+            <button
+              onClick={saveOrderSettings}
+              disabled={orderSettingsMutation.isPending}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: orderSettingsMutation.isPending ? 'not-allowed' : 'pointer', opacity: orderSettingsMutation.isPending ? 0.7 : 1 }}
+            >{orderSettingsMutation.isPending ? 'Сохранение...' : 'Сохранить'}</button>
+
           </div>
         </BottomSheet>
       )}
 
       {/* ── Theme picker bottom sheet ────────────────────────────────────────── */}
       {showThemeSheet && (
-        <BottomSheet onClose={() => setShowThemeSheet(false)}>
+        <BottomSheet onClose={() => setShowThemeSheet(false)} title="Тема интерфейса">
           <div style={{ padding: '20px 16px 32px' }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 16 }}>
-              Тема интерфейса
-            </div>
             {([
               { id: 'system', label: '⚙️ Системная', hint: 'Следует теме Telegram' },
               { id: 'light',  label: '☀️ Светлая',  hint: 'Всегда светлая тема' },
@@ -3189,18 +3135,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
           Modal: Информация о магазине
       ══════════════════════════════════════════════════════════════════════ */}
       {editProfile && (
-        <BottomSheet onClose={() => setEditProfile(false)}>
-          {/* drag handle */}
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          </div>
-
+        <BottomSheet onClose={() => setEditProfile(false)} title="Информация о магазине">
           <div style={{ padding: '16px 20px 32px' }}>
-            <div style={{
-              fontFamily: 'Sora', fontWeight: 700, fontSize: 18,
-              color: 'var(--ink)', marginBottom: 20,
-            }}>
-              Информация о магазине
-            </div>
 
             {/* Hidden file inputs */}
             <input
@@ -3422,6 +3358,12 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
               </div>
             )}
 
+            <button
+              onClick={handleSaveProfile}
+              disabled={updateSettingsMutation.isPending}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: updateSettingsMutation.isPending ? 'not-allowed' : 'pointer', opacity: updateSettingsMutation.isPending ? 0.7 : 1, marginTop: 8 }}
+            >{updateSettingsMutation.isPending ? 'Сохранение...' : 'Сохранить'}</button>
+
           </div>
         </BottomSheet>
       )}
@@ -3430,17 +3372,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
           Modal: Способы доставки
       ══════════════════════════════════════════════════════════════════════ */}
       {editDelivery && (
-        <BottomSheet onClose={() => setEditDelivery(false)}>
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          </div>
-
+        <BottomSheet onClose={() => setEditDelivery(false)} title="Способы доставки">
           <div style={{ padding: '16px 20px 32px' }}>
-            <div style={{
-              fontFamily: 'Sora', fontWeight: 700, fontSize: 18,
-              color: 'var(--ink)', marginBottom: 20,
-            }}>
-              Способы доставки
-            </div>
 
             <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 24 }}>
               {deliveryMethods.map((method, i) => (
@@ -3491,6 +3424,12 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
               ))}
             </div>
 
+            <button
+              onClick={() => deliveryMutation.mutate({ delivery_methods: deliveryMethods })}
+              disabled={deliveryMutation.isPending}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: deliveryMutation.isPending ? 'not-allowed' : 'pointer', opacity: deliveryMutation.isPending ? 0.7 : 1 }}
+            >{deliveryMutation.isPending ? 'Сохранение...' : 'Сохранить'}</button>
+
           </div>
         </BottomSheet>
       )}
@@ -3499,18 +3438,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
           Modal: Способы оплаты
       ══════════════════════════════════════════════════════════════════════ */}
       {editPayment && (
-        <BottomSheet onClose={() => setEditPayment(false)}>
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          </div>
-
+        <BottomSheet onClose={() => setEditPayment(false)} title="Способы оплаты">
           <div style={{ padding: '16px 20px 32px' }}>
-            <div style={{
-              fontFamily: 'Sora', fontWeight: 700, fontSize: 18,
-              color: 'var(--ink)', marginBottom: 12,
-            }}>
-              Способы оплаты
-            </div>
-
             <div style={{
               fontSize: 13, color: 'var(--muted)',
               marginBottom: 20, lineHeight: 1.5,
@@ -3601,6 +3530,12 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
               </div>
             )}
 
+            <button
+              onClick={savePaymentSettings}
+              disabled={paymentMutation.isPending}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: paymentMutation.isPending ? 'not-allowed' : 'pointer', opacity: paymentMutation.isPending ? 0.7 : 1 }}
+            >{paymentMutation.isPending ? 'Сохранение...' : 'Сохранить'}</button>
+
           </div>
         </BottomSheet>
       )}
@@ -3609,18 +3544,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
           Modal: Подключить бота
       ══════════════════════════════════════════════════════════════════════ */}
       {editBot && (
-        <BottomSheet onClose={() => setEditBot(false)}>
-          {/* drag handle */}
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          </div>
-
+        <BottomSheet onClose={() => setEditBot(false)} title="Подключить бота">
           <div style={{ padding: '16px 20px 32px' }}>
-            <div style={{
-              fontFamily: 'Sora', fontWeight: 700, fontSize: 18,
-              color: 'var(--ink)', marginBottom: 16,
-            }}>
-              Подключить бота
-            </div>
 
             {/* Instructions card */}
             <div style={{
@@ -3726,11 +3651,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
           Modal: Приветственное сообщение
       ══════════════════════════════════════════════════════════════════════ */}
       {editWelcomeMsg && (
-        <BottomSheet onClose={() => setEditWelcomeMsg(false)}>
+        <BottomSheet onClose={() => setEditWelcomeMsg(false)} title="Приветственное сообщение">
           <div style={{ padding: '20px 16px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>
-              Приветственное сообщение
-            </div>
             <div style={{ fontSize: 13, color: 'var(--muted)' }}>
               Отправляется покупателям при первом открытии бота
             </div>
@@ -3766,17 +3688,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       )}
 
       {editGroupChat && (
-        <BottomSheet onClose={() => setEditGroupChat(false)}>
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          </div>
-
+        <BottomSheet onClose={() => setEditGroupChat(false)} title="Уведомления в группу">
           <div style={{ padding: '16px 20px 32px' }}>
-            <div style={{
-              fontFamily: 'Sora', fontWeight: 700, fontSize: 18,
-              color: 'var(--ink)', marginBottom: 8,
-            }}>
-              Уведомления в группу
-            </div>
             <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
               Новые заказы будут дублироваться в указанный групповой чат или канал
             </div>
@@ -3868,29 +3781,22 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
       {/* ── Notifications modal ─────────────────────────────────────────────── */}
       {editNotifications && (
-        <BottomSheet onClose={() => setEditNotifications(false)}>
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          </div>
+        <BottomSheet onClose={() => setEditNotifications(false)} title="Уведомления">
           <NotificationsSheet tenant={tenant} onClose={() => setEditNotifications(false)} />
         </BottomSheet>
       )}
 
       {/* ── Localization modal ──────────────────────────────────────────────── */}
       {editLocalization && (
-        <BottomSheet onClose={() => setEditLocalization(false)}>
-          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12 }}>
-          </div>
+        <BottomSheet onClose={() => setEditLocalization(false)} title="Язык и локализация">
           <LocalizationSheet tenant={tenant} onClose={() => setEditLocalization(false)} />
         </BottomSheet>
       )}
 
       {/* ── Blocks config modal ─────────────────────────────────────────────── */}
       {editBlocks && (
-        <BottomSheet onClose={() => setEditBlocks(false)}>
+        <BottomSheet onClose={() => setEditBlocks(false)} title="Блоки витрины">
           <div style={{ padding: '20px 16px 8px' }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 4 }}>
-              Блоки витрины
-            </div>
             <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>Настройте видимость и стиль блоков</p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
@@ -4016,11 +3922,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
       {/* ── Theme Presets Sheet ─────────────────────────────────────────────── */}
       {showPresets && (
-        <BottomSheet onClose={() => { setShowPresets(false); setPresetConfirm(null) }}>
+        <BottomSheet onClose={() => { setShowPresets(false); setPresetConfirm(null) }} title="Готовые пресеты темы">
           <div style={{ padding: '20px 16px 8px' }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 4 }}>
-              Готовые пресеты темы
-            </div>
             <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
               Выберите пресет — он заменит цвет, типографику и макет
             </p>
@@ -4084,9 +3987,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
       {/* ── Bot menu button modal ───────────────────────────────────────────── */}
       {editBotMenu && (
-        <div onClick={() => setEditBotMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px calc(32px + env(safe-area-inset-bottom))' }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 16 }}>Кнопка меню бота</div>
+        <BottomSheet onClose={() => setEditBotMenu(false)} title="Кнопка меню бота">
+          <div style={{ padding: '16px 16px 32px' }}>
             <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>Текст кнопки, которую видит покупатель при открытии бота</div>
             <input
               value={botMenuText}
@@ -4113,14 +4015,13 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
               Сохранить
             </button>
           </div>
-        </div>
+        </BottomSheet>
       )}
 
       {/* ── Bot commands modal ──────────────────────────────────────────────── */}
       {editBotCommands && (
-        <div onClick={() => setEditBotCommands(false)} style={{ position: 'fixed', inset: 0, zIndex: 50, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'flex-end' }}>
-          <div onClick={e => e.stopPropagation()} style={{ width: '100%', background: 'var(--bg)', borderRadius: '20px 20px 0 0', padding: '20px 16px calc(32px + env(safe-area-inset-bottom))', maxHeight: '80vh', overflowY: 'auto' }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', marginBottom: 4 }}>Команды бота</div>
+        <BottomSheet onClose={() => setEditBotCommands(false)} title="Команды бота">
+          <div style={{ padding: '16px 16px 32px' }}>
             <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>Пользователи могут вызывать эти команды в чате с ботом</div>
 
             {/* Default commands (read-only) */}
@@ -4195,7 +4096,7 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
               Сохранить команды
             </button>
           </div>
-        </div>
+        </BottomSheet>
       )}
 
       {showPlanPicker && <PlanPicker onBack={() => setShowPlanPicker(false)} />}
