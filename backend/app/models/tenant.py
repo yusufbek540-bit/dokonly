@@ -17,10 +17,13 @@ class Tenant(Base, TimestampMixin):
     currency = Column(String(3), nullable=False, default="UZS")
     locale = Column(String(5), nullable=False, default="ru")
     tier = Column(String(20), nullable=False, default="start")
-    bot_token_hash = Column(String(64), unique=True)
+    bot_token_enc = Column(Text)          # Fernet-encrypted bot token
+    bot_token_hash = Column(String(64), unique=True)  # SHA-256 for routing
     bot_username = Column(String(100))
     logo_url = Column(Text)
     cover_url = Column(Text)
+    accent_color = Column(String(20), nullable=False, default="emerald")
+    typography_bundle = Column(String(20), nullable=False, default="modern")
     description = Column(Text)
     contact_info = Column(JSONB, default=dict)
     settings = Column(JSONB, default=dict)

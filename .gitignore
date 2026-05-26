@@ -38,3 +38,15 @@ logs/
 # Supabase local
 supabase/.branches/
 supabase/.temp/
+
+# Next.js build
+apps/web-storefront/.next/
+
+# Playwright MCP artifacts
+.playwright-mcp/
+
+# Screenshots / debug images
+*.png
+*.jpg
+*.jpeg
+!apps/miniapp/public/**

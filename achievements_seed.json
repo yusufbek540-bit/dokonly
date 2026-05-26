@@ -1,0 +1,712 @@
+{
+  "$schema_version": "1.0",
+  "$description": "Dokonly achievement definitions seed. Loads into achievement_definitions table. See app_specification.md §5 (schema) and §7.11.2 (catalog).",
+  "$last_updated": "2026-05-14",
+  "$total_count": 29,
+  "$translations_languages": ["ru", "uz", "en"],
+  "$condition_types_reference": {
+    "order_count": "Total completed orders for this tenant. value = {threshold: int}",
+    "revenue_total_uzs": "Lifetime revenue in UZS. value = {threshold: int}",
+    "customer_count": "Total registered customers for this tenant. value = {threshold: int}",
+    "product_count": "Total active products. value = {threshold: int}",
+    "feature_first_use": "First time a feature was used. value = {feature: string}",
+    "streak_days": "Daily orders streak reached threshold. value = {threshold: int}",
+    "review_count_with_rating": "N reviews with min rating. value = {count: int, min_rating: number}",
+    "response_time_avg_minutes": "Average customer message response time. value = {max_minutes: int, sample_size: int}",
+    "analytics_page_views": "Times analytics page viewed. value = {threshold: int}",
+    "signup_date_range": "Signed up between dates. value = {from: ISO_date, to: ISO_date}",
+    "unique_buyer_countries": "Buyers from N countries. value = {threshold: int}",
+    "days_active_since_signup": "Days since signup as active tenant. value = {threshold: int}",
+    "reactivation_after_dormant": "Returned after N days dormant. value = {dormant_days: int}",
+    "storefront_theme_configured": "Storefront theme settings modified from defaults. value = {}",
+    "payments_configured_count": "Number of payment methods configured. value = {threshold: int}",
+    "delivery_configured_count": "Number of delivery methods configured. value = {threshold: int}"
+  },
+  "$tier_descriptions": {
+    "bronze": "Easy to unlock — first steps",
+    "silver": "Some effort required",
+    "gold": "Significant accomplishment",
+    "platinum": "Elite — long-term commitment"
+  },
+
+  "achievements": [
+    {
+      "id": "first_sale",
+      "category": "milestone",
+      "subcategory": "onboarding",
+      "tier": "bronze",
+      "icon": "🎯",
+      "name_translations": {
+        "ru": "Первая продажа",
+        "uz": "Birinchi sotuv",
+        "en": "First Sale"
+      },
+      "description_translations": {
+        "ru": "Поздравляем с первым заказом! Это начало большого пути.",
+        "uz": "Birinchi buyurtmangiz bilan tabriklaymiz! Bu katta yo'lning boshlanishi.",
+        "en": "Congratulations on your first order! This is the start of something big."
+      },
+      "condition_type": "order_count",
+      "condition_value": { "threshold": 1 },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 10,
+      "is_hidden": false
+    },
+    {
+      "id": "first_customer",
+      "category": "milestone",
+      "subcategory": "onboarding",
+      "tier": "bronze",
+      "icon": "👋",
+      "name_translations": {
+        "ru": "Первый клиент",
+        "uz": "Birinchi mijoz",
+        "en": "First Customer"
+      },
+      "description_translations": {
+        "ru": "У вашего магазина появился первый покупатель.",
+        "uz": "Do'koningizda birinchi xaridoringiz paydo bo'ldi.",
+        "en": "Your store welcomed its first customer."
+      },
+      "condition_type": "customer_count",
+      "condition_value": { "threshold": 1 },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 20,
+      "is_hidden": false
+    },
+    {
+      "id": "catalog_builder_10",
+      "category": "milestone",
+      "subcategory": "onboarding",
+      "tier": "bronze",
+      "icon": "📷",
+      "name_translations": {
+        "ru": "Каталогист",
+        "uz": "Katalog tuzuvchi",
+        "en": "Catalog Builder"
+      },
+      "description_translations": {
+        "ru": "Добавили 10 товаров в каталог. Хорошее начало!",
+        "uz": "Katalogga 10 ta mahsulot qo'shdingiz. Ajoyib boshlanish!",
+        "en": "Added 10 products to your catalog. Great start!"
+      },
+      "condition_type": "product_count",
+      "condition_value": { "threshold": 10 },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 30,
+      "is_hidden": false
+    },
+    {
+      "id": "catalog_builder_50",
+      "category": "milestone",
+      "subcategory": "onboarding",
+      "tier": "silver",
+      "icon": "📚",
+      "name_translations": {
+        "ru": "Управляющий ассортиментом",
+        "uz": "Assortiment boshqaruvchisi",
+        "en": "Inventory Manager"
+      },
+      "description_translations": {
+        "ru": "Каталог из 50 товаров — это серьёзная заявка.",
+        "uz": "50 ta mahsulotli katalog jiddiy yutuq.",
+        "en": "A catalog of 50 products is a serious commitment."
+      },
+      "condition_type": "product_count",
+      "condition_value": { "threshold": 50 },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 40,
+      "is_hidden": false
+    },
+    {
+      "id": "style_set",
+      "category": "milestone",
+      "subcategory": "onboarding",
+      "tier": "bronze",
+      "icon": "🎨",
+      "name_translations": {
+        "ru": "Стилист",
+        "uz": "Stilist",
+        "en": "Style Set"
+      },
+      "description_translations": {
+        "ru": "Настроили внешний вид магазина — теперь он отражает ваш бренд.",
+        "uz": "Do'kon ko'rinishini sozladingiz — endi u brendingizni aks ettiradi.",
+        "en": "Configured your storefront theme — now it reflects your brand."
+      },
+      "condition_type": "storefront_theme_configured",
+      "condition_value": {},
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 50,
+      "is_hidden": false
+    },
+    {
+      "id": "payments_ready",
+      "category": "milestone",
+      "subcategory": "onboarding",
+      "tier": "bronze",
+      "icon": "💳",
+      "name_translations": {
+        "ru": "Готов принимать оплаты",
+        "uz": "To'lovlarni qabul qilishga tayyor",
+        "en": "Payments Ready"
+      },
+      "description_translations": {
+        "ru": "Настроили хотя бы один способ оплаты. Покупатели могут платить.",
+        "uz": "Kamida bitta to'lov usulini sozladingiz. Xaridorlar to'lay oladi.",
+        "en": "Configured at least one payment method. Customers can now pay."
+      },
+      "condition_type": "payments_configured_count",
+      "condition_value": { "threshold": 1 },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 60,
+      "is_hidden": false
+    },
+    {
+      "id": "delivery_ready",
+      "category": "milestone",
+      "subcategory": "onboarding",
+      "tier": "bronze",
+      "icon": "🚚",
+      "name_translations": {
+        "ru": "Готов к доставке",
+        "uz": "Yetkazib berishga tayyor",
+        "en": "Ready to Ship"
+      },
+      "description_translations": {
+        "ru": "Настроили способ доставки. Заказы могут отправляться.",
+        "uz": "Yetkazib berish usulini sozladingiz. Buyurtmalar yuborilishi mumkin.",
+        "en": "Configured a delivery method. Orders can ship out."
+      },
+      "condition_type": "delivery_configured_count",
+      "condition_value": { "threshold": 1 },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 70,
+      "is_hidden": false
+    },
+
+    {
+      "id": "orders_50",
+      "category": "milestone",
+      "subcategory": "volume",
+      "tier": "silver",
+      "icon": "🚀",
+      "name_translations": {
+        "ru": "Растущий магазин",
+        "uz": "O'sayotgan do'kon",
+        "en": "Growing"
+      },
+      "description_translations": {
+        "ru": "50 заказов — ваш магазин уверенно растёт.",
+        "uz": "50 ta buyurtma — do'koningiz ishonchli o'sib bormoqda.",
+        "en": "50 orders — your store is growing confidently."
+      },
+      "condition_type": "order_count",
+      "condition_value": { "threshold": 50 },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 100,
+      "is_hidden": false
+    },
+    {
+      "id": "orders_100",
+      "category": "milestone",
+      "subcategory": "volume",
+      "tier": "silver",
+      "icon": "💯",
+      "name_translations": {
+        "ru": "Сотник",
+        "uz": "Yuzboshi",
+        "en": "Centurion"
+      },
+      "description_translations": {
+        "ru": "Сотый заказ — серьёзная веха. Так держать!",
+        "uz": "Yuzinchi buyurtma — jiddiy bosqich. Shu yo'lda davom eting!",
+        "en": "100 orders — a serious milestone. Keep going!"
+      },
+      "condition_type": "order_count",
+      "condition_value": { "threshold": 100 },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 110,
+      "is_hidden": false
+    },
+    {
+      "id": "orders_500",
+      "category": "milestone",
+      "subcategory": "volume",
+      "tier": "gold",
+      "icon": "🏆",
+      "name_translations": {
+        "ru": "Топ-продавец",
+        "uz": "Top sotuvchi",
+        "en": "Power Seller"
+      },
+      "description_translations": {
+        "ru": "500 успешных заказов. Вы — серьёзный игрок.",
+        "uz": "500 ta muvaffaqiyatli buyurtma. Siz — jiddiy o'yinchisiz.",
+        "en": "500 completed orders. You're a serious player."
+      },
+      "condition_type": "order_count",
+      "condition_value": { "threshold": 500 },
+      "reward_type": "discount",
+      "reward_value": { "campaign_id": "achievement_power_seller", "discount_percent": 15, "duration_months": 1 },
+      "display_order": 120,
+      "is_hidden": false
+    },
+    {
+      "id": "orders_1000",
+      "category": "milestone",
+      "subcategory": "volume",
+      "tier": "platinum",
+      "icon": "👑",
+      "name_translations": {
+        "ru": "Король продаж",
+        "uz": "Sotuv qiroli",
+        "en": "Top Seller"
+      },
+      "description_translations": {
+        "ru": "1000 заказов! Вы доказали что можете масштабироваться.",
+        "uz": "1000 ta buyurtma! Siz miqyosni oshira olishingizni isbotladingiz.",
+        "en": "1000 orders! You've proven you can scale."
+      },
+      "condition_type": "order_count",
+      "condition_value": { "threshold": 1000 },
+      "reward_type": "discount",
+      "reward_value": { "campaign_id": "achievement_top_seller", "discount_percent": 30, "duration_months": 1 },
+      "display_order": 130,
+      "is_hidden": false
+    },
+    {
+      "id": "revenue_1m",
+      "category": "milestone",
+      "subcategory": "volume",
+      "tier": "silver",
+      "icon": "💰",
+      "name_translations": {
+        "ru": "Клуб миллиона",
+        "uz": "Million klubi",
+        "en": "1M Club"
+      },
+      "description_translations": {
+        "ru": "Заработали 1 000 000 UZS. Бизнес работает.",
+        "uz": "1 000 000 UZS ishlab topdingiz. Biznes ishlamoqda.",
+        "en": "Earned 1 000 000 UZS. The business is working."
+      },
+      "condition_type": "revenue_total_uzs",
+      "condition_value": { "threshold": 1000000 },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 140,
+      "is_hidden": false
+    },
+    {
+      "id": "revenue_10m",
+      "category": "milestone",
+      "subcategory": "volume",
+      "tier": "gold",
+      "icon": "💎",
+      "name_translations": {
+        "ru": "Клуб 10 миллионов",
+        "uz": "10 million klubi",
+        "en": "10M Club"
+      },
+      "description_translations": {
+        "ru": "10 000 000 UZS оборота. Серьёзный бизнес.",
+        "uz": "10 000 000 UZS aylanma. Jiddiy biznes.",
+        "en": "10 000 000 UZS in turnover. Serious business."
+      },
+      "condition_type": "revenue_total_uzs",
+      "condition_value": { "threshold": 10000000 },
+      "reward_type": "discount",
+      "reward_value": { "campaign_id": "achievement_10m_club", "discount_percent": 20, "duration_months": 1 },
+      "display_order": 150,
+      "is_hidden": false
+    },
+    {
+      "id": "revenue_100m",
+      "category": "milestone",
+      "subcategory": "volume",
+      "tier": "platinum",
+      "icon": "🌟",
+      "name_translations": {
+        "ru": "Элитный продавец",
+        "uz": "Elita sotuvchi",
+        "en": "Elite Seller"
+      },
+      "description_translations": {
+        "ru": "100 000 000 UZS — вы достигли элитного уровня.",
+        "uz": "100 000 000 UZS — elita darajasiga yetdingiz.",
+        "en": "100 000 000 UZS — you reached elite status."
+      },
+      "condition_type": "revenue_total_uzs",
+      "condition_value": { "threshold": 100000000 },
+      "reward_type": "feature_unlock",
+      "reward_value": { "feature": "featured_in_dokonly_newsletter", "duration_months": 12 },
+      "display_order": 160,
+      "is_hidden": false
+    },
+
+    {
+      "id": "ai_pioneer",
+      "category": "feature_use",
+      "tier": "bronze",
+      "icon": "🤖",
+      "name_translations": {
+        "ru": "AI-пионер",
+        "uz": "AI-pioner",
+        "en": "AI Pioneer"
+      },
+      "description_translations": {
+        "ru": "Первый раз использовали AI для импорта товаров. AI экономит часы работы.",
+        "uz": "Mahsulotlarni import qilish uchun AI'dan birinchi marta foydalandingiz. AI soatlab vaqtni tejaydi.",
+        "en": "First time using AI to import products. AI saves hours of work."
+      },
+      "condition_type": "feature_first_use",
+      "condition_value": { "feature": "ai_import" },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 200,
+      "is_hidden": false
+    },
+    {
+      "id": "marketer",
+      "category": "feature_use",
+      "tier": "bronze",
+      "icon": "📨",
+      "name_translations": {
+        "ru": "Маркетолог",
+        "uz": "Marketolog",
+        "en": "Marketer"
+      },
+      "description_translations": {
+        "ru": "Отправили первую массовую рассылку клиентам.",
+        "uz": "Mijozlarga birinchi ommaviy xabarni yubordingiz.",
+        "en": "Sent your first mass mailing to customers."
+      },
+      "condition_type": "feature_first_use",
+      "condition_value": { "feature": "mass_mailing" },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 210,
+      "is_hidden": false
+    },
+    {
+      "id": "story_teller",
+      "category": "feature_use",
+      "tier": "bronze",
+      "icon": "🎬",
+      "name_translations": {
+        "ru": "Рассказчик",
+        "uz": "Hikoyachi",
+        "en": "Story Teller"
+      },
+      "description_translations": {
+        "ru": "Опубликовали первую сториз на витрине магазина.",
+        "uz": "Do'kon vitrinasiga birinchi 'story'ingizni joyladingiz.",
+        "en": "Posted your first story on your storefront."
+      },
+      "condition_type": "feature_first_use",
+      "condition_value": { "feature": "story" },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 220,
+      "is_hidden": false
+    },
+    {
+      "id": "team_player",
+      "category": "feature_use",
+      "tier": "silver",
+      "icon": "👥",
+      "name_translations": {
+        "ru": "Командный игрок",
+        "uz": "Jamoa o'yinchisi",
+        "en": "Team Player"
+      },
+      "description_translations": {
+        "ru": "Пригласили первого члена команды. Делиться нагрузкой — мудро.",
+        "uz": "Jamoangizga birinchi a'zoni taklif qildingiz. Yukni baham ko'rish — donolik.",
+        "en": "Invited your first team member. Sharing the load is wise."
+      },
+      "condition_type": "feature_first_use",
+      "condition_value": { "feature": "team_invite" },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 230,
+      "is_hidden": false
+    },
+    {
+      "id": "loyalty_pro",
+      "category": "feature_use",
+      "tier": "silver",
+      "icon": "🎁",
+      "name_translations": {
+        "ru": "Лояльный про",
+        "uz": "Sodiqlik mutaxassisi",
+        "en": "Loyalty Pro"
+      },
+      "description_translations": {
+        "ru": "Активировали программу лояльности. Постоянные клиенты — золото.",
+        "uz": "Sodiqlik dasturini faollashtirdingiz. Doimiy mijozlar — oltin.",
+        "en": "Activated your loyalty program. Repeat customers are gold."
+      },
+      "condition_type": "feature_first_use",
+      "condition_value": { "feature": "loyalty_activated" },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 240,
+      "is_hidden": false
+    },
+    {
+      "id": "referral_master",
+      "category": "feature_use",
+      "tier": "silver",
+      "icon": "🔗",
+      "name_translations": {
+        "ru": "Реферальный мастер",
+        "uz": "Referal ustasi",
+        "en": "Referral Master"
+      },
+      "description_translations": {
+        "ru": "Получили первый заказ через реферальную ссылку. Сарафанное радио работает!",
+        "uz": "Referal havolasi orqali birinchi buyurtmani oldingiz. Og'zaki reklama ishlamoqda!",
+        "en": "Received your first order via referral. Word of mouth works!"
+      },
+      "condition_type": "feature_first_use",
+      "condition_value": { "feature": "referral_received" },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 250,
+      "is_hidden": false
+    },
+    {
+      "id": "cross_channel",
+      "category": "feature_use",
+      "tier": "silver",
+      "icon": "📢",
+      "name_translations": {
+        "ru": "Кросс-канал",
+        "uz": "Cross-kanal",
+        "en": "Cross-Channel"
+      },
+      "description_translations": {
+        "ru": "Подключили автопостинг в Telegram-канал. Охват растёт.",
+        "uz": "Telegram-kanalga avtoposting'ni ulardingiz. Qamrov o'sib boradi.",
+        "en": "Enabled channel crossposting. Your reach is growing."
+      },
+      "condition_type": "feature_first_use",
+      "condition_value": { "feature": "channel_crosspost_enabled" },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 260,
+      "is_hidden": false
+    },
+
+    {
+      "id": "hot_streak_7",
+      "category": "engagement",
+      "tier": "silver",
+      "icon": "🔥",
+      "name_translations": {
+        "ru": "Горячая серия",
+        "uz": "Issiq seriya",
+        "en": "Hot Streak"
+      },
+      "description_translations": {
+        "ru": "7 дней подряд с заказами. Стабильный поток!",
+        "uz": "7 kun ketma-ket buyurtmalar. Barqaror oqim!",
+        "en": "7 days in a row with orders. Steady flow!"
+      },
+      "condition_type": "streak_days",
+      "condition_value": { "streak_type": "daily_orders", "threshold": 7 },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 300,
+      "is_hidden": false
+    },
+    {
+      "id": "hot_streak_30",
+      "category": "engagement",
+      "tier": "gold",
+      "icon": "🌋",
+      "name_translations": {
+        "ru": "В огне",
+        "uz": "Olovda",
+        "en": "On Fire"
+      },
+      "description_translations": {
+        "ru": "30 дней подряд с заказами. Невероятная стабильность!",
+        "uz": "30 kun ketma-ket buyurtmalar. Ajoyib barqarorlik!",
+        "en": "30 days streak with orders. Incredible consistency!"
+      },
+      "condition_type": "streak_days",
+      "condition_value": { "streak_type": "daily_orders", "threshold": 30 },
+      "reward_type": "discount",
+      "reward_value": { "campaign_id": "streak_30_days", "discount_percent": 50, "duration_months": 1 },
+      "display_order": 310,
+      "is_hidden": false
+    },
+    {
+      "id": "quality_5star",
+      "category": "engagement",
+      "tier": "silver",
+      "icon": "🌟",
+      "name_translations": {
+        "ru": "Качество",
+        "uz": "Sifat",
+        "en": "Quality"
+      },
+      "description_translations": {
+        "ru": "10 пятизвёздочных отзывов. Клиенты в восторге.",
+        "uz": "10 ta besh yulduzli sharh. Mijozlar hayratda.",
+        "en": "10 five-star reviews. Customers love you."
+      },
+      "condition_type": "review_count_with_rating",
+      "condition_value": { "count": 10, "min_rating": 5 },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 320,
+      "is_hidden": false
+    },
+    {
+      "id": "fast_responder",
+      "category": "engagement",
+      "tier": "silver",
+      "icon": "⚡",
+      "name_translations": {
+        "ru": "Быстрый ответ",
+        "uz": "Tez javob",
+        "en": "Fast Responder"
+      },
+      "description_translations": {
+        "ru": "Среднее время ответа клиентам — меньше часа на 10+ сообщениях.",
+        "uz": "Mijozlarga o'rtacha javob vaqti — 10+ xabar uchun bir soatdan kam.",
+        "en": "Average response time under 1 hour across 10+ messages."
+      },
+      "condition_type": "response_time_avg_minutes",
+      "condition_value": { "max_minutes": 60, "sample_size": 10 },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 330,
+      "is_hidden": false
+    },
+    {
+      "id": "data_driven",
+      "category": "engagement",
+      "tier": "bronze",
+      "icon": "📊",
+      "name_translations": {
+        "ru": "Аналитик",
+        "uz": "Tahlilchi",
+        "en": "Data-Driven"
+      },
+      "description_translations": {
+        "ru": "Заглянули в аналитику 30 раз. Решения на основе данных.",
+        "uz": "Tahlilga 30 marta kirdingiz. Ma'lumotlarga asoslangan qarorlar.",
+        "en": "Checked analytics 30 times. Decisions based on data."
+      },
+      "condition_type": "analytics_page_views",
+      "condition_value": { "threshold": 30 },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 340,
+      "is_hidden": false
+    },
+
+    {
+      "id": "og",
+      "category": "special",
+      "tier": "platinum",
+      "icon": "🎉",
+      "name_translations": {
+        "ru": "OG (Один из первых)",
+        "uz": "OG (Birinchilardan biri)",
+        "en": "OG"
+      },
+      "description_translations": {
+        "ru": "Присоединились к Dokonly в первый месяц запуска. Спасибо что были с нами с начала!",
+        "uz": "Dokonly'ga birinchi oyda qo'shildingiz. Bizning bilan boshidan birga bo'lganingiz uchun rahmat!",
+        "en": "Joined Dokonly during launch month. Thanks for being with us from the start!"
+      },
+      "condition_type": "signup_date_range",
+      "condition_value": { "from": "2026-09-01", "to": "2026-09-30" },
+      "reward_type": "discount",
+      "reward_value": { "campaign_id": "og_lifetime_discount", "discount_percent": 20, "duration_months": 12 },
+      "display_order": 400,
+      "is_hidden": false
+    },
+    {
+      "id": "internationalist",
+      "category": "special",
+      "tier": "gold",
+      "icon": "🌍",
+      "name_translations": {
+        "ru": "Интернационалист",
+        "uz": "Internatsionalist",
+        "en": "Internationalist"
+      },
+      "description_translations": {
+        "ru": "Продали клиентам из 3+ стран. Вы вышли на международный уровень.",
+        "uz": "3+ mamlakatdan mijozlarga sotdingiz. Xalqaro darajaga chiqdingiz.",
+        "en": "Sold to customers from 3+ countries. You went international."
+      },
+      "condition_type": "unique_buyer_countries",
+      "condition_value": { "threshold": 3 },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 410,
+      "is_hidden": true
+    },
+    {
+      "id": "survivor",
+      "category": "special",
+      "tier": "gold",
+      "icon": "💪",
+      "name_translations": {
+        "ru": "Выживший",
+        "uz": "Omon qolgan",
+        "en": "Survivor"
+      },
+      "description_translations": {
+        "ru": "Активны на Dokonly уже год. Лояльность вознаграждается.",
+        "uz": "Dokonly'da bir yildan beri faolsiz. Sodiqlik mukofotlanadi.",
+        "en": "Active on Dokonly for a full year. Loyalty is rewarded."
+      },
+      "condition_type": "days_active_since_signup",
+      "condition_value": { "threshold": 365 },
+      "reward_type": "discount",
+      "reward_value": { "campaign_id": "survivor_anniversary", "discount_percent": 25, "duration_months": 1 },
+      "display_order": 420,
+      "is_hidden": false
+    },
+    {
+      "id": "comeback",
+      "category": "special",
+      "tier": "silver",
+      "icon": "🎯",
+      "name_translations": {
+        "ru": "Возвращение короля",
+        "uz": "Qirolning qaytishi",
+        "en": "Comeback King"
+      },
+      "description_translations": {
+        "ru": "Вернулись после 30+ дней неактивности. Рады вас видеть!",
+        "uz": "30+ kun nofaollikdan keyin qaytdingiz. Sizni ko'rganimizdan xursandmiz!",
+        "en": "Returned after 30+ days dormant. Welcome back!"
+      },
+      "condition_type": "reactivation_after_dormant",
+      "condition_value": { "dormant_days": 30 },
+      "reward_type": "badge_only",
+      "reward_value": null,
+      "display_order": 430,
+      "is_hidden": true
+    }
+  ]
+}

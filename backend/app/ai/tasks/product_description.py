@@ -1,11 +1,11 @@
-from app.ai.client import openai
+from app.ai.client import get_openai_client
 
 _LOCALE_LANG = {"ru": "Russian", "uz": "Uzbek", "en": "English"}
 
 
 async def generate_description(name: str, locale: str = "ru") -> str:
     lang = _LOCALE_LANG.get(locale, "Russian")
-    response = await openai.chat.completions.create(
+    response = await get_openai_client().chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {

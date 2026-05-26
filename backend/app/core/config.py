@@ -10,6 +10,20 @@ class Settings(BaseSettings):
     # Telegram
     telegram_bot_token: str = ""
     webhook_base_url: str = ""
+    miniapp_url: str = "https://dokonly-miniapp.pages.dev"
+
+    # CORS — comma-separated list of allowed origins in production
+    # e.g. "https://dokonly-miniapp.pages.dev,https://dokonly-dashboard.pages.dev"
+    cors_origins: str = ""
+
+    @property
+    def allowed_origins(self) -> list[str]:
+        if self.cors_origins:
+            return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+        return [
+            "https://dokonly-miniapp.pages.dev",
+            "https://dokonly-dashboard.pages.dev",
+        ]
 
     # Supabase
     supabase_url: str = ""

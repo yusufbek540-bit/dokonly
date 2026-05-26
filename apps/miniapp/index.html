@@ -4,10 +4,45 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Dokonly</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:wght@600;700;800&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+      // Call ready+expand immediately so Telegram never shows black loading screen
+      try { window.Telegram.WebApp.ready(); window.Telegram.WebApp.expand(); } catch(e) {}
+    </script>
   </head>
-  <body>
+  <body style="background:#ffffff;margin:0">
+    <div id="splash" style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#ffffff;z-index:9999">
+      <div style="width:40px;height:40px;border:3px solid #00B383;border-top-color:transparent;border-radius:50%;animation:sp 0.8s linear infinite"></div>
+      <p style="margin-top:16px;font-family:system-ui;color:#444;font-size:14px">Загрузка...</p>
+      <style>@keyframes sp{to{transform:rotate(360deg)}}</style>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Remove splash once React renders, or after 8s timeout (prevents permanent blank if JS crashes)
+      (function() {
+        var removed = false;
+        function removeSplash() {
+          if (removed) return;
+          removed = true;
+          var splash = document.getElementById('splash');
+          if (splash) splash.style.display = 'none';
+        }
+        var check = setInterval(function() {
+          var root = document.getElementById('root');
+          if (root && root.children.length > 0) {
+            clearInterval(check);
+            removeSplash();
+          }
+        }, 100);
+        setTimeout(function() {
+          clearInterval(check);
+          removeSplash();
+        }, 8000);
+      })();
+    </script>
   </body>
 </html>

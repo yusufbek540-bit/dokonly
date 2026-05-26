@@ -12,12 +12,16 @@ class OrderItemResponse(BaseModel):
     price: Decimal
     quantity: int
     subtotal: Decimal
+    size: Optional[str] = None
+    color: Optional[str] = None
     model_config = {"from_attributes": True}
 
 
 class OrderStatusUpdate(BaseModel):
-    status: str  # "confirmed" | "packing" | "shipped" | "delivered" | "cancelled"
+    status: Optional[str] = None
     delivery_note: Optional[str] = None
+    seller_note: Optional[str] = None
+    payment_status: Optional[str] = None
 
 
 class OrderResponse(BaseModel):
@@ -29,7 +33,13 @@ class OrderResponse(BaseModel):
     discount: Decimal
     total: Decimal
     currency: str
-    customer_note: Optional[str]
-    delivery_note: Optional[str]
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    delivery_address: Optional[str] = None
+    delivery_type: Optional[str] = None
+    customer_note: Optional[str] = None
+    delivery_note: Optional[str] = None
+    seller_note: Optional[str] = None
     created_at: datetime
+    items: list[OrderItemResponse] = []
     model_config = {"from_attributes": True}

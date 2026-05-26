@@ -4,7 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from app.ai.client import openai
+from app.ai.client import get_openai_client
 
 _LOCALE_LANG = {"ru": "Russian", "uz": "Uzbek", "en": "English"}
 
@@ -21,7 +21,7 @@ async def extract_product_from_photo(
     lang = _LOCALE_LANG.get(locale, "Russian")
     image_b64 = base64.b64encode(image_bytes).decode()
 
-    response = await openai.chat.completions.create(
+    response = await get_openai_client().chat.completions.create(
         model="gpt-4o",
         messages=[
             {
@@ -36,8 +36,9 @@ async def extract_product_from_photo(
                         "text": (
                             f"Extract product info from this image and caption. "
                             f"Caption: '{caption}'. "
-                            f"Return JSON: {{\"name\": str, \"price\": number|null, \"description\": str (in {lang}, 1-2 sentences)}}. "
-                            f"If price is missing, use null."
+                            f"Return JSON with all text fields in {lang}: "
+                            f"{{\"name\": str (product name in {lang}), \"price\": number|null, \"description\": str (in {lang}, 1-2 sentences)}}. "
+                            f"If price is missing, use null. Name must be in {lang}."
                         ),
                     },
                 ],
