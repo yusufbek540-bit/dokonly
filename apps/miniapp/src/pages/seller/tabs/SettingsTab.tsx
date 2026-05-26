@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Icon } from '@/components/Icon'
 import { api } from '@/lib/api'
-import { useTelegramMainButton } from '@/hooks/useTelegram'
 import { FullPage } from '@/components/FullPage'
 import { PlanPicker } from '../PlanPicker'
 import { tgConfirm } from '@/lib/tgConfirm'
@@ -209,12 +208,6 @@ export function MailingsView({ onBack }: { onBack: () => void }) {
   const STATUS_LABELS: Record<string, string> = { draft: 'Черновик', sending: 'Отправка', sent: 'Отправлено', failed: 'Ошибка' }
   const STATUS_COLORS: Record<string, string> = { draft: 'var(--muted)', sending: '#F59E0B', sent: 'var(--accent)', failed: 'var(--danger)' }
 
-  useTelegramMainButton({
-    text: creating ? 'Создание...' : 'Сохранить черновик',
-    onClick: () => { if (title.trim() && text.trim() && !creating) createMailing() },
-    isVisible: showForm,
-    disabled: !title.trim() || !text.trim() || creating,
-  })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -307,9 +300,8 @@ export function MailingsView({ onBack }: { onBack: () => void }) {
 
       {/* Create form BottomSheet */}
       {showForm && (
-        <BottomSheet onClose={() => setShowForm(false)}>
+        <BottomSheet onClose={() => setShowForm(false)} title="Новая рассылка">
           <div style={{ padding: '8px 20px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>Новая рассылка</div>
             <input
               placeholder="Заголовок"
               value={title}
@@ -347,6 +339,11 @@ export function MailingsView({ onBack }: { onBack: () => void }) {
               />
             </div>
             {error && <div style={{ fontSize: 13, color: 'var(--danger)' }}>{error}</div>}
+            <button
+              onClick={() => { if (title.trim() && text.trim() && !creating) createMailing() }}
+              disabled={!title.trim() || !text.trim() || creating}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: (!title.trim() || !text.trim() || creating) ? 'not-allowed' : 'pointer', opacity: (!title.trim() || !text.trim() || creating) ? 0.5 : 1 }}
+            >{creating ? 'Создание...' : 'Сохранить черновик'}</button>
           </div>
         </BottomSheet>
       )}
@@ -403,12 +400,6 @@ export function CouponsView({ onBack }: { onBack: () => void }) {
   })
 
   const canCreateCode = !!(code.trim() && discountValue.trim() && !creating)
-  useTelegramMainButton({
-    text: creating ? 'Создание...' : 'Создать купон',
-    onClick: () => { if (canCreateCode) createCode() },
-    isVisible: showForm,
-    disabled: !canCreateCode,
-  })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
@@ -647,10 +638,7 @@ function NotificationsSheet({ tenant, onClose }: { tenant: any; onClose: () => v
 
   return (
     <div style={{ padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>
-        Уведомления
-      </div>
-      <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: -8, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
         Выберите, о каких событиях вы хотите получать уведомления в Telegram.
       </div>
       <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)' }}>
@@ -738,9 +726,6 @@ function LocalizationSheet({ tenant, onClose }: { tenant: any; onClose: () => vo
 
   return (
     <div style={{ padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>
-        Язык магазина
-      </div>
 
       {/* Default language */}
       <div>
@@ -2211,22 +2196,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
-  const anySettingsSheet = editProfile || editDelivery || editPayment || editAppearance || editTypography || editOrderSettings
-  const anySettingsPending = updateSettingsMutation.isPending || deliveryMutation.isPending || paymentMutation.isPending || appearanceMutation.isPending || typographyMutation.isPending || orderSettingsMutation.isPending
-
-  useTelegramMainButton({
-    text: anySettingsPending ? 'Сохранение...' : 'Сохранить',
-    onClick: () => {
-      if (editProfile) handleSaveProfile()
-      else if (editDelivery) deliveryMutation.mutate({ delivery_methods: deliveryMethods })
-      else if (editPayment) savePaymentSettings()
-      else if (editAppearance) appearanceMutation.mutate(pickedColor)
-      else if (editTypography) typographyMutation.mutate(pickedTypo)
-      else if (editOrderSettings) saveOrderSettings()
-    },
-    isVisible: anySettingsSheet,
-    disabled: anySettingsPending,
-  })
 
   const [showTeam, setShowTeam] = useState(false)
   const [editBlocks, setEditBlocks] = useState(false)
@@ -2686,11 +2655,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
       {/* ── Layout picker modal ─────────────────────────────────────────────── */}
       {editLayout && (
-        <BottomSheet onClose={() => setEditLayout(false)}>
+        <BottomSheet onClose={() => setEditLayout(false)} title="Макет магазина">
           <div style={{ padding: '20px 16px 8px' }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 4 }}>
-              Макет магазина
-            </div>
             <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
               Структура главной страницы вашего магазина
             </p>
@@ -2743,11 +2709,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
       {/* ── Color picker modal ───────────────────────────────────────────────── */}
       {editAppearance && (
-        <BottomSheet onClose={() => setEditAppearance(false)}>
+        <BottomSheet onClose={() => setEditAppearance(false)} title="Акцентный цвет">
           <div style={{ padding: '20px 16px 8px' }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 4 }}>
-              Акцентный цвет
-            </div>
             <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
               Цвет кнопок и акцентов магазина
             </p>
@@ -2786,11 +2749,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
       {/* ── Typography picker modal ─────────────────────────────────────────── */}
       {editTypography && (
-        <BottomSheet onClose={() => setEditTypography(false)}>
+        <BottomSheet onClose={() => setEditTypography(false)} title="Типографика">
           <div style={{ padding: '20px 16px 8px' }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 4 }}>
-              Типографика
-            </div>
             <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
               Шрифты заголовков и текста магазина
             </p>
@@ -2861,11 +2821,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
       {/* ── Order settings modal ─────────────────────────────────────────────── */}
       {editOrderSettings && (
-        <BottomSheet onClose={() => setEditOrderSettings(false)}>
+        <BottomSheet onClose={() => setEditOrderSettings(false)} title="Настройки заказов">
           <div style={{ padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>
-              Настройки заказов
-            </div>
 
             {/* Min order amount */}
             <label style={{ display: 'block' }}>
@@ -2951,11 +2908,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
       {/* ── Theme picker bottom sheet ────────────────────────────────────────── */}
       {showThemeSheet && (
-        <BottomSheet onClose={() => setShowThemeSheet(false)}>
+        <BottomSheet onClose={() => setShowThemeSheet(false)} title="Тема интерфейса">
           <div style={{ padding: '20px 16px 32px' }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 16 }}>
-              Тема интерфейса
-            </div>
             {([
               { id: 'system', label: '⚙️ Системная', hint: 'Следует теме Telegram' },
               { id: 'light',  label: '☀️ Светлая',  hint: 'Всегда светлая тема' },
@@ -3181,14 +3135,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
           Modal: Информация о магазине
       ══════════════════════════════════════════════════════════════════════ */}
       {editProfile && (
-        <BottomSheet onClose={() => setEditProfile(false)}>
+        <BottomSheet onClose={() => setEditProfile(false)} title="Информация о магазине">
           <div style={{ padding: '16px 20px 32px' }}>
-            <div style={{
-              fontFamily: 'Sora', fontWeight: 700, fontSize: 18,
-              color: 'var(--ink)', marginBottom: 20,
-            }}>
-              Информация о магазине
-            </div>
 
             {/* Hidden file inputs */}
             <input
@@ -3424,14 +3372,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
           Modal: Способы доставки
       ══════════════════════════════════════════════════════════════════════ */}
       {editDelivery && (
-        <BottomSheet onClose={() => setEditDelivery(false)}>
+        <BottomSheet onClose={() => setEditDelivery(false)} title="Способы доставки">
           <div style={{ padding: '16px 20px 32px' }}>
-            <div style={{
-              fontFamily: 'Sora', fontWeight: 700, fontSize: 18,
-              color: 'var(--ink)', marginBottom: 20,
-            }}>
-              Способы доставки
-            </div>
 
             <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 24 }}>
               {deliveryMethods.map((method, i) => (
@@ -3496,15 +3438,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
           Modal: Способы оплаты
       ══════════════════════════════════════════════════════════════════════ */}
       {editPayment && (
-        <BottomSheet onClose={() => setEditPayment(false)}>
+        <BottomSheet onClose={() => setEditPayment(false)} title="Способы оплаты">
           <div style={{ padding: '16px 20px 32px' }}>
-            <div style={{
-              fontFamily: 'Sora', fontWeight: 700, fontSize: 18,
-              color: 'var(--ink)', marginBottom: 12,
-            }}>
-              Способы оплаты
-            </div>
-
             <div style={{
               fontSize: 13, color: 'var(--muted)',
               marginBottom: 20, lineHeight: 1.5,
@@ -3609,14 +3544,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
           Modal: Подключить бота
       ══════════════════════════════════════════════════════════════════════ */}
       {editBot && (
-        <BottomSheet onClose={() => setEditBot(false)}>
+        <BottomSheet onClose={() => setEditBot(false)} title="Подключить бота">
           <div style={{ padding: '16px 20px 32px' }}>
-            <div style={{
-              fontFamily: 'Sora', fontWeight: 700, fontSize: 18,
-              color: 'var(--ink)', marginBottom: 16,
-            }}>
-              Подключить бота
-            </div>
 
             {/* Instructions card */}
             <div style={{
@@ -3722,11 +3651,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
           Modal: Приветственное сообщение
       ══════════════════════════════════════════════════════════════════════ */}
       {editWelcomeMsg && (
-        <BottomSheet onClose={() => setEditWelcomeMsg(false)}>
+        <BottomSheet onClose={() => setEditWelcomeMsg(false)} title="Приветственное сообщение">
           <div style={{ padding: '20px 16px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 18, color: 'var(--ink)' }}>
-              Приветственное сообщение
-            </div>
             <div style={{ fontSize: 13, color: 'var(--muted)' }}>
               Отправляется покупателям при первом открытии бота
             </div>
@@ -3762,14 +3688,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       )}
 
       {editGroupChat && (
-        <BottomSheet onClose={() => setEditGroupChat(false)}>
+        <BottomSheet onClose={() => setEditGroupChat(false)} title="Уведомления в группу">
           <div style={{ padding: '16px 20px 32px' }}>
-            <div style={{
-              fontFamily: 'Sora', fontWeight: 700, fontSize: 18,
-              color: 'var(--ink)', marginBottom: 8,
-            }}>
-              Уведомления в группу
-            </div>
             <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
               Новые заказы будут дублироваться в указанный групповой чат или канал
             </div>
@@ -3861,25 +3781,22 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
       {/* ── Notifications modal ─────────────────────────────────────────────── */}
       {editNotifications && (
-        <BottomSheet onClose={() => setEditNotifications(false)}>
+        <BottomSheet onClose={() => setEditNotifications(false)} title="Уведомления">
           <NotificationsSheet tenant={tenant} onClose={() => setEditNotifications(false)} />
         </BottomSheet>
       )}
 
       {/* ── Localization modal ──────────────────────────────────────────────── */}
       {editLocalization && (
-        <BottomSheet onClose={() => setEditLocalization(false)}>
+        <BottomSheet onClose={() => setEditLocalization(false)} title="Язык и локализация">
           <LocalizationSheet tenant={tenant} onClose={() => setEditLocalization(false)} />
         </BottomSheet>
       )}
 
       {/* ── Blocks config modal ─────────────────────────────────────────────── */}
       {editBlocks && (
-        <BottomSheet onClose={() => setEditBlocks(false)}>
+        <BottomSheet onClose={() => setEditBlocks(false)} title="Блоки витрины">
           <div style={{ padding: '20px 16px 8px' }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 4 }}>
-              Блоки витрины
-            </div>
             <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>Настройте видимость и стиль блоков</p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
@@ -4005,11 +3922,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
       {/* ── Theme Presets Sheet ─────────────────────────────────────────────── */}
       {showPresets && (
-        <BottomSheet onClose={() => { setShowPresets(false); setPresetConfirm(null) }}>
+        <BottomSheet onClose={() => { setShowPresets(false); setPresetConfirm(null) }} title="Готовые пресеты темы">
           <div style={{ padding: '20px 16px 8px' }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 4 }}>
-              Готовые пресеты темы
-            </div>
             <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
               Выберите пресет — он заменит цвет, типографику и макет
             </p>
