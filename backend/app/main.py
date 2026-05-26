@@ -65,6 +65,11 @@ MIGRATIONS = [
     CREATE INDEX IF NOT EXISTS idx_carts_tenant ON carts(tenant_id);
     CREATE INDEX IF NOT EXISTS idx_carts_user ON carts(tenant_id, telegram_user_id)
     """,
+    # 004 - seller CRM metadata on customers
+    """
+    ALTER TABLE customers
+    ADD COLUMN IF NOT EXISTS crm JSONB NOT NULL DEFAULT '{"tags": [], "notes": []}'::jsonb
+    """,
     # seed - restore demo tenant (migrated from Supabase)
     """
     INSERT INTO tenants (

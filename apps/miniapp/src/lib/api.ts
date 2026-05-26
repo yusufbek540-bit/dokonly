@@ -14,7 +14,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
   })
   if (!res.ok) throw new Error(await res.text())
-  return res.json()
+  if (res.status === 204) return undefined as T
+  const text = await res.text()
+  if (!text) return undefined as T
+  return JSON.parse(text) as T
 }
 
 export const api = {
@@ -163,6 +166,31 @@ export const api = {
       request<void>(`/api/v1/miniapp/products/${id}`, { method: 'DELETE' }),
     orders: (status?: string) =>
       request<any[]>(`/api/v1/miniapp/orders${status ? `?status=${status}` : ''}`),
+    customers: (q?: string, segment?: string) => {
+      const params = new URLSearchParams()
+      if (q) params.set('q', q)
+      if (segment) params.set('segment', segment)
+      const suffix = params.toString()
+      return request<any[]>(`/api/v1/miniapp/customers${suffix ? `?${suffix}` : ''}`)
+    },
+    getCustomer: (id: string) =>
+      request<any>(`/api/v1/miniapp/customers/${id}`),
+    getCustomerNotes: (id: string) =>
+      request<{ id: string; content: string; created_at: string }[]>(`/api/v1/miniapp/customers/${id}/notes`),
+    addCustomerNote: (id: string, content: string) =>
+      request<{ id: string; content: string; created_at: string }>(
+        `/api/v1/miniapp/customers/${id}/notes`,
+        { method: 'POST', body: JSON.stringify({ content }) },
+      ),
+    deleteCustomerNote: (id: string, noteId: string) =>
+      request<void>(`/api/v1/miniapp/customers/${id}/notes/${noteId}`, { method: 'DELETE' }),
+    addCustomerTag: (id: string, tag: string) =>
+      request<{ tags: string[] }>(`/api/v1/miniapp/customers/${id}/tags`, {
+        method: 'POST',
+        body: JSON.stringify({ tag }),
+      }),
+    removeCustomerTag: (id: string, tag: string) =>
+      request<void>(`/api/v1/miniapp/customers/${id}/tags/${encodeURIComponent(tag)}`, { method: 'DELETE' }),
     updateOrderStatus: (id: string, status: string) =>
       request<any>(`/api/v1/miniapp/orders/${id}/status`, {
         method: 'PATCH',

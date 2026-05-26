@@ -1,6 +1,19 @@
 import uuid
 
-from sqlalchemy import BigInteger, Boolean, Column, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from app.models.base import Base, TimestampMixin
@@ -26,9 +39,15 @@ class Customer(Base, TimestampMixin):
     saved_address = Column(Text)
     custom_avatar_url = Column(Text)
     is_deleted = Column(Boolean, nullable=False, default=False)
-    # Denormalized counters — must be updated by the order service when orders are created/cancelled.
+    # Denormalized counters — updated by the order service when orders are created/cancelled.
     total_orders = Column(Integer, nullable=False, default=0)
     total_spent = Column(Numeric(14, 2), nullable=False, default=0)
+    crm = Column(
+        JSONB,
+        nullable=False,
+        default=lambda: {"tags": [], "notes": []},
+        server_default=text("""'{"tags": [], "notes": []}'::jsonb"""),
+    )
 
 
 class Order(Base, TimestampMixin):
@@ -107,7 +126,9 @@ class Cart(Base, TimestampMixin):
     __tablename__ = "carts"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False)
+    tenant_id = Column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
     telegram_user_id = Column(BigInteger, nullable=False)
     customer_name = Column(String(200), nullable=True)
     items = Column(JSONB, default=list, nullable=False)
