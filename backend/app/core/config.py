@@ -9,6 +9,7 @@ class Settings(BaseSettings):
 
     # Telegram
     telegram_bot_token: str = ""
+    lead_alert_chat_id: str = ""
     webhook_base_url: str = ""
     miniapp_url: str = "https://dokonly-miniapp.pages.dev"
 

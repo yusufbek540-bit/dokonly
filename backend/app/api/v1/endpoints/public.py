@@ -1,9 +1,37 @@
 """
 Public (unauthenticated) endpoints — help articles, etc.
 """
-from fastapi import APIRouter
+import logging
+
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.models.marketing import MarketingLead
+from app.schemas.marketing import MarketingLeadCreate, MarketingLeadResponse
+from app.services.marketing_leads import send_marketing_lead_alert
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/public", tags=["public"])
+
+
+@router.post("/leads", response_model=MarketingLeadResponse, status_code=status.HTTP_201_CREATED)
+async def create_marketing_lead(
+    body: MarketingLeadCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    lead = MarketingLead(**body.model_dump())
+    db.add(lead)
+    await db.commit()
+    await db.refresh(lead)
+
+    try:
+        await send_marketing_lead_alert(lead)
+    except Exception as exc:
+        logger.warning("Marketing lead alert failed: %s", exc)
+
+    return lead
 
 
 @router.get("/help-articles")
