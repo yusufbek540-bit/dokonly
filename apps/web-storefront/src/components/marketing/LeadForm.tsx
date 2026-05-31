@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react'
 import type { FormEvent } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { submitMarketingLead, type MarketingLeadInput } from '@/lib/marketing/leads'
+import { createStoreBotUrl } from '@/content/marketing/site'
 
 interface LeadFormProps {
   locale: 'ru' | 'uz'
@@ -33,7 +34,8 @@ const copy = {
     submitting: 'Отправляем...',
     success: 'Спасибо. Мы напишем вам в Telegram.',
     contactError: 'Укажите Telegram, телефон или email.',
-    serverError: 'Не удалось отправить заявку. Попробуйте еще раз.',
+    serverError: 'Не удалось отправить заявку. Попробуйте еще раз или напишите нам в Telegram.',
+    fallbackCta: 'Написать в Telegram',
     orderOptions: ['До 50', '50-100', '100-500', 'Больше 500'],
   },
   uz: {
@@ -52,7 +54,8 @@ const copy = {
     submitting: 'Yuborilmoqda...',
     success: 'Rahmat. Sizga Telegram’da yozamiz.',
     contactError: 'Telegram, telefon yoki email kiriting.',
-    serverError: 'Arizani yuborib bo‘lmadi. Yana urinib ko‘ring.',
+    serverError: 'Arizani yuborib bo‘lmadi. Yana urinib ko‘ring yoki Telegram’da yozing.',
+    fallbackCta: 'Telegram’da yozish',
     orderOptions: ['50 gacha', '50-100', '100-500', '500 dan ko‘p'],
   },
 } as const
@@ -224,9 +227,19 @@ function LeadFormFields({ locale, defaultNiche, variant = 'standalone' }: LeadFo
       <input type="hidden" name="utm_term" value={searchParams.get('utm_term') ?? ''} />
 
       {error ? (
-        <p className="mt-4 rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">
-          {error}
-        </p>
+        <div className="mt-4 rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">
+          <p>{error}</p>
+          {error === text.serverError ? (
+            <a
+              className="mt-3 inline-flex min-h-10 items-center justify-center rounded-lg bg-white px-4 text-sm font-bold text-rose-700 ring-1 ring-rose-200 transition hover:bg-rose-100"
+              href={createStoreBotUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {text.fallbackCta}
+            </a>
+          ) : null}
+        </div>
       ) : null}
       {status === 'success' ? (
         <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800" role="status" aria-live="polite">
