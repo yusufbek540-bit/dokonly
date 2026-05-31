@@ -34,7 +34,7 @@ const copy = {
     success: 'Спасибо. Мы напишем вам в Telegram.',
     contactError: 'Укажите Telegram, телефон или email.',
     serverError: 'Не удалось отправить заявку. Попробуйте еще раз.',
-    orderOptions: ['До 50', '50-200', '200-500', 'Больше 500'],
+    orderOptions: ['До 50', '50-100', '100-500', 'Больше 500'],
   },
   uz: {
     title: 'Konsultatsiya arizasi',
@@ -53,7 +53,7 @@ const copy = {
     success: 'Rahmat. Sizga Telegram’da yozamiz.',
     contactError: 'Telegram, telefon yoki email kiriting.',
     serverError: 'Arizani yuborib bo‘lmadi. Yana urinib ko‘ring.',
-    orderOptions: ['50 gacha', '50-200', '200-500', '500 dan ko‘p'],
+    orderOptions: ['50 gacha', '50-100', '100-500', '500 dan ko‘p'],
   },
 } as const
 
