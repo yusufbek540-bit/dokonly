@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from app.core.config import settings
 from app.models.marketing import MarketingLead
 from app.schemas.marketing import MarketingLeadCreate
+from app.schemas.tenant import TenantCreate, normalize_tenant_slug
 from app.services.marketing_leads import format_marketing_lead_alert
 
 
@@ -117,3 +118,47 @@ def test_create_marketing_lead_returns_201_when_alert_fails(monkeypatch, caplog)
     assert "Marketing lead alert failed" in caplog.text
     assert "SECRET" not in caplog.text
     assert "api.telegram.org" not in caplog.text
+
+
+def test_create_marketing_lead_rate_limits_by_client(monkeypatch):
+    monkeypatch.setattr(settings, "marketing_lead_rate_limit_per_hour", 1)
+
+    public = import_module("app.api.v1.endpoints.public")
+    database = import_module("app.core.database")
+    public._lead_request_log.clear()
+
+    class FakeSession:
+        def add(self, lead):
+            self.lead = lead
+
+        async def commit(self):
+            return None
+
+        async def refresh(self, lead):
+            lead.id = uuid4()
+            lead.created_at = datetime.now(UTC)
+
+    async def override_db():
+        yield FakeSession()
+
+    async def noop_alert(_lead):
+        return None
+
+    app = FastAPI()
+    app.include_router(public.router)
+    app.dependency_overrides[database.get_db] = override_db
+    monkeypatch.setattr(public, "send_marketing_lead_alert", noop_alert)
+
+    client = TestClient(app)
+    assert client.post("/public/leads", json=_valid_lead_payload()).status_code == 201
+    assert client.post("/public/leads", json=_valid_lead_payload()).status_code == 429
+
+
+def test_reserved_tenant_slugs_are_rejected():
+    with pytest.raises(ValueError, match="reserved"):
+        normalize_tenant_slug("blog")
+
+    with pytest.raises(ValidationError, match="reserved"):
+        TenantCreate(name="Store", slug="Kontakt")
+
+    assert normalize_tenant_slug("my-store-1") == "my-store-1"

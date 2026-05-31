@@ -23,7 +23,7 @@ from app.models.product import Product, Category
 from app.models.order import Cart, Order, OrderItem, Customer
 from app.models.promo import PromoCode
 from app.models.mailing import MassMailing
-from app.schemas.tenant import TenantResponse
+from app.schemas.tenant import TenantResponse, normalize_tenant_slug
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse
 from app.schemas.order import OrderStatusUpdate
 
@@ -132,9 +132,10 @@ async def onboard_seller(
     if existing:
         raise HTTPException(400, "Store already exists")
 
-    slug = body.get("slug", "").strip().lower()
-    if not slug:
-        raise HTTPException(400, "Slug is required")
+    try:
+        slug = normalize_tenant_slug(body.get("slug", ""))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
 
     slug_taken = await db.execute(select(Tenant).where(Tenant.slug == slug))
     if slug_taken.scalar_one_or_none():

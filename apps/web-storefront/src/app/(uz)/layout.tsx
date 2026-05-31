@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     default: 'Dokonly',
     template: '%s | Dokonly',
   },
-  description: 'Dokonly помогает продавцам запускать магазины и принимать заказы в Telegram.',
+  description: 'Dokonly sotuvchilarga Telegram’da do‘kon ochish va buyurtma qabul qilishga yordam beradi.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

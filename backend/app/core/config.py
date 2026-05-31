@@ -22,6 +22,8 @@ class Settings(BaseSettings):
         if self.cors_origins:
             return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
         return [
+            "https://dokonly.com",
+            "https://www.dokonly.com",
             "https://dokonly-miniapp.pages.dev",
             "https://dokonly-dashboard.pages.dev",
         ]
@@ -49,6 +51,9 @@ class Settings(BaseSettings):
 
     # Redis
     redis_url: str = "redis://localhost:6379"
+
+    # Public marketing lead capture
+    marketing_lead_rate_limit_per_hour: int = 20
 
     @property
     def is_production(self) -> bool:
