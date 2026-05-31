@@ -1,3 +1,4 @@
+import { LeadForm } from '@/components/marketing/LeadForm'
 import { MarketingButton } from '@/components/marketing/MarketingButton'
 import { MarketingLayout } from '@/components/marketing/MarketingLayout'
 import { marketingRoutes } from '@/content/marketing/routes'
@@ -78,17 +79,17 @@ export default function UzbekPricingPage() {
       </section>
 
       <section className="marketing-section marketing-shell">
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-6 py-8 md:px-10">
-          <p className="text-sm font-bold uppercase tracking-[0.14em] text-emerald-700">Konsultatsiya</p>
-          <h2 className="mt-3 max-w-3xl text-3xl font-black leading-tight text-gray-950">
-            Sohangizga mos tarif tanlashga yordam beramiz
-          </h2>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-gray-700">
-            Nima sotishingiz, qancha buyurtma qayta ishlashingiz va Telegram’da qanday ssenariylar kerakligini ayting.
-          </p>
-          <div className="mt-6">
-            <MarketingButton href={marketingRoutes.contact.uz}>{ctas.leadOffer.label.uz}</MarketingButton>
+        <div className="grid gap-8 rounded-lg border border-emerald-200 bg-emerald-50 px-6 py-8 md:px-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-emerald-700">Konsultatsiya</p>
+            <h2 className="mt-3 max-w-3xl text-3xl font-black leading-tight text-gray-950">
+              Sohangizga mos tarif tanlashga yordam beramiz
+            </h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-gray-700">
+              Nima sotishingiz, qancha buyurtma qayta ishlashingiz va Telegram’da qanday ssenariylar kerakligini ayting.
+            </p>
           </div>
+          <LeadForm locale="uz" defaultNiche="Tarif tanlash" />
         </div>
       </section>
     </MarketingLayout>

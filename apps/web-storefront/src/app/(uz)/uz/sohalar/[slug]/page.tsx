@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { LeadForm } from '@/components/marketing/LeadForm'
 import { MarketingButton } from '@/components/marketing/MarketingButton'
 import { MarketingLayout } from '@/components/marketing/MarketingLayout'
 import { StructuredData } from '@/components/marketing/StructuredData'
@@ -137,20 +138,17 @@ export default function UzbekNicheDetailPage({ params }: PageProps) {
       </section>
 
       <section className="marketing-section marketing-shell">
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-6 py-8 md:px-10">
-          <p className="text-sm font-bold uppercase tracking-[0.14em] text-emerald-700">Keyingi qadam</p>
-          <h2 className="mt-3 max-w-3xl text-3xl font-black leading-tight text-gray-950">
-            «{niche.name.uz}» sohasi uchun do‘kon qanday ko‘rinishini ko‘rsatamiz
-          </h2>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-gray-700">
-            Tayyor katalog va buyurtma rasmiylashtirishdan boshlang, tafsilotlarni esa mahsulot, xizmat va savdo jarayoningizga moslang.
-          </p>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <MarketingButton href={ctas.createStore.href.uz}>{ctas.createStore.label.uz}</MarketingButton>
-            <MarketingButton href={marketingRoutes.contact.uz} variant="secondary">
-              Jamoaga yozish
-            </MarketingButton>
+        <div className="grid gap-8 rounded-lg border border-emerald-200 bg-emerald-50 px-6 py-8 md:px-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.14em] text-emerald-700">Keyingi qadam</p>
+            <h2 className="mt-3 max-w-3xl text-3xl font-black leading-tight text-gray-950">
+              «{niche.name.uz}» sohasi uchun do‘kon qanday ko‘rinishini ko‘rsatamiz
+            </h2>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-gray-700">
+              Tayyor katalog va buyurtma rasmiylashtirishdan boshlang, tafsilotlarni esa mahsulot, xizmat va savdo jarayoningizga moslang.
+            </p>
           </div>
+          <LeadForm locale="uz" defaultNiche={niche.name.uz} />
         </div>
       </section>
 

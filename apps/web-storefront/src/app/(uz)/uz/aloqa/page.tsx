@@ -1,3 +1,4 @@
+import { LeadForm } from '@/components/marketing/LeadForm'
 import { MarketingButton } from '@/components/marketing/MarketingButton'
 import { MarketingLayout } from '@/components/marketing/MarketingLayout'
 import { marketingRoutes } from '@/content/marketing/routes'
@@ -40,16 +41,7 @@ export default function UzbekContactPage() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-6">
-            <p className="text-sm font-bold uppercase tracking-[0.14em] text-emerald-700">Ariza</p>
-            <h2 className="mt-3 text-2xl font-black leading-tight text-gray-950">Konsultatsiya shakli shu yerda bo‘ladi</h2>
-            <p className="mt-4 text-base leading-7 text-gray-700">
-              Hozir Telegram-bot orqali boshlashingiz mumkin. Keyingi bosqichda bu yerda konsultatsiya arizasi uchun shakl bo‘ladi.
-            </p>
-            <div className="mt-6">
-              <MarketingButton href={ctas.createStore.href.uz}>{ctas.createStore.label.uz}</MarketingButton>
-            </div>
-          </div>
+          <LeadForm locale="uz" defaultNiche="Telegram-do‘kon" />
         </div>
       </section>
 
