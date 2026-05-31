@@ -28,9 +28,8 @@ def _alert_failure_status(exc: Exception) -> int | None:
 
 
 def _client_key(request: Request) -> str:
-    forwarded_for = request.headers.get("x-forwarded-for")
-    if forwarded_for:
-        return forwarded_for.split(",", 1)[0].strip()
+    # Trust only the direct client address here. A deployment proxy can overwrite it at the
+    # network layer, but user-controlled X-Forwarded-For values should not bypass throttling.
     return request.client.host if request.client else "unknown"
 
 

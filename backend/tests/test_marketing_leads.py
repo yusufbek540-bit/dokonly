@@ -151,7 +151,14 @@ def test_create_marketing_lead_rate_limits_by_client(monkeypatch):
 
     client = TestClient(app)
     assert client.post("/public/leads", json=_valid_lead_payload()).status_code == 201
-    assert client.post("/public/leads", json=_valid_lead_payload()).status_code == 429
+    assert (
+        client.post(
+            "/public/leads",
+            headers={"x-forwarded-for": "203.0.113.10"},
+            json=_valid_lead_payload(),
+        ).status_code
+        == 429
+    )
 
 
 def test_reserved_tenant_slugs_are_rejected():
@@ -162,3 +169,10 @@ def test_reserved_tenant_slugs_are_rejected():
         TenantCreate(name="Store", slug="Kontakt")
 
     assert normalize_tenant_slug("my-store-1") == "my-store-1"
+
+
+def test_registration_suggested_slug_avoids_reserved_route():
+    registration = import_module("app.bot.handlers.registration")
+
+    assert registration._safe_slug("Blog") == "blog-shop"
+    assert registration._safe_slug("My Store") == "my-store"
