@@ -15,11 +15,19 @@ export function NicheCard({ niche, locale }: NicheCardProps) {
   return (
     <Link
       href={niche.slug[locale]}
-      className="group flex min-h-[260px] flex-col rounded-lg border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-950/10"
+      className="group flex min-h-[360px] flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl hover:shadow-emerald-950/10"
       aria-label={`${ariaLabel[locale]}: ${niche.name[locale]}`}
     >
-      <div className="flex h-full flex-col">
-        <div className="mb-5 h-2 w-16 rounded-full bg-emerald-600" aria-hidden="true" />
+      <div className="aspect-[16/10] w-full overflow-hidden bg-emerald-50">
+        <img
+          src={niche.image}
+          alt={niche.name[locale]}
+          className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+          loading="lazy"
+        />
+      </div>
+      <div className="flex h-full flex-col p-5">
+        <div className="mb-4 h-2 w-16 rounded-full bg-emerald-600" aria-hidden="true" />
         <h3 className="text-xl font-bold leading-tight text-gray-950">{niche.name[locale]}</h3>
         <p className="mt-3 line-clamp-3 text-sm leading-6 text-gray-600">{niche.description[locale]}</p>
         <ul className="mt-5 space-y-2 text-sm font-medium text-gray-800">

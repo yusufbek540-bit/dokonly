@@ -65,8 +65,11 @@ export default function RussianNicheDetailPage({ params }: PageProps) {
             </MarketingButton>
           </div>
         </div>
-        <div className="marketing-card p-5">
-          <div className="rounded-lg bg-gray-950 p-4 text-white">
+        <div className="marketing-card overflow-hidden p-0">
+          <div className="aspect-[16/10] w-full bg-emerald-50">
+            <img src={niche.image} alt={niche.name.ru} className="h-full w-full object-cover" />
+          </div>
+          <div className="m-5 rounded-lg bg-gray-950 p-4 text-white">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <span className="text-sm font-bold">Dokonly</span>
               <span className="rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-gray-950">Telegram</span>
