@@ -45,6 +45,9 @@ apps/web-storefront/.next/
 # Playwright MCP artifacts
 .playwright-mcp/
 
+# Superpowers brainstorming artifacts
+.superpowers/
+
 # Screenshots / debug images
 *.png
 *.jpg
