@@ -1,4 +1,4 @@
-import type { LocalizedRoute, LocalizedText, Niche } from './types'
+import type { Locale, LocalizedRoute, LocalizedText, Niche } from './types'
 
 export const requiredNicheIds = [
   'fashion-boutiques',
@@ -157,3 +157,12 @@ export const niches = [
     ['telegram-mini-app-sales', 'crm-small-telegram-store'],
   ),
 ] satisfies Niche[]
+
+export function getNicheBySlug(slug: string, locale: Locale) {
+  return niches.find((niche) => niche.slug[locale].split('/').pop() === slug) ?? null
+}
+
+export function getNicheRoute(id: string, locale: Locale) {
+  const niche = niches.find((item) => item.id === id)
+  return niche ? niche.slug[locale] : locale === 'ru' ? '/nishi' : '/uz/sohalar'
+}
