@@ -89,7 +89,7 @@ export default function RussianPricingPage() {
               Расскажите, что продаете, сколько заказов обрабатываете и какие сценарии нужны в Telegram.
             </p>
           </div>
-          <LeadForm locale="ru" defaultNiche="Подбор тарифа" />
+          <LeadForm locale="ru" defaultNiche="Подбор тарифа" variant="embedded" />
         </div>
       </section>
     </MarketingLayout>

@@ -67,7 +67,7 @@ export default function UzbekDemoPage() {
               Telegram-do‘kon ssenariysini tushunarli tayyorlashimiz uchun mahsulotlar va buyurtma oqimini tasvirlang.
             </p>
           </div>
-          <LeadForm locale="uz" defaultNiche="Do‘kon demosi" />
+          <LeadForm locale="uz" defaultNiche="Do‘kon demosi" variant="embedded" />
         </div>
       </section>
     </MarketingLayout>

@@ -148,7 +148,7 @@ export default function RussianNicheDetailPage({ params }: PageProps) {
               Начните с готового каталога и оформления заказа, а детали подстроите под свои товары, услуги и процесс продаж.
             </p>
           </div>
-          <LeadForm locale="ru" defaultNiche={niche.name.ru} />
+          <LeadForm locale="ru" defaultNiche={niche.name.ru} variant="embedded" />
         </div>
       </section>
 

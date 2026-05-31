@@ -148,7 +148,7 @@ export default function UzbekNicheDetailPage({ params }: PageProps) {
               Tayyor katalog va buyurtma rasmiylashtirishdan boshlang, tafsilotlarni esa mahsulot, xizmat va savdo jarayoningizga moslang.
             </p>
           </div>
-          <LeadForm locale="uz" defaultNiche={niche.name.uz} />
+          <LeadForm locale="uz" defaultNiche={niche.name.uz} variant="embedded" />
         </div>
       </section>
 

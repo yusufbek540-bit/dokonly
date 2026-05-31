@@ -19,14 +19,18 @@ export interface MarketingLeadInput {
 }
 
 export async function submitMarketingLead(input: MarketingLeadInput): Promise<{ ok: true } | { ok: false; message: string }> {
-  const response = await fetch(`${apiBase}/api/v1/public/leads`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(input),
-  })
+  try {
+    const response = await fetch(`${apiBase}/api/v1/public/leads`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
 
-  if (response.ok) return { ok: true }
+    if (response.ok) return { ok: true }
 
-  const data = await response.json().catch(() => null)
-  return { ok: false, message: data?.detail ?? 'Request failed' }
+    const data = await response.json().catch(() => null)
+    return { ok: false, message: data?.detail ?? 'Request failed' }
+  } catch {
+    return { ok: false, message: 'Request failed' }
+  }
 }

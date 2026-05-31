@@ -2,12 +2,13 @@
 
 import { Suspense, useState } from 'react'
 import type { FormEvent } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { submitMarketingLead, type MarketingLeadInput } from '@/lib/marketing/leads'
 
 interface LeadFormProps {
   locale: 'ru' | 'uz'
   defaultNiche?: string
+  variant?: 'standalone' | 'embedded'
 }
 
 type LeadFormState = Pick<
@@ -72,8 +73,14 @@ function clean(value: string) {
   return trimmed.length > 0 ? trimmed : undefined
 }
 
-function LeadFormFields({ locale, defaultNiche }: LeadFormProps) {
+const formClass = {
+  standalone: 'rounded-lg border border-emerald-200 bg-white p-5 shadow-sm md:p-6',
+  embedded: 'bg-transparent',
+} as const
+
+function LeadFormFields({ locale, defaultNiche, variant = 'standalone' }: LeadFormProps) {
   const searchParams = useSearchParams()
+  const pathname = usePathname()
   const text = copy[locale]
   const [form, setForm] = useState<LeadFormState>({ ...initialState, niche: defaultNiche ?? '' })
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success'>('idle')
@@ -106,13 +113,13 @@ function LeadFormFields({ locale, defaultNiche }: LeadFormProps) {
       niche: form.niche.trim(),
       monthly_order_volume: clean(form.monthly_order_volume ?? ''),
       message: clean(form.message ?? ''),
-      source_page: window.location.pathname,
+      source_page: pathname,
       utm_source: clean(searchParams.get('utm_source') ?? ''),
       utm_medium: clean(searchParams.get('utm_medium') ?? ''),
       utm_campaign: clean(searchParams.get('utm_campaign') ?? ''),
       utm_content: clean(searchParams.get('utm_content') ?? ''),
       utm_term: clean(searchParams.get('utm_term') ?? ''),
-    })
+    }).catch(() => ({ ok: false as const, message: 'Request failed' }))
 
     if (result.ok) {
       setStatus('success')
@@ -125,7 +132,7 @@ function LeadFormFields({ locale, defaultNiche }: LeadFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-emerald-200 bg-white p-5 shadow-sm md:p-6">
+    <form onSubmit={handleSubmit} className={formClass[variant]} aria-busy={status === 'submitting'}>
       <div>
         <p className="text-sm font-bold uppercase tracking-[0.14em] text-emerald-700">{text.title}</p>
         <p className="mt-3 text-sm leading-6 text-gray-600">{text.intro}</p>
@@ -216,8 +223,21 @@ function LeadFormFields({ locale, defaultNiche }: LeadFormProps) {
       <input type="hidden" name="utm_content" value={searchParams.get('utm_content') ?? ''} />
       <input type="hidden" name="utm_term" value={searchParams.get('utm_term') ?? ''} />
 
-      {error ? <p className="mt-4 rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">{error}</p> : null}
-      {status === 'success' ? <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{text.success}</p> : null}
+      {error ? (
+        <p className="mt-4 rounded-lg bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {status === 'success' ? (
+        <p className="mt-4 rounded-lg bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800" role="status" aria-live="polite">
+          {text.success}
+        </p>
+      ) : null}
+      {status === 'submitting' ? (
+        <p className="sr-only" role="status" aria-live="polite">
+          {text.submitting}
+        </p>
+      ) : null}
 
       <button
         type="submit"
@@ -231,9 +251,12 @@ function LeadFormFields({ locale, defaultNiche }: LeadFormProps) {
 }
 
 export function LeadForm(props: LeadFormProps) {
+  const pathname = usePathname()
+  const formKey = `${pathname}:${props.defaultNiche ?? ''}`
+
   return (
     <Suspense fallback={<div className="min-h-[520px] rounded-lg border border-emerald-200 bg-white" />}>
-      <LeadFormFields {...props} />
+      <LeadFormFields key={formKey} {...props} />
     </Suspense>
   )
 }

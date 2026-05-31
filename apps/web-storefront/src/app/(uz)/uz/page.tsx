@@ -167,7 +167,7 @@ export default function UzbekHomePage() {
               Telegram’da nima sotishingizni ayting, biz katalog, buyurtma va mijozlar bilan ishlash qanday ko‘rinishini ko‘rsatamiz.
             </p>
           </div>
-          <LeadForm locale="uz" defaultNiche="Telegram-do‘kon" />
+          <LeadForm locale="uz" defaultNiche="Telegram-do‘kon" variant="embedded" />
         </div>
       </section>
 

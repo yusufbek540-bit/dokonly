@@ -178,7 +178,7 @@ export default function RootPage({
               Расскажите, что продаете в Telegram, а мы покажем, как может выглядеть каталог, заказ и работа с клиентами.
             </p>
           </div>
-          <LeadForm locale="ru" defaultNiche="Telegram-магазин" />
+          <LeadForm locale="ru" defaultNiche="Telegram-магазин" variant="embedded" />
         </div>
       </section>
 

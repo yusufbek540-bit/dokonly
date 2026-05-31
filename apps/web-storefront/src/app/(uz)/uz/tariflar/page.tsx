@@ -89,7 +89,7 @@ export default function UzbekPricingPage() {
               Nima sotishingiz, qancha buyurtma qayta ishlashingiz va Telegram’da qanday ssenariylar kerakligini ayting.
             </p>
           </div>
-          <LeadForm locale="uz" defaultNiche="Tarif tanlash" />
+          <LeadForm locale="uz" defaultNiche="Tarif tanlash" variant="embedded" />
         </div>
       </section>
     </MarketingLayout>

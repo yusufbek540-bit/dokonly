@@ -67,7 +67,7 @@ export default function RussianDemoPage() {
               Опишите товары и поток заказов, чтобы мы подготовили понятный сценарий Telegram-магазина.
             </p>
           </div>
-          <LeadForm locale="ru" defaultNiche="Демо магазина" />
+          <LeadForm locale="ru" defaultNiche="Демо магазина" variant="embedded" />
         </div>
       </section>
     </MarketingLayout>
