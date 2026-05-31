@@ -1,3 +1,5 @@
+const apiProxyTarget = process.env.API_PROXY_TARGET?.replace(/\/$/, '')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -17,6 +19,11 @@ const nextConfig = {
         permanent: true,
       },
     ]
+  },
+  async rewrites() {
+    return apiProxyTarget
+      ? [{ source: '/api/:path*', destination: `${apiProxyTarget}/api/:path*` }]
+      : []
   }
 }
 module.exports = nextConfig
