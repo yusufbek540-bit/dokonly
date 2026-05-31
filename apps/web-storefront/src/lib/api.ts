@@ -1,4 +1,13 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
+function getApiBase() {
+  const configuredBase = process.env.NEXT_PUBLIC_API_URL
+  if (configuredBase) return configuredBase.replace(/\/$/, '')
+
+  if (process.env.NODE_ENV === 'development') return 'http://localhost:8000'
+  if (typeof window === 'undefined') return process.env.API_PROXY_TARGET?.replace(/\/$/, '') ?? ''
+  return ''
+}
+
+const BASE = getApiBase()
 
 export interface Shop {
   id: string
