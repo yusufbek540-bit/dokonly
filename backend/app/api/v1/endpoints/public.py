@@ -3,6 +3,7 @@ Public (unauthenticated) endpoints — help articles, etc.
 """
 import logging
 
+import httpx
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,6 +15,12 @@ from app.services.marketing_leads import send_marketing_lead_alert
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/public", tags=["public"])
+
+
+def _alert_failure_status(exc: Exception) -> int | None:
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code
+    return None
 
 
 @router.post("/leads", response_model=MarketingLeadResponse, status_code=status.HTTP_201_CREATED)
@@ -29,7 +36,11 @@ async def create_marketing_lead(
     try:
         await send_marketing_lead_alert(lead)
     except Exception as exc:
-        logger.warning("Marketing lead alert failed: %s", exc)
+        logger.warning(
+            "Marketing lead alert failed: type=%s status_code=%s",
+            type(exc).__name__,
+            _alert_failure_status(exc),
+        )
 
     return lead
 

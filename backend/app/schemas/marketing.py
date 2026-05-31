@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class MarketingLeadCreate(BaseModel):
@@ -20,6 +20,34 @@ class MarketingLeadCreate(BaseModel):
     utm_campaign: str | None = Field(default=None, max_length=200)
     utm_content: str | None = Field(default=None, max_length=200)
     utm_term: str | None = Field(default=None, max_length=200)
+
+    @field_validator("locale", "name", "niche", "source_page", mode="before")
+    @classmethod
+    def strip_required_string(cls, value):
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+    @field_validator(
+        "telegram_username",
+        "phone",
+        "email",
+        "business_name",
+        "monthly_order_volume",
+        "message",
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "utm_content",
+        "utm_term",
+        mode="before",
+    )
+    @classmethod
+    def strip_optional_string(cls, value):
+        if isinstance(value, str):
+            value = value.strip()
+            return value or None
+        return value
 
     @model_validator(mode="after")
     def require_contact(self) -> "MarketingLeadCreate":

@@ -34,7 +34,7 @@ async def send_marketing_lead_alert(lead: MarketingLead) -> None:
     if not settings.telegram_bot_token or not settings.lead_alert_chat_id:
         return
 
-    async with httpx.AsyncClient(timeout=10) as client:
+    async with httpx.AsyncClient(timeout=5) as client:
         response = await client.post(
             f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage",
             json={
