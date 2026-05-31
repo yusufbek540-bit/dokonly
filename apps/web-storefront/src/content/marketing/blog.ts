@@ -1,4 +1,4 @@
-import type { BlogPost, LocalizedRoute, LocalizedText } from './types'
+import type { BlogPost, Locale, LocalizedRoute, LocalizedText } from './types'
 
 export const requiredBlogIds = [
   'create-telegram-store-uzbekistan',
@@ -135,3 +135,11 @@ export const blogPosts = [
     ['fashion-boutiques', 'home-decor-furniture'],
   ),
 ] satisfies BlogPost[]
+
+export function getBlogPostBySlug(slug: string, locale: Locale) {
+  return blogPosts.find((post) => post.slug[locale].split('/').pop() === slug) ?? null
+}
+
+export function getRelatedPosts(currentId: string, limit = 3) {
+  return blogPosts.filter((post) => post.id !== currentId).slice(0, limit)
+}
