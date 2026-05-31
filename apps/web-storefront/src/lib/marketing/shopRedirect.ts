@@ -1,9 +1,24 @@
 import { headers } from 'next/headers'
 
 const shopSlugPattern = /^[a-z0-9][a-z0-9-]{0,62}$/i
+const reservedShopSlugs = new Set([
+  'uz',
+  'ru',
+  'nishi',
+  'blog',
+  'pomoshch',
+  'namuna',
+  'tarify',
+  'kontakt',
+  'niches',
+  'help',
+  'demo',
+  'pricing',
+  'contact',
+])
 
 function isValidShopSlug(value: string): boolean {
-  return shopSlugPattern.test(value)
+  return shopSlugPattern.test(value) && !reservedShopSlugs.has(value.toLowerCase())
 }
 
 export function resolveShopRedirect(searchParams: { shop?: string }): string | null {
