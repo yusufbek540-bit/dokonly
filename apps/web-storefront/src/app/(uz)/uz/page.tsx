@@ -4,6 +4,7 @@ import { MarketingButton } from '@/components/marketing/MarketingButton'
 import { MarketingLayout } from '@/components/marketing/MarketingLayout'
 import { NicheCard } from '@/components/marketing/NicheCard'
 import { PhoneDemo } from '@/components/marketing/PhoneDemo'
+import { ProblemSolutionShowcase } from '@/components/marketing/ProblemSolutionShowcase'
 import { StructuredData } from '@/components/marketing/StructuredData'
 import { blogPosts } from '@/content/marketing/blog'
 import { faqs } from '@/content/marketing/faqs'
@@ -61,42 +62,12 @@ export default function UzbekHomePage() {
         <PhoneDemo locale="uz" />
       </section>
 
-      <section className="border-y border-gray-200 bg-white">
-        <div className="marketing-shell grid gap-3 py-5 sm:grid-cols-2 lg:grid-cols-4">
-          {homeCopy.trust.uz.map((item) => (
-            <div key={item} className="rounded-lg bg-[#f8faf9] px-4 py-3 text-sm font-bold text-gray-800">
-              {item}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="marketing-section marketing-shell">
-        <div className="grid gap-8 lg:grid-cols-2">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-[0.14em] text-emerald-700">Muammo</p>
-            <h2 className="mt-3 text-3xl font-black leading-tight text-gray-950">Savdo yozishma orqali yursa, tartib tez buziladi</h2>
-            <ul className="mt-6 space-y-3">
-              {homeCopy.problems.uz.map((problem) => (
-                <li key={problem} className="rounded-lg border border-rose-100 bg-white px-4 py-3 text-gray-700">
-                  {problem}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <p className="text-sm font-bold uppercase tracking-[0.14em] text-emerald-700">Yechim</p>
-            <h2 className="mt-3 text-3xl font-black leading-tight text-gray-950">Dokonly mijoz yo‘lini bitta Telegram ssenariysiga yig‘adi</h2>
-            <ul className="mt-6 grid gap-3 sm:grid-cols-2">
-              {homeCopy.solutions.uz.map((solution) => (
-                <li key={solution} className="rounded-lg border border-emerald-100 bg-white px-4 py-3 font-semibold text-gray-800">
-                  {solution}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </section>
+      <ProblemSolutionShowcase
+        locale="uz"
+        trustItems={homeCopy.trust.uz}
+        problems={homeCopy.problems.uz}
+        solutions={homeCopy.solutions.uz}
+      />
 
       <section className="marketing-section bg-white">
         <div className="marketing-shell">
