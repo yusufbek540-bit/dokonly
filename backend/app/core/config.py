@@ -9,6 +9,7 @@ class Settings(BaseSettings):
 
     # Telegram
     telegram_bot_token: str = ""
+    lead_alert_chat_id: str = ""
     webhook_base_url: str = ""
     miniapp_url: str = "https://dokonly-miniapp.pages.dev"
 
@@ -21,6 +22,8 @@ class Settings(BaseSettings):
         if self.cors_origins:
             return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
         return [
+            "https://dokonly.com",
+            "https://www.dokonly.com",
             "https://dokonly-miniapp.pages.dev",
             "https://dokonly-dashboard.pages.dev",
         ]
@@ -48,6 +51,9 @@ class Settings(BaseSettings):
 
     # Redis
     redis_url: str = "redis://localhost:6379"
+
+    # Public marketing lead capture
+    marketing_lead_rate_limit_per_hour: int = 20
 
     @property
     def is_production(self) -> bool:

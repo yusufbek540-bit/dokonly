@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.database import AsyncSessionLocal
 from app.models.tenant import Tenant as TenantModel
+from app.schemas.tenant import normalize_tenant_slug
 
 router = Router()
 
@@ -33,6 +34,14 @@ def _make_slug(text: str) -> str:
     return result[:50] or "shop"
 
 
+def _safe_slug(text: str) -> str:
+    slug = _make_slug(text)
+    try:
+        return normalize_tenant_slug(slug)
+    except ValueError:
+        return f"{slug}-shop"
+
+
 class RegStates(StatesGroup):
     waiting_name = State()
     waiting_slug = State()
@@ -48,7 +57,7 @@ async def start_registration(callback: CallbackQuery, state: FSMContext):
 @router.message(RegStates.waiting_name, F.text)
 async def got_name(message: Message, state: FSMContext):
     await state.update_data(name=message.text)
-    slug = _make_slug(message.text)
+    slug = _safe_slug(message.text)
     await state.update_data(suggested_slug=slug)
     bot_info = await message.bot.me()
     await message.answer(
@@ -66,7 +75,11 @@ async def got_slug(message: Message, state: FSMContext):
     if text.lower() in ("да", "yes", "+"):
         slug = data["suggested_slug"]
     else:
-        slug = _make_slug(text)
+        try:
+            slug = normalize_tenant_slug(_make_slug(text))
+        except ValueError as exc:
+            await message.answer(str(exc))
+            return
 
     owner_id = _telegram_owner_id(message.from_user.id)
     async with AsyncSessionLocal() as db:

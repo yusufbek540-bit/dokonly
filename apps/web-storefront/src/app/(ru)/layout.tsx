@@ -1,9 +1,13 @@
 import type { Metadata } from 'next'
-import './globals.css'
+import '../globals.css'
 
 export const metadata: Metadata = {
-  title: 'Dokonly Store',
-  description: 'Online store powered by Dokonly',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://dokonly.com'),
+  title: {
+    default: 'Dokonly',
+    template: '%s | Dokonly',
+  },
+  description: 'Dokonly помогает продавцам запускать магазины и принимать заказы в Telegram.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
