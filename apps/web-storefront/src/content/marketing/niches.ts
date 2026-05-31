@@ -28,6 +28,7 @@ function niche(
   promise: LocalizedText,
   description: LocalizedText,
   benefits: { ru: string[]; uz: string[] },
+  image: string,
   relatedBlogIds: string[],
 ): Niche {
   return {
@@ -54,7 +55,7 @@ function niche(
         answer: { ru: 'Да, используйте клиентские заметки, теги, промокоды и напоминания.', uz: 'Ha, mijoz izohlari, teglar, promokodlar va eslatmalardan foydalaning.' },
       },
     ],
-    image: `/marketing/niches/${id}.jpg`,
+    image,
     relatedBlogIds,
   }
 }
@@ -70,6 +71,7 @@ export const niches = [
       ru: ['Карточки с размерами и цветами.', 'Быстрое оформление заказа.', 'Промокоды для сезонных подборок.'],
       uz: ['O‘lcham va rangli kartochkalar.', 'Tez buyurtma rasmiylashtirish.', 'Mavsumiy to‘plamlar uchun promokodlar.'],
     },
+    '/marketing/niches/odezhda-butiki.webp',
     ['boutique-sell-clothes-telegram', 'telegram-channel-sales-showcase'],
   ),
   niche(
@@ -82,6 +84,7 @@ export const niches = [
       ru: ['Категории по типу ухода.', 'Теги клиентов по интересам.', 'Акции для повторной покупки.'],
       uz: ['Parvarish turi bo‘yicha kategoriyalar.', 'Qiziqishlar bo‘yicha mijoz teglari.', 'Takroriy xarid uchun aksiyalar.'],
     },
+    '/marketing/niches/kosmetika-krasota.webp',
     ['cosmetics-repeat-purchases', 'crm-small-telegram-store'],
   ),
   niche(
@@ -94,6 +97,7 @@ export const niches = [
       ru: ['Меню с фото и описанием.', 'Предзаказы к нужной дате.', 'Статусы заказа для команды.'],
       uz: ['Rasm va tavsifli menyu.', 'Kerakli sanaga oldindan buyurtma.', 'Jamoa uchun buyurtma statuslari.'],
     },
+    '/marketing/niches/eda-kafe-vypechka.webp',
     ['cafe-bakery-preorders-telegram', 'telegram-orders-without-chaos'],
   ),
   niche(
@@ -106,6 +110,7 @@ export const niches = [
       ru: ['Подборки по событию.', 'Адрес и комментарий в заказе.', 'Промокоды к праздникам.'],
       uz: ['Tadbir bo‘yicha to‘plamlar.', 'Buyurtmada manzil va izoh.', 'Bayramlar uchun promokodlar.'],
     },
+    '/marketing/niches/tsvety-podarki.webp',
     ['flowers-gifts-telegram-store', 'promo-codes-telegram-store'],
   ),
   niche(
@@ -118,6 +123,7 @@ export const niches = [
       ru: ['Карточки с характеристиками.', 'Категории по брендам.', 'CRM для гарантийных обращений.'],
       uz: ['Xususiyatli kartochkalar.', 'Brendlar bo‘yicha kategoriyalar.', 'Kafolat murojaatlari uchun CRM.'],
     },
+    '/marketing/niches/elektronika-aksessuary.webp',
     ['telegram-bot-online-store-guide', 'crm-small-telegram-store'],
   ),
   niche(
@@ -130,6 +136,7 @@ export const niches = [
       ru: ['Группы по комнатам и стилям.', 'Заявки с параметрами доставки.', 'Заметки по клиентским проектам.'],
       uz: ['Xona va uslub bo‘yicha guruhlar.', 'Yetkazib berish parametrlari bilan arizalar.', 'Mijoz loyihalari bo‘yicha izohlar.'],
     },
+    '/marketing/niches/dom-dekor-mebel.webp',
     ['telegram-channel-sales-showcase', 'telegram-orders-without-chaos'],
   ),
   niche(
@@ -142,6 +149,7 @@ export const niches = [
       ru: ['Фильтрация по возрасту.', 'Повторные предложения для родителей.', 'Акции на наборы и комплекты.'],
       uz: ['Yosh bo‘yicha saralash.', 'Ota-onalar uchun takroriy takliflar.', 'Set va komplektlar uchun aksiyalar.'],
     },
+    '/marketing/niches/detskie-tovary.webp',
     ['promo-codes-telegram-store', 'recover-abandoned-carts'],
   ),
   niche(
@@ -154,6 +162,7 @@ export const niches = [
       ru: ['Описание программ и услуг.', 'Заявки с контактами клиента.', 'Сегменты для повторных приглашений.'],
       uz: ['Dastur va xizmatlar tavsifi.', 'Mijoz kontaktlari bilan arizalar.', 'Takroriy takliflar uchun segmentlar.'],
     },
+    '/marketing/niches/uslugi-kursy-zapisi.webp',
     ['telegram-mini-app-sales', 'crm-small-telegram-store'],
   ),
 ] satisfies Niche[]
