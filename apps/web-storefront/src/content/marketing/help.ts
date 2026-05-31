@@ -1,4 +1,4 @@
-import type { HelpArticle, LocalizedRoute, LocalizedText } from './types'
+import type { HelpArticle, Locale, LocalizedRoute, LocalizedText } from './types'
 
 export const requiredHelpIds = [
   'getting-started',
@@ -141,3 +141,11 @@ export const helpArticles = [
     ['connect-telegram-bot', 'import-products'],
   ),
 ] satisfies HelpArticle[]
+
+export function getHelpArticleBySlug(slug: string, locale: Locale) {
+  return helpArticles.find((article) => article.slug[locale].split('/').pop() === slug) ?? null
+}
+
+export function getRelatedHelpArticles(currentId: string) {
+  return helpArticles.filter((article) => article.id !== currentId).slice(0, 4)
+}
