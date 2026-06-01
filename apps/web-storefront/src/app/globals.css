@@ -136,6 +136,23 @@ html {
   animation-delay: 7.2s;
 }
 
+.hero-float-card {
+  animation: hero-float-card 7.8s ease-in-out infinite;
+  will-change: translate;
+}
+
+.hero-float-card-2 {
+  animation-delay: -1.4s;
+}
+
+.hero-float-card-3 {
+  animation-delay: -2.8s;
+}
+
+.hero-float-card-4 {
+  animation-delay: -4.2s;
+}
+
 @keyframes hero-rotate-copy {
   0% {
     opacity: 0;
@@ -148,6 +165,15 @@ html {
   32%, 100% {
     opacity: 0;
     transform: translateY(86%);
+  }
+}
+
+@keyframes hero-float-card {
+  0%, 100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -10px;
   }
 }
 
@@ -174,6 +200,7 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .showcase-reveal,
   .showcase-path::before,
+  .hero-float-card,
   .hero-rotator span {
     animation: none;
   }
