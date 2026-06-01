@@ -13,8 +13,10 @@ interface HomeHeroProps {
 const copy = {
   ru: {
     eyebrow: 'Dokonly для Telegram-продаж',
-    backdrop: 'магазин внутри Telegram',
     secondaryCta: 'Посмотреть демо',
+    animatedLead: 'Dokonly помогает продавцам',
+    animatedItems: ['принимать заказы', 'показывать каталог', 'возвращать покупателей', 'управлять клиентами'],
+    animatedFull: 'Dokonly помогает продавцам принимать заказы, показывать каталог, возвращать покупателей и управлять клиентами прямо в Telegram.',
     cards: [
       { icon: Clock3, value: '10 минут', label: 'запуск без долгой разработки' },
       { icon: Code2, value: 'Без кода', label: 'каталог, заказ и CRM в одном сценарии' },
@@ -25,8 +27,10 @@ const copy = {
   },
   uz: {
     eyebrow: 'Telegram savdosi uchun Dokonly',
-    backdrop: 'Telegram ichidagi do‘kon',
     secondaryCta: 'Namunani ko‘rish',
+    animatedLead: 'Dokonly sotuvchilarga yordam beradi',
+    animatedItems: ['buyurtmalar qabul qilishga', 'katalog ko‘rsatishga', 'xaridorlarni qaytarishga', 'mijozlarni boshqarishga'],
+    animatedFull: 'Dokonly sotuvchilarga buyurtmalar qabul qilish, katalog ko‘rsatish, xaridorlarni qaytarish va mijozlarni Telegram ichida boshqarishga yordam beradi.',
     cards: [
       { icon: Clock3, value: '10 daqiqa', label: 'uzoq ishlab chiqishsiz start' },
       { icon: Code2, value: 'Kodsiz', label: 'katalog, buyurtma va CRM bitta ssenariyda' },
@@ -44,21 +48,22 @@ export function HomeHero({ locale }: HomeHeroProps) {
     <section className="relative z-10 overflow-hidden bg-[#68b8d7]">
       <HeroCloudBackground />
       <div className="marketing-shell relative z-10 flex min-h-[760px] flex-col items-center pt-10 text-center md:min-h-[820px] lg:min-h-[860px] lg:pt-14">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-20 w-[120vw] -translate-x-1/2 select-none text-center text-[clamp(4.5rem,12vw,12rem)] font-black leading-[0.78] text-emerald-500/20 blur-[0.2px]"
-        >
-          {text.backdrop}
-        </div>
-
         <div className="relative mx-auto max-w-5xl">
           <p className="text-sm font-black uppercase tracking-[0.18em] text-emerald-800">{text.eyebrow}</p>
           <h1 className="mt-5 text-4xl font-black leading-[0.98] tracking-[-0.01em] text-slate-950 sm:text-6xl lg:text-7xl">
             {homeCopy.hero.h1[locale]}
           </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-base font-medium leading-7 text-slate-700 sm:text-lg">
-            {homeCopy.hero.body[locale]}
-          </p>
+          <div className="hero-animated-copy mx-auto mt-5 max-w-3xl text-slate-700">
+            <p className="sr-only">{text.animatedFull}</p>
+            <div aria-hidden="true">
+              <p className="text-base font-semibold leading-7 sm:text-lg">{text.animatedLead}</p>
+              <div className="hero-rotator mt-1 text-2xl font-black leading-none text-slate-950 sm:text-3xl">
+                {text.animatedItems.map((item) => (
+                  <span key={item}>{item}</span>
+                ))}
+              </div>
+            </div>
+          </div>
           <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <MarketingButton href={ctas.createStore.href[locale]} className="min-w-[190px] shadow-[0_18px_36px_rgba(0,121,92,0.18)]">
               {ctas.createStore.label[locale]}

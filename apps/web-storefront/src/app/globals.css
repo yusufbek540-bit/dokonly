@@ -106,6 +106,51 @@ html {
   animation: showcase-flow 2400ms ease-in-out infinite;
 }
 
+.hero-rotator {
+  position: relative;
+  height: 1.2em;
+  overflow: hidden;
+}
+
+.hero-rotator span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(-86%);
+  animation: hero-rotate-copy 9.6s cubic-bezier(0.2, 0.85, 0.2, 1) infinite;
+  will-change: opacity, transform;
+}
+
+.hero-rotator span:nth-child(2) {
+  animation-delay: 2.4s;
+}
+
+.hero-rotator span:nth-child(3) {
+  animation-delay: 4.8s;
+}
+
+.hero-rotator span:nth-child(4) {
+  animation-delay: 7.2s;
+}
+
+@keyframes hero-rotate-copy {
+  0% {
+    opacity: 0;
+    transform: translateY(-86%);
+  }
+  8%, 24% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  32%, 100% {
+    opacity: 0;
+    transform: translateY(86%);
+  }
+}
+
 @keyframes showcase-rise {
   from {
     opacity: 0;
@@ -128,7 +173,13 @@ html {
 
 @media (prefers-reduced-motion: reduce) {
   .showcase-reveal,
-  .showcase-path::before {
+  .showcase-path::before,
+  .hero-rotator span {
     animation: none;
+  }
+
+  .hero-rotator span:first-child {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
