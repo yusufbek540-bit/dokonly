@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { FeatureBento } from '@/components/feature-bento'
+import { HomeHero } from '@/components/marketing/HomeHero'
+import { HomeProofStrip } from '@/components/marketing/HomeProofStrip'
 import { LeadForm } from '@/components/marketing/LeadForm'
 import { MarketingButton } from '@/components/marketing/MarketingButton'
 import { MarketingLayout } from '@/components/marketing/MarketingLayout'
 import { NicheCard } from '@/components/marketing/NicheCard'
-import { PhoneDemo } from '@/components/marketing/PhoneDemo'
 import { ProblemSolutionShowcase } from '@/components/marketing/ProblemSolutionShowcase'
 import { StructuredData } from '@/components/marketing/StructuredData'
 import { blogPosts } from '@/content/marketing/blog'
@@ -25,23 +27,6 @@ const howItWorks = [
   'Продавец получает заказ, контакт и историю клиента.',
 ]
 
-const proofItems = [
-  {
-    title: 'Каталог без лишней переписки',
-    body: 'Покупатель видит товары, цены, описание и следующий шаг прямо в Telegram.',
-  },
-  {
-    title: 'Заказы в одной очереди',
-    body: 'Новые заявки не теряются в личных сообщениях и быстрее доходят до продавца.',
-  },
-  {
-    title: 'Повторные продажи',
-    body: 'Клиентские заметки, теги, промокоды и напоминания помогают возвращать покупателей.',
-  },
-]
-
-const statItems = ['10 минут до запуска', '8 готовых ниш', '6 шагов покупки', '2 языка сайта']
-
 export default function RootPage({
   searchParams,
 }: {
@@ -56,22 +41,10 @@ export default function RootPage({
     <MarketingLayout locale="ru" currentRoute={marketingRoutes.home}>
       <StructuredData data={faqJsonLd(faqs, 'ru')} />
 
-      <section className="marketing-shell grid gap-10 pb-14 pt-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:pt-14">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-[0.14em] text-emerald-700">Dokonly для Telegram-продаж</p>
-          <h1 className="mt-5 max-w-3xl text-4xl font-black leading-[1.05] text-gray-950 sm:text-5xl lg:text-6xl">
-            {homeCopy.hero.h1.ru}
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-gray-600">{homeCopy.hero.body.ru}</p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <MarketingButton href={ctas.createStore.href.ru}>{ctas.createStore.label.ru}</MarketingButton>
-            <MarketingButton href={marketingRoutes.demo.ru} variant="secondary">
-              Посмотреть демо
-            </MarketingButton>
-          </div>
-        </div>
-        <PhoneDemo locale="ru" />
-      </section>
+      <HomeHero locale="ru" />
+      <HomeProofStrip locale="ru" />
+
+      <FeatureBento locale="ru" />
 
       <ProblemSolutionShowcase
         locale="ru"
@@ -80,7 +53,7 @@ export default function RootPage({
         solutions={homeCopy.solutions.ru}
       />
 
-      <section className="marketing-section bg-white">
+      <section className="bg-white pt-10 pb-12 md:pt-12 md:pb-14 lg:pt-12 lg:pb-16">
         <div className="marketing-shell">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
             <div>
@@ -109,30 +82,6 @@ export default function RootPage({
             <div key={step} className="rounded-lg border border-gray-200 bg-white p-5">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-950 text-sm font-bold text-white">{index + 1}</span>
               <p className="mt-5 text-base font-bold leading-6 text-gray-900">{step}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="marketing-section bg-gray-950 text-white">
-        <div className="marketing-shell grid gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-[0.14em] text-emerald-300">Что доказывает ценность</p>
-            <h2 className="mt-3 text-3xl font-black leading-tight">Меньше ручной работы, больше управляемых заказов</h2>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {proofItems.map((item) => (
-              <div key={item.title} className="rounded-lg border border-white/10 bg-white/5 p-5">
-                <h3 className="text-lg font-bold">{item.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-gray-300">{item.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="marketing-shell mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {statItems.map((item) => (
-            <div key={item} className="rounded-lg border border-white/10 px-4 py-3 text-sm font-bold text-emerald-100">
-              {item}
             </div>
           ))}
         </div>
