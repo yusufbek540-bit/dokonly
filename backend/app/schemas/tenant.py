@@ -1,5 +1,38 @@
-from pydantic import BaseModel, Field
+import re
 from uuid import UUID
+
+from pydantic import BaseModel, Field, field_validator
+
+RESERVED_TENANT_SLUGS = {
+    "api",
+    "blog",
+    "contact",
+    "demo",
+    "help",
+    "kontakt",
+    "namuna",
+    "niches",
+    "nishi",
+    "pomoshch",
+    "pricing",
+    "ru",
+    "sitemap.xml",
+    "tarify",
+    "uz",
+}
+
+TENANT_SLUG_PATTERN = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,98}[a-z0-9])?$")
+
+
+def normalize_tenant_slug(slug: str) -> str:
+    normalized = slug.strip().lower()
+    if not normalized:
+        raise ValueError("Slug is required")
+    if not TENANT_SLUG_PATTERN.fullmatch(normalized):
+        raise ValueError("Slug may contain only lowercase letters, numbers, and hyphens")
+    if normalized in RESERVED_TENANT_SLUGS:
+        raise ValueError("Slug is reserved")
+    return normalized
 
 
 class TenantCreate(BaseModel):
@@ -8,6 +41,11 @@ class TenantCreate(BaseModel):
     country: str = "UZ"
     currency: str = "UZS"
     locale: str = "ru"
+
+    @field_validator("slug")
+    @classmethod
+    def validate_slug(cls, value: str) -> str:
+        return normalize_tenant_slug(value)
 
 
 class TenantResponse(BaseModel):

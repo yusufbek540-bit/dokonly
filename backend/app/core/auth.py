@@ -52,6 +52,12 @@ def _validate_init_data(init_data: str, bot_token: str | None = None) -> dict | 
     Pass bot_token to validate against a specific bot (e.g. a merchant's own bot).
     Defaults to the platform master bot token.
     """
+    if not settings.is_production and init_data.startswith("mock:"):
+        try:
+            return json.loads(urllib.parse.unquote(init_data.removeprefix("mock:")))
+        except Exception:
+            return None
+
     effective_token = bot_token or settings.telegram_bot_token
     if not effective_token:
         return None
@@ -134,5 +140,6 @@ async def get_tg_user(
             if tg_user is None:
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Telegram initData")
 
-    owner_id = _owner_id_from_tg(tg_user["id"])
+    mock_owner_id = tg_user.get("_mock_owner_id") if not settings.is_production else None
+    owner_id = uuid.UUID(mock_owner_id) if mock_owner_id else _owner_id_from_tg(tg_user["id"])
     return {"sub": str(owner_id), "tg_id": tg_user["id"], "tg_user": tg_user}

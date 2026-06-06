@@ -65,6 +65,31 @@ MIGRATIONS = [
     CREATE INDEX IF NOT EXISTS idx_carts_tenant ON carts(tenant_id);
     CREATE INDEX IF NOT EXISTS idx_carts_user ON carts(tenant_id, telegram_user_id)
     """,
+    # 004 - marketing lead capture
+    """
+    CREATE TABLE IF NOT EXISTS marketing_leads (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        locale VARCHAR(2) NOT NULL DEFAULT 'ru',
+        name VARCHAR(200) NOT NULL,
+        telegram_username VARCHAR(100),
+        phone VARCHAR(50),
+        email VARCHAR(200),
+        business_name VARCHAR(200),
+        niche VARCHAR(100) NOT NULL,
+        monthly_order_volume VARCHAR(100),
+        message TEXT,
+        source_page TEXT NOT NULL,
+        utm_source VARCHAR(200),
+        utm_medium VARCHAR(200),
+        utm_campaign VARCHAR(200),
+        utm_content VARCHAR(200),
+        utm_term VARCHAR(200),
+        created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+        updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_marketing_leads_created_at ON marketing_leads(created_at);
+    CREATE INDEX IF NOT EXISTS idx_marketing_leads_niche ON marketing_leads(niche);
+    """,
     # seed - restore demo tenant (migrated from Supabase)
     """
     INSERT INTO tenants (

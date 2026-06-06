@@ -155,7 +155,8 @@ async def get_shop_role(
     if tg_user is None:
         return {"role": "buyer"}
 
-    owner_id = str(_owner_id_from_tg(tg_user["id"]))
+    mock_owner_id = tg_user.get("_mock_owner_id") if not settings.is_production else None
+    owner_id = str(mock_owner_id or _owner_id_from_tg(tg_user["id"]))
     role = "owner" if str(tenant.owner_id) == owner_id else "buyer"
     return {"role": role, "tenant_id": str(tenant.id)}
 
@@ -1271,5 +1272,4 @@ async def ai_chat(
     except Exception:
         reply = "Здравствуйте! Чем могу помочь?"
     return {"reply": reply}
-
 

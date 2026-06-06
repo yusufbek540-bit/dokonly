@@ -1,0 +1,9 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "dokonly",
+  "main": "./workers/dokonly/src/index.ts",
+  "compatibility_date": "2026-05-26",
+  "observability": {
+    "enabled": true
+  }
+}
