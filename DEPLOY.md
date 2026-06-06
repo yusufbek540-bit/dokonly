@@ -45,11 +45,18 @@ WEBHOOK_BASE_URL=https://<your-railway-url>.up.railway.app
 
 Already live at `https://dokonly-miniapp.pages.dev` (deployed via wrangler CLI).
 
-To redeploy after backend URL is known:
+Wrangler deploys require these environment variables locally or in CI:
+
 ```bash
-cd apps/miniapp
-VITE_API_URL=https://<railway-url>.up.railway.app npm run build
-wrangler pages deploy dist/ --project-name dokonly-miniapp
+export CLOUDFLARE_ACCOUNT_ID=<cloudflare-account-id>
+export CLOUDFLARE_API_TOKEN=<cloudflare-api-token-with-pages-edit>
+export VITE_API_URL=https://<railway-url>.up.railway.app
+export CF_PAGES_BRANCH=main
+```
+
+To redeploy after backend URL is known, run from the repo root:
+```bash
+VITE_API_URL=https://<railway-url>.up.railway.app pnpm deploy:miniapp
 ```
 
 ---
@@ -58,11 +65,14 @@ wrangler pages deploy dist/ --project-name dokonly-miniapp
 
 Already live at `https://dokonly-dashboard.pages.dev`.
 
-To redeploy:
+To redeploy from the repo root:
 ```bash
-cd apps/dashboard
-VITE_API_URL=https://<railway-url>.up.railway.app npm run build
-wrangler pages deploy dist/ --project-name dokonly-dashboard
+VITE_API_URL=https://<railway-url>.up.railway.app pnpm deploy:dashboard
+```
+
+To verify Cloudflare auth before deploying:
+```bash
+pnpm wrangler:whoami
 ```
 
 ---

@@ -10,7 +10,12 @@
     "build:dashboard": "pnpm --filter dashboard build",
     "dev:web-storefront": "pnpm --filter web-storefront dev",
     "build:web-storefront": "pnpm --filter web-storefront build",
-    "deploy": "pnpm build:miniapp && wrangler deploy",
+    "deploy": "pnpm deploy:miniapp",
+    "deploy:miniapp": "pnpm build:miniapp && wrangler pages deploy apps/miniapp/dist --project-name dokonly-miniapp --branch ${CF_PAGES_BRANCH:-main}",
+    "deploy:dashboard": "pnpm build:dashboard && wrangler pages deploy apps/dashboard/dist --project-name dokonly-dashboard --branch ${CF_PAGES_BRANCH:-main}",
+    "deploy:worker": "wrangler deploy",
+    "wrangler:check": "wrangler check",
+    "wrangler:whoami": "wrangler whoami",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck"
   },
