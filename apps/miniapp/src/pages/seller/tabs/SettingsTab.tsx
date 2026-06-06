@@ -1983,6 +1983,11 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
   const [showAchievements, setShowAchievements] = useState(false)
   const [showStreak, setShowStreak] = useState(false)
   const { data: achievements } = useQuery({ queryKey: ['seller-achievements'], queryFn: api.seller.achievements, retry: false })
+  const achievementItems = Array.isArray(achievements)
+    ? achievements
+    : ((achievements as any)?.achievements ?? [])
+  const unlockedAchievements = achievementItems.filter((a: any) => a.unlocked).length
+  const totalAchievements = achievementItems.length
   const createdAt = tenant.created_at ? new Date(tenant.created_at) : new Date()
   const daysPassed = Math.floor((Date.now() - createdAt.getTime()) / 86400000)
   const daysWord = (n: number) => n === 1 ? 'день' : n < 5 ? 'дня' : 'дней'
@@ -2385,7 +2390,7 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
         <button onClick={() => setShowAchievements(true)} style={{ padding: '12px 10px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
           <div style={{ fontSize: 18, marginBottom: 4 }}>🎖</div>
           <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 2 }}>Достижения</div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{achievements ? `${(achievements as any[]).filter((a: any) => a.unlocked).length}/${(achievements as any[]).length}` : '—'}</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{achievements ? `${unlockedAchievements}/${totalAchievements}` : '—'}</div>
           <div style={{ fontSize: 10, color: 'var(--accent)', marginTop: 2, fontWeight: 600 }}>→ Открыть</div>
         </button>
         <button onClick={() => setShowStreak(true)} style={{ padding: '12px 10px', borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>

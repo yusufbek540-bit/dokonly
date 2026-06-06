@@ -114,6 +114,40 @@ const categories = [
   { id: 'cat-3', tenant_id: tenantId, name: 'Подарки', sort_order: 3 },
 ]
 
+const achievements = [
+  {
+    id: 'first_product',
+    category: 'milestone',
+    icon: 'box',
+    name_ru: 'Первый товар',
+    desc_ru: 'Добавьте первый товар в каталог.',
+    tier: 'bronze',
+    unlocked: true,
+    unlocked_at: now,
+  },
+  {
+    id: 'first_order',
+    category: 'milestone',
+    icon: 'cart',
+    name_ru: 'Первый заказ',
+    desc_ru: 'Получите первый заказ через Telegram-магазин.',
+    tier: 'bronze',
+    unlocked: true,
+    unlocked_at: now,
+  },
+  {
+    id: 'repeat_sales',
+    category: 'feature',
+    icon: 'refresh',
+    name_ru: 'Повторные продажи',
+    desc_ru: 'Запустите промокоды, рассылку или возврат брошенной корзины.',
+    tier: 'silver',
+    unlocked: false,
+    progress: 1,
+    target: 3,
+  },
+]
+
 function role() {
   return new URLSearchParams(window.location.search).get('mock_role') === 'owner' ? 'owner' : 'buyer'
 }
@@ -186,7 +220,13 @@ export async function mockRequest<T>(path: string, init?: RequestInit): Promise<
   }
   if (path.includes('/analytics/viral')) return ok({ shares: 14, referral_orders: 3 }) as T
   if (path === '/api/v1/miniapp/dashboard/badges') return ok({ products: 3, orders: 1, subscription: false, achievements: true }) as T
-  if (path === '/api/v1/miniapp/achievements') return ok({ unlocked: [], available: [] }) as T
+  if (path === '/api/v1/miniapp/achievements') {
+    return ok({
+      achievements,
+      unlocked_count: achievements.filter((a) => a.unlocked).length,
+      total_count: achievements.length,
+    }) as T
+  }
   if (path === '/api/v1/miniapp/promo-codes') return ok([{ id: 'promo-1', code: 'DEMO10', discount_type: 'percent', discount_value: 10, is_active: true }]) as T
   if (path === '/api/v1/miniapp/abandoned-carts') return ok([{ id: 'cart-1', customer_name: 'Demo Buyer', customer_telegram_id: 20001, total: 120000, items_count: 1, abandoned_at: now }]) as T
   if (path === '/api/v1/miniapp/mailings') return ok([{ id: 'mailing-1', title: 'Demo mailing', text: 'Demo text', status: 'draft' }]) as T
