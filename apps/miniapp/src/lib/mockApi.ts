@@ -1,39 +1,9 @@
+import { applyDemoSettingsPatch, createDemoShop, readDemoShop, writeDemoShop } from './mockApiState'
+
 const tenantId = '5a534d64-86d5-4659-b48a-228206f56918'
 const now = new Date().toISOString()
 
-const shop = {
-  id: tenantId,
-  name: 'Dokonly Demo Store',
-  slug: 'test',
-  currency: 'UZS',
-  tier: 'business',
-  is_active: true,
-  created_at: now,
-  next_billing_at: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000).toISOString(),
-  logo_url: null,
-  cover_url: null,
-  accent_color: 'emerald',
-  typography_bundle: 'modern',
-  description: 'Demo Telegram do‘koni',
-  contact_info: {
-    telegram: '@dokonly_support',
-    phone: '+998 90 123 45 67',
-  },
-  settings: {
-    business_category: 'fashion',
-    description: 'Kiyim va aksessuarlar uchun demo katalog',
-    owner_tg_id: '10001',
-    ai_consultant_enabled: true,
-    channel_subscription_gate: false,
-    payment_methods: ['cash', 'manual_transfer'],
-    manual_transfer: {
-      card_number: '8600 0000 0000 0000',
-      card_holder: 'DOKONLY DEMO',
-      bank_name: 'Demo Bank',
-    },
-  },
-  bot_username: 'dokonlydemobot',
-}
+const shop = createDemoShop(now)
 
 const products = [
   {
@@ -167,18 +137,19 @@ export function mockUpload(file?: File) {
 export async function mockRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const url = new URL(path, window.location.origin)
   const method = init?.method ?? 'GET'
+  const demoShop = readDemoShop()
 
   if (path === '/api/v1/miniapp/me') {
-    return ok({ tg_user: (window as any).Telegram?.WebApp?.initDataUnsafe?.user, tenant: role() === 'owner' ? shop : null }) as T
+    return ok({ tg_user: (window as any).Telegram?.WebApp?.initDataUnsafe?.user, tenant: role() === 'owner' ? demoShop : null }) as T
   }
 
-  if (path === '/api/v1/miniapp/onboard' && method === 'POST') return ok(shop) as T
+  if (path === '/api/v1/miniapp/onboard' && method === 'POST') return ok(demoShop) as T
   if (path === '/api/v1/miniapp/setup-bot' && method === 'POST') {
     return ok({ ok: true, bot_username: 'dokonlydemobot', mini_app_url: `${window.location.origin}?shop=test&mock_api=1` }) as T
   }
 
   if (path === '/api/v1/shop/test/role') return ok({ role: role(), tenant_id: tenantId }) as T
-  if (path.startsWith('/api/v1/shop/test')) return ok(shop) as T
+  if (path.startsWith('/api/v1/shop/test')) return ok(demoShop) as T
   if (path === `/api/v1/shop/${tenantId}/products`) return ok(products) as T
   if (path === `/api/v1/shop/${tenantId}/stats`) return ok({ avg_rating: 4.8, review_count: 18, customer_count: 124 }) as T
   if (path === `/api/v1/shop/${tenantId}/stories`) return ok([]) as T
@@ -198,13 +169,19 @@ export async function mockRequest<T>(path: string, init?: RequestInit): Promise<
   if (path === '/api/v1/miniapp/products') return ok(products) as T
   if (path === '/api/v1/miniapp/categories') return ok(categories) as T
   if (path === '/api/v1/miniapp/orders' || path.startsWith('/api/v1/miniapp/orders?')) return ok(orders) as T
+  if (path === '/api/v1/miniapp/settings' && method === 'PATCH') {
+    const patch = init?.body ? JSON.parse(String(init.body)) : {}
+    const updatedShop = applyDemoSettingsPatch(demoShop, patch)
+    writeDemoShop(updatedShop)
+    return ok(updatedShop) as T
+  }
+  if (path === '/api/v1/miniapp/settings') return ok(demoShop) as T
   if (path.includes('/status') || path.includes('/cancel') || method === 'PATCH' || method === 'POST' || method === 'DELETE') {
     if (path.includes('/products')) return ok(products[0]) as T
     if (path.includes('/categories')) return ok(categories[0]) as T
     if (path.includes('/promo-codes')) return ok({ id: 'promo-1', code: 'DEMO10', discount_type: 'percent', discount_value: 10 }) as T
     return ok({ ok: true, id: 'mock-id', status: 'ok' }) as T
   }
-  if (path === '/api/v1/miniapp/settings') return ok(shop) as T
   if (path.includes('/analytics/summary')) {
     return ok({
       total_revenue: 2400000,

@@ -2109,6 +2109,7 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
   const typographyBundle = tenant.typography_bundle ?? tenant.settings?.typography_bundle ?? 'modern'
   const accentColorId    = tenant.accent_color ?? tenant.settings?.accent_color ?? 'emerald'
   const accentHex        = ACCENT_COLORS[accentColorId] ?? '#00B383'
+  const currentLayout    = tenant.layout ?? tenant.settings?.layout ?? 'boutique'
 
   const shopUrl    = `https://dokonly.app?shop=${tenant.slug}`
   const shopDisplay = `?shop=${tenant.slug}`
@@ -2617,8 +2618,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
           <Row
             icon="star"
             label="Макет магазина"
-            value={pickedLayout.charAt(0).toUpperCase() + pickedLayout.slice(1)}
-            onPress={() => { setPickedLayout(tenant.layout ?? tenant.settings?.layout ?? 'boutique'); setEditLayout(true) }}
+            value={currentLayout.charAt(0).toUpperCase() + currentLayout.slice(1)}
+            onPress={() => { setPickedLayout(currentLayout); setEditLayout(true) }}
           />
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', background: 'var(--card)', borderBottom: '1px solid var(--border)' }}>
