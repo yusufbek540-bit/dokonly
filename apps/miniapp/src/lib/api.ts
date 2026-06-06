@@ -1,3 +1,5 @@
+import { isMockApiEnabled, mockRequest, mockUpload } from './mockApi'
+
 const BASE = import.meta.env.VITE_API_URL ?? ''
 
 function getInitData(): string {
@@ -5,6 +7,8 @@ function getInitData(): string {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  if (isMockApiEnabled()) return mockRequest<T>(path, init)
+
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: {
@@ -111,6 +115,8 @@ export const api = {
       body: JSON.stringify(body),
     }),
   uploadPaymentScreenshot: async (tenantId: string, orderId: string, file: File): Promise<{ url: string }> => {
+    if (isMockApiEnabled()) return mockUpload(file)
+
     const formData = new FormData()
     formData.append('file', file)
     const res = await fetch(`${BASE}/api/v1/shop/${tenantId}/orders/${orderId}/payment-screenshot`, {
@@ -124,6 +130,8 @@ export const api = {
   getHelpArticles: () =>
     request<{ id: string; title: string; category: string; content: string; slug: string }[]>('/api/v1/public/help-articles'),
   uploadBuyerAvatar: async (tenantId: string, file: File): Promise<{ url: string }> => {
+    if (isMockApiEnabled()) return mockUpload(file)
+
     const formData = new FormData()
     formData.append('file', file)
     const res = await fetch(`${BASE}/api/v1/shop/${tenantId}/profile/avatar`, {
@@ -289,6 +297,8 @@ export const api = {
     updateTour: (id: string, body: { current_step?: number; status: string }) =>
       request<{ ok: boolean }>(`/api/v1/miniapp/tours/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
     uploadFile: (file: File) => {
+      if (isMockApiEnabled()) return Promise.resolve(mockUpload(file))
+
       const form = new FormData()
       form.append('file', file)
       return fetch(`${BASE}/api/v1/miniapp/upload`, {

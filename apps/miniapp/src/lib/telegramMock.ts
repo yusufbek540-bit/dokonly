@@ -7,7 +7,9 @@ function getParam(name: string) {
 }
 
 export function installTelegramMock() {
-  if (!import.meta.env.DEV || (window as any).Telegram?.WebApp) return
+  if (!import.meta.env.DEV) return
+  const wantsMock = new URLSearchParams(window.location.search).has('mock_role') || new URLSearchParams(window.location.search).get('mock_api') === '1'
+  if ((window as any).Telegram?.WebApp && !wantsMock) return
 
   const role = getParam('mock_role') ?? localStorage.getItem('dokonly_mock_role') ?? 'buyer'
   const userId = Number(getParam('mock_user_id') ?? localStorage.getItem('dokonly_mock_user_id') ?? (role === 'owner' ? 10001 : 20001))
