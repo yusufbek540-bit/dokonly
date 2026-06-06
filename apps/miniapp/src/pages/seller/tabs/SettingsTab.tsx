@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Icon } from '@/components/Icon'
 import { api } from '@/lib/api'
+import { shopMiniappUrl } from '@/lib/miniappUrl'
 import { FullPage } from '@/components/FullPage'
 import { PlanPicker } from '../PlanPicker'
 import { tgConfirm } from '@/lib/tgConfirm'
@@ -1594,7 +1595,7 @@ export function ChannelCrosspostingView({ tenant, onBack }: { tenant: any; onBac
                 <span style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.5 }}>{text}</span>
               </div>
             ))}
-            <MiniAppUrlCopy url={`https://dokonly-miniapp.pages.dev?shop=${tenant.slug}`} />
+            <MiniAppUrlCopy url={shopMiniappUrl(tenant.slug)} />
             <a
               href="https://t.me/BotFather"
               target="_blank"

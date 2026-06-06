@@ -6,12 +6,11 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, W
 from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
+from app.core.miniapp_urls import master_miniapp_url, product_miniapp_url, shop_miniapp_url
 from app.models.product import Product
 from app.models.tenant import Tenant
 
 router = Router()
-
-MINIAPP_BASE = "https://dokonly-miniapp.pages.dev"
 
 
 @router.message(CommandStart(deep_link=True))
@@ -38,7 +37,7 @@ async def cmd_start_deep_link(message: Message, command: CommandObject, tenant: 
                 product = result.scalar_one_or_none()
 
             if product:
-                shop_url = f"{MINIAPP_BASE}?shop={tenant.slug}&product={product.id}"
+                shop_url = product_miniapp_url(tenant.slug, product.id)
                 kb = InlineKeyboardMarkup(inline_keyboard=[[
                     InlineKeyboardButton(
                         text="🛍 Открыть товар",
@@ -56,7 +55,7 @@ async def cmd_start_deep_link(message: Message, command: CommandObject, tenant: 
 
     # Default start for merchant bots (with tenant)
     if tenant:
-        shop_url = f"{MINIAPP_BASE}?shop={tenant.slug}"
+        shop_url = shop_miniapp_url(tenant.slug)
         kb = InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(
                 text="🛍 Открыть магазин",
@@ -77,7 +76,7 @@ async def cmd_start_deep_link(message: Message, command: CommandObject, tenant: 
 @router.message(CommandStart())
 async def cmd_start(message: Message, tenant: Tenant | None):
     if tenant:
-        shop_url = f"{MINIAPP_BASE}?shop={tenant.slug}"
+        shop_url = shop_miniapp_url(tenant.slug)
         kb = InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(
                 text="🛍 Открыть магазин",
@@ -98,7 +97,7 @@ async def _send_master_welcome(message: Message) -> None:
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
             text="🛍 Открыть панель продавца",
-            web_app=WebAppInfo(url=MINIAPP_BASE),
+            web_app=WebAppInfo(url=master_miniapp_url()),
         )],
         [InlineKeyboardButton(text="🏪 Создать магазин", callback_data="register_shop")],
     ])

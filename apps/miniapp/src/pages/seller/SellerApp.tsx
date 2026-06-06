@@ -70,6 +70,7 @@ function Spinner({ label }: { label: string }) {
 
 export function SellerApp({ tenantSlug, shop }: Props) {
   const safeTop = useSafeTop()
+  const isMockDemo = import.meta.env.DEV && new URLSearchParams(window.location.search).get('mock_api') === '1'
 
   useEffect(() => {
     const pref = localStorage.getItem('dokonly_admin_theme') ?? 'system'
@@ -163,9 +164,37 @@ export function SellerApp({ tenantSlug, shop }: Props) {
   }
 
   const currentShop = shop ?? { id: tenant.id, name: tenant.name, currency: tenant.currency, logo_url: tenant.logo_url }
+  const resetMockDemo = () => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('mock_reset', '1')
+    window.location.href = url.toString()
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--bg)', paddingTop: safeTop }}>
+      {isMockDemo && (
+        <button
+          onClick={resetMockDemo}
+          title="Сбросить демо-данные"
+          style={{
+            position: 'fixed',
+            top: safeTop + 8,
+            right: 10,
+            zIndex: 80,
+            height: 32,
+            padding: '0 10px',
+            borderRadius: 999,
+            border: '1px solid var(--border)',
+            background: 'var(--card)',
+            color: 'var(--muted)',
+            fontSize: 11,
+            fontWeight: 700,
+            boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
+          }}
+        >
+          Reset demo
+        </button>
+      )}
       {/* Tab content */}
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         {tab === 'home'      && <HomeTab      tenant={tenant} onTabChange={(t, deepLink) => { setTab(t as Tab); if (deepLink) setMoreDeepLink(deepLink) }} />}

@@ -6,6 +6,7 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.auth import get_current_user
+from app.core.miniapp_urls import shop_miniapp_url
 from app.models.tenant import Tenant
 from app.schemas.tenant import ManualTransferSettings, TenantCreate, TenantResponse
 
@@ -79,7 +80,7 @@ async def configure_bot_menu(
     except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to decrypt bot token")
 
-    mini_app_url = f"https://dokonly-miniapp.pages.dev?shop={tenant.slug}"
+    mini_app_url = shop_miniapp_url(tenant.slug)
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             f"https://api.telegram.org/bot{raw_token}/setChatMenuButton",

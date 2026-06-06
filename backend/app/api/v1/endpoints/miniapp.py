@@ -26,6 +26,7 @@ from app.models.mailing import MassMailing
 from app.schemas.tenant import TenantResponse, normalize_tenant_slug
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse
 from app.schemas.order import OrderStatusUpdate
+from app.services.tenant_settings import apply_tenant_settings_update
 
 router = APIRouter(prefix="/miniapp", tags=["miniapp"])
 
@@ -270,36 +271,7 @@ async def update_tenant_settings(
 ):
     """Update tenant settings: theme (typography, accent color), channel config, store profile."""
     tenant = await _require_tenant(user, db)
-
-    # Fields that live inside settings JSONB
-    settings_keys = [
-        "layout", "channel_username", "channel_subscription_gate",
-        "delivery_methods", "payment_methods", "notify_group_chat_id",
-        "owner_tg_id",
-        "transfer_card_number", "transfer_card_holder",
-        "min_order_amount", "required_checkout_fields", "order_confirmation_message",
-        "return_policy",
-        "crosspost_channel", "auto_crosspost", "crosspost_template",
-    ]
-    settings_update = {k: body[k] for k in settings_keys if k in body}
-    if settings_update:
-        tenant.settings = {**(tenant.settings or {}), **settings_update}
-
-    # Top-level tenant columns
-    if "name" in body:
-        tenant.name = body["name"]
-    if "description" in body:
-        tenant.description = body["description"]
-    if "logo_url" in body:
-        tenant.logo_url = body["logo_url"]
-    if "cover_url" in body:
-        tenant.cover_url = body["cover_url"]
-    if "accent_color" in body:
-        tenant.accent_color = body["accent_color"]
-    if "typography_bundle" in body:
-        tenant.typography_bundle = body["typography_bundle"]
-    if "contact_info" in body:
-        tenant.contact_info = {**(tenant.contact_info or {}), **body["contact_info"]}
+    apply_tenant_settings_update(tenant, body)
 
     await db.commit()
     await db.refresh(tenant)

@@ -13,12 +13,11 @@ from aiogram.types import (
 from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
+from app.core.miniapp_urls import shop_miniapp_url
 from app.models.product import Product
 from app.models.tenant import Tenant
 
 router = Router()
-
-MINIAPP_BASE = "https://dokonly-miniapp.pages.dev"
 
 
 def _fmt_price(price: float, currency: str) -> str:
@@ -57,7 +56,7 @@ async def handle_product_inline_query(query: InlineQuery, tenant: Tenant | None)
         await query.answer([], cache_time=10)
         return
 
-    shop_url = f"{MINIAPP_BASE}?shop={tenant.slug}"
+    shop_url = shop_miniapp_url(tenant.slug)
     deep_link = (
         f"https://t.me/{tenant.bot_username}?startapp=product_{product.id}"
         if tenant.bot_username

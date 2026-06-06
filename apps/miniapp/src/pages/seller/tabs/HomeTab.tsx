@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { shopMiniappUrl } from '@/lib/miniappUrl'
 import { Icon } from '@/components/Icon'
 import { FullPage } from '@/components/FullPage'
 import { PlanPicker } from '../PlanPicker'
@@ -415,7 +416,7 @@ export function HomeTab({ tenant, onTabChange }: Props) {
 
   const daysWord = (n: number) => n === 1 ? 'день' : n < 5 ? 'дня' : 'дней'
 
-  const shopUrl = `https://dokonly-miniapp.pages.dev?shop=${tenant.slug}`
+  const shopUrl = shopMiniappUrl(tenant.slug)
 
   const stats = [
     { label: 'Выручка', value: summary ? fmtPrice(summary.total_revenue, tenant.currency) : '—', icon: 'creditCard' },

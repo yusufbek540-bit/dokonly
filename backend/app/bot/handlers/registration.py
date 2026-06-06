@@ -4,10 +4,11 @@ import uuid
 from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
 from sqlalchemy.exc import IntegrityError
 
 from app.core.database import AsyncSessionLocal
+from app.core.miniapp_urls import master_miniapp_url, shop_miniapp_url
 from app.models.tenant import Tenant as TenantModel
 from app.schemas.tenant import normalize_tenant_slug
 
@@ -98,8 +99,13 @@ async def got_slug(message: Message, state: FSMContext):
             return
 
     await state.clear()
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⚙️ Открыть панель", web_app=WebAppInfo(url=master_miniapp_url()))],
+        [InlineKeyboardButton(text="🛍 Посмотреть витрину", web_app=WebAppInfo(url=shop_miniapp_url(slug)))],
+    ])
     await message.answer(
         f"🎉 Магазин <b>{data['name']}</b> создан!\n"
-        f"Ссылка для покупателей: <code>{slug}</code>\n\n"
-        f"Поделитесь ссылкой с покупателями и начните добавлять товары."
+        f"Ссылка для покупателей: <code>{shop_miniapp_url(slug)}</code>\n\n"
+        f"Откройте панель, чтобы добавить товары и настроить витрину.",
+        reply_markup=kb,
     )

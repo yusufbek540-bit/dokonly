@@ -1,4 +1,5 @@
 import re
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
@@ -58,6 +59,14 @@ class TenantResponse(BaseModel):
     tier: str
     is_active: bool
     bot_username: str | None = None
+    logo_url: str | None = None
+    cover_url: str | None = None
+    accent_color: str = "emerald"
+    typography_bundle: str = "modern"
+    description: str | None = None
+    contact_info: dict[str, Any] = Field(default_factory=dict)
+    settings: dict[str, Any] = Field(default_factory=dict)
+    layout: str | None = None
 
     model_config = {"from_attributes": True}
 
