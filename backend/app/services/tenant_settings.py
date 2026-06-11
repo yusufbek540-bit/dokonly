@@ -28,6 +28,7 @@ JSON_SETTINGS_FIELDS = {
     "order_confirmation_message",
     "return_policy",
     "notify_group_chat_id",
+    "owner_tg_id",
     "notification_preferences",
     "default_language",
     "supported_languages",

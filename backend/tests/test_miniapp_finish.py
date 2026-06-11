@@ -41,6 +41,7 @@ def test_apply_tenant_settings_update_persists_visible_seller_settings():
             "recently_viewed_enabled": False,
             "return_policy": "7 дней",
             "required_checkout_fields": ["name", "phone", "address"],
+            "owner_tg_id": "733400880",
         },
     )
 
@@ -70,6 +71,7 @@ def test_apply_tenant_settings_update_persists_visible_seller_settings():
     assert tenant.settings["recently_viewed_enabled"] is False
     assert tenant.settings["return_policy"] == "7 дней"
     assert tenant.settings["required_checkout_fields"] == ["name", "phone", "address"]
+    assert tenant.settings["owner_tg_id"] == "733400880"
 
 
 def test_miniapp_url_helpers_use_configured_base_url(monkeypatch):
