@@ -111,6 +111,29 @@ MIGRATIONS = [
         true
     WHERE NOT EXISTS (SELECT 1 FROM tenants WHERE slug = 'test')
     """,
+    # 005 - full Telegram test access for founder account
+    """
+    UPDATE tenants
+    SET
+        owner_id = 'a414389d-a2c3-5c42-8486-095020e84b01'::uuid,
+        tier = 'premium',
+        is_active = true,
+        settings = COALESCE(settings, '{}'::jsonb) || jsonb_build_object(
+            'owner_tg_id', '733400880',
+            'payment_methods', jsonb_build_array('cash', 'manual_transfer', 'card'),
+            'manual_transfer', jsonb_build_object(
+                'card_number', '8600 0000 0000 0000',
+                'card_holder', 'DOKONLY TEST',
+                'bank_name', 'Test Bank'
+            ),
+            'channel_subscription_gate', false,
+            'ai_consultant_enabled', true,
+            'stories_enabled', true,
+            'reviews_enabled', true,
+            'return_policy', 'Тестовый возврат доступен в течение 14 дней.'
+        )
+    WHERE slug = 'test'
+    """,
 ]
 
 
