@@ -11,6 +11,7 @@ from app.bot.setup import bot, dp
 import app.bot.handlers  # noqa: F401 — registers routers and middleware into dp
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal, engine
+from app.core.miniapp_urls import shop_miniapp_url
 from app.models import Base  # noqa: F401 — also registers all model subclasses
 from app.workers import close_pool, init_pool
 
@@ -149,7 +150,7 @@ async def _ensure_all_menu_buttons() -> None:
             for tenant in tenants:
                 try:
                     raw_token = decrypt(tenant.bot_token_enc)
-                    mini_app_url = f"{settings.miniapp_url}?shop={tenant.slug}"
+                    mini_app_url = shop_miniapp_url(tenant.slug)
                     await client.post(
                         f"https://api.telegram.org/bot{raw_token}/setChatMenuButton",
                         json={"menu_button": {"type": "web_app", "text": "Открыть магазин", "web_app": {"url": mini_app_url}}},

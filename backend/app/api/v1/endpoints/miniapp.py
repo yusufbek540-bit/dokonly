@@ -18,6 +18,7 @@ from app.core.auth import get_tg_user
 from app.core.config import settings
 from app.core.crypto import encrypt
 from app.core.database import get_db
+from app.core.miniapp_urls import shop_miniapp_url
 from app.models.tenant import Tenant
 from app.models.product import Product, Category
 from app.models.order import Cart, Order, OrderItem, Customer
@@ -233,7 +234,7 @@ async def setup_bot(
         tenant.bot_username = bot_username
         await db.commit()
 
-        mini_app_url = f"{settings.miniapp_url}?shop={tenant.slug}"
+        mini_app_url = shop_miniapp_url(tenant.slug)
 
         # 3 & 4. Register webhook + set menu button in parallel — failures are non-fatal
         async def _set_webhook():
