@@ -100,14 +100,8 @@ async def _notify_merchant_new_order(tenant, order, items_data: list, products_b
                 pass
 
 
-@router.get("/{slug}")
-async def get_shop(slug: str, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(
-        select(Tenant).where(Tenant.slug == slug, Tenant.is_active == True)  # noqa: E712
-    )
-    tenant = result.scalar_one_or_none()
-    if not tenant:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shop not found")
+def _public_shop_payload(tenant: Tenant) -> dict:
+    tenant_settings = tenant.settings or {}
     return {
         "id": str(tenant.id),
         "name": tenant.name,
@@ -118,9 +112,21 @@ async def get_shop(slug: str, db: AsyncSession = Depends(get_db)):
         "typography_bundle": tenant.typography_bundle,
         "description": tenant.description,
         "contact_info": tenant.contact_info or {},
-        "settings": tenant.settings,
+        "settings": tenant_settings,
+        "layout": tenant_settings.get("layout"),
         "bot_username": tenant.bot_username,
     }
+
+
+@router.get("/{slug}")
+async def get_shop(slug: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Tenant).where(Tenant.slug == slug, Tenant.is_active == True)  # noqa: E712
+    )
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shop not found")
+    return _public_shop_payload(tenant)
 
 
 @router.get("/{slug}/role")

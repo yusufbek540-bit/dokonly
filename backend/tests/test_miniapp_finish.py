@@ -86,3 +86,28 @@ def test_miniapp_url_helpers_use_configured_base_url(monkeypatch):
     assert product_miniapp_url("test-shop", product_id) == (
         f"https://demo.example/miniapp?shop=test-shop&product={product_id}"
     )
+
+
+def test_public_shop_payload_exposes_saved_layout():
+    from app.api.v1.endpoints.shop import _public_shop_payload
+
+    tenant_id = uuid4()
+    tenant = SimpleNamespace(
+        id=tenant_id,
+        name="Demo Store",
+        currency="UZS",
+        logo_url=None,
+        cover_url=None,
+        accent_color="emerald",
+        typography_bundle="modern",
+        description="Demo",
+        contact_info={},
+        settings={"layout": "marketplace"},
+        bot_username="demo_bot",
+    )
+
+    payload = _public_shop_payload(tenant)
+
+    assert payload["id"] == str(tenant_id)
+    assert payload["layout"] == "marketplace"
+    assert payload["settings"]["layout"] == "marketplace"

@@ -1064,7 +1064,7 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
     </div>
   ) : null
 
-  const layout = shop.layout ?? 'boutique'
+  const layout = shop.layout ?? shop.settings?.layout ?? 'boutique'
 
   const sharedLayoutProps = {
     shop, tenantId, activeProducts, onProduct, onShowCatalog,
