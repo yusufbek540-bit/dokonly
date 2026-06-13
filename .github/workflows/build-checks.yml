@@ -1,0 +1,57 @@
+name: Build checks
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/**"
+      - "codex/**"
+  pull_request:
+
+concurrency:
+  group: build-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  miniapp:
+    name: Miniapp build
+    runs-on: ubuntu-latest
+    env:
+      VITE_API_URL: https://dokonly-backend-production.up.railway.app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.33.2 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck miniapp
+        run: pnpm --filter miniapp exec tsc --noEmit --pretty false
+
+      - name: Build miniapp
+        run: pnpm --filter miniapp exec vite build
+
+  backend:
+    name: Backend compile
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compile backend sources
+        run: python -m compileall backend/app

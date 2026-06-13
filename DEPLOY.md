@@ -41,23 +41,53 @@ WEBHOOK_BASE_URL=https://<your-railway-url>.up.railway.app
 
 ---
 
+## Runtime Pinning
+
+Use the repo-pinned runtime everywhere:
+
+- Node: `.node-version` / `.nvmrc` → `20.19.0`
+- pnpm: `packageManager` → `pnpm@10.33.2`
+
+Cloudflare Pages supports pinning language versions through environment variables or version files. This repo uses `.node-version`; keep the Cloudflare project on the V2 build system and do not rely on the local machine's Node/Wrangler runtime.
+
+---
+
 ## Step 2: Deploy Merchant Miniapp to Cloudflare Pages
 
 Already live at `https://dokonly-miniapp.pages.dev` (deployed via wrangler CLI).
 
-Wrangler deploys require these environment variables locally or in CI:
+Preferred deploy path: **Cloudflare Pages Git integration**.
 
-```bash
-export CLOUDFLARE_ACCOUNT_ID=<cloudflare-account-id>
-export CLOUDFLARE_API_TOKEN=<cloudflare-api-token-with-pages-edit>
-export VITE_API_URL=https://<railway-url>.up.railway.app
-export CF_PAGES_BRANCH=main
+Cloudflare Pages should build directly from GitHub whenever the branch is pushed. This avoids local `vite`/`wrangler` runtime hangs and gives clean deployment logs in the Cloudflare dashboard.
+
+Cloudflare Pages settings:
+
+```text
+Project name: dokonly-miniapp
+Git repository: yusufbek540-bit/dokonly
+Production branch: main
+Root directory: /
+Build command: corepack enable && corepack prepare pnpm@10.33.2 --activate && pnpm install --frozen-lockfile && pnpm --filter miniapp build
+Build output directory: apps/miniapp/dist
+Node version: 20.19.0
 ```
 
-To redeploy after backend URL is known, run from the repo root:
-```bash
-VITE_API_URL=https://<railway-url>.up.railway.app pnpm deploy:miniapp
+Cloudflare Pages environment variables:
+
+```text
+NODE_VERSION=20.19.0
+VITE_API_URL=https://dokonly-backend-production.up.railway.app
 ```
+
+For branch previews, Cloudflare will create preview deployments for pushed branches if preview deployments are enabled.
+
+Local Wrangler deploy remains a fallback only:
+
+```bash
+CLOUDFLARE_NO_UPDATE_CHECK=1 WRANGLER_SEND_METRICS=false VITE_API_URL=https://dokonly-backend-production.up.railway.app pnpm deploy:miniapp
+```
+
+Do not deploy an old `apps/miniapp/dist`. If `pnpm build:miniapp` does not complete, use Cloudflare/GitHub build logs instead of direct upload.
 
 ---
 
@@ -68,6 +98,18 @@ Already live at `https://dokonly-dashboard.pages.dev`.
 To redeploy from the repo root:
 ```bash
 VITE_API_URL=https://<railway-url>.up.railway.app pnpm deploy:dashboard
+```
+
+Recommended dashboard Cloudflare Pages settings:
+
+```text
+Project name: dokonly-dashboard
+Git repository: yusufbek540-bit/dokonly
+Production branch: main
+Root directory: /
+Build command: corepack enable && corepack prepare pnpm@10.33.2 --activate && pnpm install --frozen-lockfile && pnpm --filter dashboard build
+Build output directory: apps/dashboard/dist
+Node version: 20.19.0
 ```
 
 To verify Cloudflare auth before deploying:
