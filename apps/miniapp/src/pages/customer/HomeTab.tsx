@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Icon } from '@/components/Icon'
 import { api } from '@/lib/api'
@@ -78,33 +78,79 @@ function CompactHeader({ shop }: { shop: ShopData }) {
 
 function StoriesRow({ stories, setActiveStory }: { stories: any[]; setActiveStory: (s: any) => void }) {
   if (!stories.length) return null
+  const banners = stories.filter((s: any) => s.kind === 'banner' && s.is_active !== false)
+  const storyItems = stories.filter((s: any) => s.kind !== 'banner' && s.is_active !== false)
   return (
-    <div style={{ padding: '12px 16px 0', display: 'flex', gap: 14, overflowX: 'auto', scrollbarWidth: 'none' }}>
-      {stories.map((s: any) => (
-        <button
-          key={s.id}
-          onClick={() => setActiveStory(s)}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
-        >
-          <div style={{
-            width: 60, height: 60, borderRadius: 999,
-            padding: 2,
-            background: 'linear-gradient(135deg, var(--accent) 0%, #005c40 100%)',
-            flexShrink: 0,
-          }}>
-            <div style={{ width: '100%', height: '100%', borderRadius: 999, overflow: 'hidden', border: '2px solid var(--bg)', background: 'var(--subtle)' }}>
-              {s.media_url
-                ? <img src={s.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎬</div>
-              }
-            </div>
-          </div>
-          <span style={{ fontSize: 10, color: 'var(--ink)', fontWeight: 500, maxWidth: 60, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {s.caption?.split(' ').slice(0, 2).join(' ') || 'Story'}
-          </span>
-        </button>
-      ))}
-    </div>
+    <>
+      {banners.length > 0 && (
+        <div style={{ padding: '12px 16px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {banners.map((banner: any) => {
+            const mediaUrl = banner.media_url || banner.image_url
+            return (
+              <button
+                key={banner.id}
+                onClick={() => banner.cta_url && window.open(banner.cta_url, '_blank')}
+                style={{
+                  minHeight: 112,
+                  borderRadius: 18,
+                  overflow: 'hidden',
+                  border: '1px solid var(--border)',
+                  background: 'var(--card)',
+                  textAlign: 'left',
+                  position: 'relative',
+                  padding: 0,
+                }}
+              >
+                {mediaUrl && <img src={mediaUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+                <div style={{ position: 'absolute', inset: 0, background: mediaUrl ? 'linear-gradient(90deg, rgba(0,0,0,0.62), rgba(0,0,0,0.14))' : 'linear-gradient(135deg, var(--accent-soft), var(--card))' }} />
+                <div style={{ position: 'relative', padding: 16, maxWidth: '78%' }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: mediaUrl ? 'rgba(255,255,255,0.72)' : 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Баннер</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: mediaUrl ? 'white' : 'var(--ink)', marginTop: 6, lineHeight: 1.2 }}>
+                    {banner.title || banner.caption || 'Акция магазина'}
+                  </div>
+                  {banner.cta_text && (
+                    <div style={{ display: 'inline-flex', marginTop: 10, padding: '6px 10px', borderRadius: 999, background: 'var(--accent)', color: 'white', fontSize: 12, fontWeight: 800 }}>
+                      {banner.cta_text}
+                    </div>
+                  )}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      )}
+      {storyItems.length > 0 && (
+        <div style={{ padding: '12px 16px 0', display: 'flex', gap: 14, overflowX: 'auto', scrollbarWidth: 'none' }}>
+          {storyItems.map((s: any) => {
+            const mediaUrl = s.media_url || s.image_url
+            return (
+              <button
+                key={s.id}
+                onClick={() => setActiveStory(s)}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+              >
+                <div style={{
+                  width: 60, height: 60, borderRadius: 999,
+                  padding: 2,
+                  background: 'linear-gradient(135deg, var(--accent) 0%, #005c40 100%)',
+                  flexShrink: 0,
+                }}>
+                  <div style={{ width: '100%', height: '100%', borderRadius: 999, overflow: 'hidden', border: '2px solid var(--bg)', background: 'var(--subtle)' }}>
+                    {mediaUrl
+                      ? <img src={mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎬</div>
+                    }
+                  </div>
+                </div>
+                <span style={{ fontSize: 10, color: 'var(--ink)', fontWeight: 500, maxWidth: 60, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {s.title || s.caption?.split(' ').slice(0, 2).join(' ') || 'Story'}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </>
   )
 }
 
@@ -919,6 +965,10 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
   })
   const [activeStory, setActiveStory] = useState<any | null>(null)
   const [storyProgress, setStoryProgress] = useState(0)
+  const storyViewerItems = useMemo(
+    () => (stories as any[]).filter((s: any) => s.kind !== 'banner' && s.is_active !== false),
+    [stories],
+  )
 
   useEffect(() => {
     if (!activeStory) return
@@ -926,9 +976,9 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
     const interval = setInterval(() => {
       setStoryProgress(p => {
         if (p >= 100) {
-          const idx = (stories as any[]).findIndex((s: any) => s.id === activeStory.id)
-          if (idx < (stories as any[]).length - 1) {
-            setActiveStory((stories as any[])[idx + 1])
+          const idx = storyViewerItems.findIndex((s: any) => s.id === activeStory.id)
+          if (idx < storyViewerItems.length - 1) {
+            setActiveStory(storyViewerItems[idx + 1])
           } else {
             setActiveStory(null)
           }
@@ -938,7 +988,7 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
       })
     }, 100)
     return () => clearInterval(interval)
-  }, [activeStory, stories])
+  }, [activeStory, storyViewerItems])
 
   const { data: shopStats } = useQuery({
     queryKey: ['shopStats', tenantId],
@@ -980,11 +1030,11 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
     >
       {/* Progress bars */}
       <div style={{ display: 'flex', gap: 3, padding: '12px 12px 8px', zIndex: 10 }}>
-        {(stories as any[]).map((s: any) => (
+        {storyViewerItems.map((s: any) => (
           <div key={s.id} style={{ flex: 1, height: 3, borderRadius: 999, background: 'rgba(255,255,255,0.3)', overflow: 'hidden' }}>
             <div style={{
               height: '100%', borderRadius: 999, background: 'white',
-              width: s.id === activeStory.id ? `${storyProgress}%` : (stories as any[]).indexOf(s) < (stories as any[]).findIndex((x: any) => x.id === activeStory.id) ? '100%' : '0%',
+              width: s.id === activeStory.id ? `${storyProgress}%` : storyViewerItems.indexOf(s) < storyViewerItems.findIndex((x: any) => x.id === activeStory.id) ? '100%' : '0%',
               transition: s.id === activeStory.id ? 'width 0.1s linear' : 'none',
             }} />
           </div>
@@ -992,8 +1042,8 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
       </div>
       {/* Media */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {activeStory.media_url
-          ? <img src={activeStory.media_url} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        {activeStory.media_url || activeStory.image_url
+          ? <img src={activeStory.media_url || activeStory.image_url} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           : <div style={{ fontSize: 60 }}>🎬</div>
         }
       </div>

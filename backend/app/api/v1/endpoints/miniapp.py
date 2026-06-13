@@ -1282,7 +1282,7 @@ async def list_stories(
 ):
     tenant = await _require_tenant(user, db)
     settings_data = tenant.settings or {}
-    return settings_data.get("stories", [])
+    return sorted(settings_data.get("stories", []), key=lambda item: item.get("sort_order", 0))
 
 
 @router.post("/stories", status_code=201)
@@ -1294,18 +1294,75 @@ async def create_story(
     tenant = await _require_tenant(user, db)
     settings_data = dict(tenant.settings or {})
     stories = list(settings_data.get("stories", []))
+    media_url = body.get("media_url") or body.get("image_url") or ""
     new_story = {
         "id": str(uuid.uuid4()),
-        "image_url": body.get("image_url", ""),
-        "title": body.get("title", ""),
+        "kind": body.get("kind") if body.get("kind") in {"story", "banner"} else "story",
+        "image_url": media_url,
+        "media_url": media_url,
+        "title": body.get("title") or "",
+        "caption": body.get("caption") or "",
+        "cta_text": body.get("cta_text"),
+        "cta_url": body.get("cta_url"),
+        "expires_at": body.get("expires_at"),
+        "is_active": body.get("is_active", True),
         "product_id": body.get("product_id"),
+        "sort_order": body.get("sort_order", len(stories)),
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    stories.append(new_story)
-    settings_data["stories"] = stories
+    settings_data["stories"] = sorted([*stories, new_story], key=lambda item: item.get("sort_order", 0))
     tenant.settings = settings_data
     await db.commit()
     return new_story
+
+
+@router.patch("/stories/{story_id}")
+async def update_story(
+    story_id: str,
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    settings_data = dict(tenant.settings or {})
+    stories = list(settings_data.get("stories", []))
+    updated_story = None
+
+    for index, story in enumerate(stories):
+        if story.get("id") != story_id:
+            continue
+
+        next_story = dict(story)
+        for key in (
+            "title",
+            "caption",
+            "cta_text",
+            "cta_url",
+            "expires_at",
+            "is_active",
+            "product_id",
+            "sort_order",
+        ):
+            if key in body:
+                next_story[key] = body.get(key)
+        if body.get("kind") in {"story", "banner"}:
+            next_story["kind"] = body.get("kind")
+        if "media_url" in body or "image_url" in body:
+            media_url = body.get("media_url") or body.get("image_url") or ""
+            next_story["media_url"] = media_url
+            next_story["image_url"] = media_url
+        next_story["updated_at"] = datetime.now(timezone.utc).isoformat()
+        stories[index] = next_story
+        updated_story = next_story
+        break
+
+    if not updated_story:
+        raise HTTPException(status_code=404, detail="Story not found")
+
+    settings_data["stories"] = sorted(stories, key=lambda item: item.get("sort_order", 0))
+    tenant.settings = settings_data
+    await db.commit()
+    return updated_story
 
 
 @router.delete("/stories/{story_id}", status_code=204)

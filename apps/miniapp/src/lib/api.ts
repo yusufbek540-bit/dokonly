@@ -216,6 +216,8 @@ export const api = {
     stories: () => request<any[]>('/api/v1/miniapp/stories'),
     createStory: (body: object) =>
       request<any>('/api/v1/miniapp/stories', { method: 'POST', body: JSON.stringify(body) }),
+    updateStory: (id: string, body: object) =>
+      request<any>(`/api/v1/miniapp/stories/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
     deleteStory: (id: string) =>
       request<void>(`/api/v1/miniapp/stories/${id}`, { method: 'DELETE' }),
     teamMembers: () => request<any[]>('/api/v1/miniapp/team'),

@@ -6,9 +6,10 @@ interface FullPageProps {
   onClose: () => void
   title?: string
   children: React.ReactNode
+  bottomInset?: string
 }
 
-export function FullPage({ onClose, title, children }: FullPageProps) {
+export function FullPage({ onClose, title, children, bottomInset = 'calc(88px + env(safe-area-inset-bottom))' }: FullPageProps) {
   const safeTop = useSafeTop()
 
   useEffect(() => {
@@ -52,7 +53,13 @@ export function FullPage({ onClose, title, children }: FullPageProps) {
         )}
       </div>
       {/* Scrollable content only */}
-      <div style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain', paddingBottom: 'env(safe-area-inset-bottom, 24px)' }}>
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        overscrollBehavior: 'contain',
+        paddingBottom: bottomInset,
+        boxSizing: 'border-box',
+      }}>
         {children}
       </div>
     </div>

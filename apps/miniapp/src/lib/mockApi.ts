@@ -464,11 +464,35 @@ export async function mockRequest<T>(path: string, init?: RequestInit): Promise<
   if (path === '/api/v1/miniapp/stories') {
     const stories = readDemoStories()
     if (method === 'POST') {
-      const created = { id: `story-${Date.now()}`, is_active: true, ...body(init) }
-      writeDemoStories([created, ...stories])
+      const payload = body(init)
+      const created = {
+        id: `${payload.kind === 'banner' ? 'banner' : 'story'}-${Date.now()}`,
+        is_active: true,
+        sort_order: stories.length,
+        ...payload,
+        media_url: payload.media_url ?? payload.image_url ?? '',
+        image_url: payload.image_url ?? payload.media_url ?? '',
+      }
+      writeDemoStories([...stories, created])
       return ok(created) as T
     }
-    return ok(stories) as T
+    return ok([...stories].sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))) as T
+  }
+  if (pathname.startsWith('/api/v1/miniapp/stories/') && method === 'PATCH') {
+    const id = idFromPath(pathname, '/api/v1/miniapp/stories/')
+    const payload = body(init)
+    const updated = readDemoStories().map((story: any) => {
+      if (story.id !== id) return story
+      return {
+        ...story,
+        ...payload,
+        media_url: payload.media_url ?? payload.image_url ?? story.media_url ?? story.image_url ?? '',
+        image_url: payload.image_url ?? payload.media_url ?? story.image_url ?? story.media_url ?? '',
+        updated_at: now(),
+      }
+    })
+    writeDemoStories(updated)
+    return ok(updated.find((story: any) => story.id === id)) as T
   }
   if (pathname.startsWith('/api/v1/miniapp/stories/') && method === 'DELETE') {
     const id = idFromPath(pathname, '/api/v1/miniapp/stories/')

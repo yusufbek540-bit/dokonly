@@ -56,6 +56,11 @@ function Row({
         borderBottom: noBorder ? 'none' : '1px solid var(--border)',
         textAlign: 'left', cursor: onPress ? 'pointer' : 'default',
         opacity: 1,
+        borderLeft: 'none',
+        borderRight: 'none',
+        borderTop: 'none',
+        WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation',
       }}
     >
       <div style={{
@@ -135,11 +140,11 @@ const ACCENT_COLORS: Record<string, string> = {
 // ─── Payment method definitions ────────────────────────────────────────────────
 
 const ALL_PAYMENT_METHODS = [
-  { id: 'cash',  label: 'Наличные',          emoji: '💵', alwaysEnabled: true  },
-  { id: 'card',  label: 'Банковская карта',   emoji: '💳', alwaysEnabled: false },
-  { id: 'click', label: 'Click',              emoji: '🟢', alwaysEnabled: false },
-  { id: 'payme', label: 'Payme',              emoji: '🔵', alwaysEnabled: false },
-  { id: 'uzum',  label: 'Uzum Bank',          emoji: '🟣', alwaysEnabled: false },
+  { id: 'cash',  label: 'Наличные',          emoji: '💵', alwaysEnabled: true,  comingSoon: false },
+  { id: 'card',  label: 'Банковская карта',   emoji: '💳', alwaysEnabled: false, comingSoon: false },
+  { id: 'click', label: 'Click',              emoji: '🟢', alwaysEnabled: false, comingSoon: true  },
+  { id: 'payme', label: 'Payme',              emoji: '🔵', alwaysEnabled: false, comingSoon: true  },
+  { id: 'uzum',  label: 'Uzum Bank',          emoji: '🟣', alwaysEnabled: false, comingSoon: true  },
 ]
 
 // ─── Days remaining helper ─────────────────────────────────────────────────────
@@ -907,14 +912,260 @@ export function AbandonedCartsView({ onBack }: { onBack: () => void }) {
 
 // ─── StoriesView ──────────────────────────────────────────────────────────────
 
+type StoryBannerKind = 'story' | 'banner'
+
+type StoryBannerItem = {
+  id: string
+  kind?: StoryBannerKind
+  title?: string | null
+  caption?: string | null
+  media_url?: string | null
+  image_url?: string | null
+  cta_text?: string | null
+  cta_url?: string | null
+  expires_at?: string | null
+  is_active?: boolean
+  sort_order?: number
+}
+
+const STORY_BANNER_KIND_COPY: Record<StoryBannerKind, { label: string; icon: string; hint: string }> = {
+  story: {
+    label: 'Story',
+    icon: '🎬',
+    hint: 'Короткий круглый формат в блоке stories',
+  },
+  banner: {
+    label: 'Баннер',
+    icon: '🖼',
+    hint: 'Широкий промо-блок на витрине',
+  },
+}
+
+const CATEGORY_STYLE_OPTIONS = [
+  { id: 'scrolling', label: 'Лента', hint: 'Категории идут горизонтально', preview: 'chips' },
+  { id: 'grid', label: 'Сетка', hint: 'Все категории видны плитками', preview: 'grid' },
+  { id: 'tabs', label: 'Вкладки', hint: 'Переключатель над товарами', preview: 'tabs' },
+  { id: 'bento', label: 'Крупные плитки', hint: 'Акцент на 2-3 категории', preview: 'bento' },
+  { id: 'burger', label: 'Меню', hint: 'Компактный список в кнопке', preview: 'menu' },
+] as const
+
+const LAYOUT_OPTIONS = [
+  {
+    id: 'boutique',
+    emoji: '🛍',
+    label: 'Бутик',
+    hint: 'Крупный баннер, stories и визуальные карточки',
+    preview: 'boutique',
+  },
+  {
+    id: 'catalog',
+    emoji: '📋',
+    label: 'Каталог',
+    hint: 'Поиск, фильтры и компактный список товаров',
+    preview: 'catalog',
+  },
+  {
+    id: 'lookbook',
+    emoji: '📖',
+    label: 'Лукбук',
+    hint: 'Stories и подборки на первом плане',
+    preview: 'lookbook',
+  },
+  {
+    id: 'marketplace',
+    emoji: '🏪',
+    label: 'Маркетплейс',
+    hint: 'Много категорий, поиск и сетка товаров',
+    preview: 'marketplace',
+  },
+  {
+    id: 'bento',
+    emoji: '🗃',
+    label: 'Журнал',
+    hint: 'Неровная журнальная раскладка карточек',
+    preview: 'bento',
+  },
+] as const
+
+function CategoryStylePreview({ type, active }: { type: string; active: boolean }) {
+  const color = active ? 'var(--accent)' : 'var(--muted)'
+  const line = { height: 6, borderRadius: 999, background: color, opacity: active ? 0.75 : 0.28 }
+  const box = { borderRadius: 6, background: active ? 'var(--accent-soft)' : 'var(--subtle)', border: `1px solid ${active ? 'rgba(0,179,131,0.24)' : 'var(--border)'}` }
+
+  if (type === 'grid') {
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4 }}>
+        {[0, 1, 2, 3, 4, 5].map(i => <span key={i} style={{ ...box, height: 18 }} />)}
+      </div>
+    )
+  }
+  if (type === 'tabs') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 5 }}>
+          {[0, 1, 2].map(i => <span key={i} style={{ ...box, height: 16, borderRadius: 999 }} />)}
+        </div>
+        <span style={{ ...line, width: '80%' }} />
+      </div>
+    )
+  }
+  if (type === 'bento') {
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1fr', gap: 4 }}>
+        <span style={{ ...box, height: 40 }} />
+        <div style={{ display: 'grid', gap: 4 }}>
+          <span style={{ ...box, height: 18 }} />
+          <span style={{ ...box, height: 18 }} />
+        </div>
+      </div>
+    )
+  }
+  if (type === 'menu') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        <span style={{ ...box, height: 18, width: '64%' }} />
+        <span style={{ ...line, width: '92%' }} />
+        <span style={{ ...line, width: '72%' }} />
+      </div>
+    )
+  }
+  return (
+    <div style={{ display: 'flex', gap: 5, overflow: 'hidden' }}>
+      {[0, 1, 2, 3].map(i => <span key={i} style={{ ...box, width: 42, height: 22, borderRadius: 999, flexShrink: 0 }} />)}
+    </div>
+  )
+}
+
+function LayoutWireframePreview({ type, active }: { type: string; active: boolean }) {
+  const accent = active ? 'var(--accent)' : 'var(--muted-strong)'
+  const border = active ? 'rgba(0,179,131,0.28)' : 'var(--border)'
+  const blockBg = active ? 'rgba(0,179,131,0.10)' : 'var(--subtle)'
+  const rowsByType: Record<string, Array<[string, string]>> = {
+    boutique: [
+      ['Hero-баннер', 'full'],
+      ['Story', 'thirds'],
+      ['Категории', 'pill'],
+      ['Товары', 'grid'],
+    ],
+    catalog: [
+      ['Поиск', 'full'],
+      ['Фильтры', 'half'],
+      ['Категории', 'pill'],
+      ['Товары', 'grid'],
+    ],
+    lookbook: [
+      ['Stories', 'thirds'],
+      ['Подборка', 'full'],
+      ['Товары', 'grid-large'],
+    ],
+    marketplace: [
+      ['Поиск', 'full'],
+      ['Категории', 'six'],
+      ['Товары', 'grid'],
+    ],
+    bento: [
+      ['Баннер', 'full'],
+      ['Главный товар', 'bento'],
+      ['Категории', 'pill'],
+    ],
+  }
+  const rows = rowsByType[type] ?? []
+
+  return (
+    <div style={{
+      width: '100%',
+      borderRadius: 16,
+      background: active ? 'linear-gradient(180deg, #ffffff 0%, rgba(0,179,131,0.06) 100%)' : 'var(--card)',
+      border: `1px solid ${border}`,
+      padding: 9,
+      boxSizing: 'border-box',
+    }}>
+      <div style={{
+        width: '100%',
+        minHeight: 146,
+        borderRadius: 13,
+        background: 'var(--bg)',
+        border: `1px solid ${border}`,
+        padding: 7,
+        boxSizing: 'border-box',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 5,
+      }}>
+        {rows.map(([label, shape], index) => {
+          if (shape === 'thirds') {
+            return (
+              <div key={`${label}-${index}`} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 5 }}>
+                {[0, 1, 2].map(i => (
+                  <span key={i} style={{ height: 24, borderRadius: 999, background: blockBg, border: `1px solid ${border}`, color: accent, fontSize: 7, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{label}</span>
+                ))}
+              </div>
+            )
+          }
+          if (shape === 'six') {
+            return (
+              <div key={`${label}-${index}`} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 5 }}>
+                {[0, 1, 2, 3, 4, 5].map(i => (
+                  <span key={i} style={{ height: 21, borderRadius: 7, background: blockBg, border: `1px solid ${border}`, color: accent, fontSize: 7, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Кат.</span>
+                ))}
+              </div>
+            )
+          }
+          if (shape === 'grid' || shape === 'grid-large') {
+            return (
+              <div key={`${label}-${index}`} style={{ display: 'grid', gridTemplateColumns: shape === 'grid-large' ? '1.2fr 1fr' : '1fr 1fr', gap: 5 }}>
+                {[0, 1].map(i => (
+                  <span key={i} style={{ height: shape === 'grid-large' ? 44 : 29, borderRadius: 7, background: blockBg, border: `1px solid ${border}`, color: accent, fontSize: 7, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Товар</span>
+                ))}
+              </div>
+            )
+          }
+          if (shape === 'bento') {
+            return (
+              <div key={`${label}-${index}`} style={{ display: 'grid', gridTemplateColumns: '1.35fr 1fr', gap: 5 }}>
+                <span style={{ height: 58, borderRadius: 7, background: blockBg, border: `1px solid ${border}`, color: accent, fontSize: 7, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{label}</span>
+                <div style={{ display: 'grid', gap: 5 }}>
+                  <span style={{ height: 26, borderRadius: 7, background: blockBg, border: `1px solid ${border}`, color: accent, fontSize: 7, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Товар</span>
+                  <span style={{ height: 26, borderRadius: 7, background: blockBg, border: `1px solid ${border}`, color: accent, fontSize: 7, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Товар</span>
+                </div>
+              </div>
+            )
+          }
+          return (
+            <span key={`${label}-${index}`} style={{ height: shape === 'pill' ? 15 : 32, borderRadius: shape === 'pill' ? 999 : 7, background: blockBg, border: `1px solid ${border}`, color: accent, fontSize: 7, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: shape === 'pill' ? 'flex-start' : 'center', padding: shape === 'pill' ? '0 7px' : 0 }}>
+              {label}
+            </span>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function normalizeStoryBanner(item: StoryBannerItem, index: number): StoryBannerItem {
+  const mediaUrl = item.media_url || item.image_url || ''
+  return {
+    ...item,
+    kind: item.kind === 'banner' ? 'banner' : 'story',
+    media_url: mediaUrl,
+    image_url: mediaUrl,
+    sort_order: item.sort_order ?? index,
+    is_active: item.is_active !== false,
+  }
+}
+
 export function StoriesView({ onBack }: { onBack: () => void }) {
   const qc = useQueryClient()
   const [showForm, setShowForm] = useState(false)
+  const [editingItem, setEditingItem] = useState<StoryBannerItem | null>(null)
+  const [kind, setKind] = useState<StoryBannerKind>('story')
+  const [title, setTitle] = useState('')
   const [caption, setCaption] = useState('')
   const [ctaText, setCtaText] = useState('')
   const [ctaUrl, setCtaUrl] = useState('')
   const [expiresHours, setExpiresHours] = useState('24')
   const [mediaUrl, setMediaUrl] = useState('')
+  const [isActive, setIsActive] = useState(true)
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -923,17 +1174,36 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
     queryFn: () => api.seller.stories(),
   })
 
+  const items = (stories as StoryBannerItem[])
+    .map(normalizeStoryBanner)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+  const activeStoriesCount = items.filter(item => item.kind === 'story' && item.is_active !== false).length
+  const activeBannersCount = items.filter(item => item.kind === 'banner' && item.is_active !== false).length
+
   const createMutation = useMutation({
     mutationFn: (body: object) => api.seller.createStory(body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['seller-stories'] })
-      setShowForm(false)
-      setCaption(''); setCtaText(''); setCtaUrl(''); setMediaUrl('')
+      closeForm()
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: object }) => api.seller.updateStory(id, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['seller-stories'] })
+      closeForm()
     },
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.seller.deleteStory(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['seller-stories'] }),
+  })
+
+  const reorderMutation = useMutation({
+    mutationFn: (updates: { id: string; sort_order: number }[]) =>
+      Promise.all(updates.map(update => api.seller.updateStory(update.id, { sort_order: update.sort_order }))),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['seller-stories'] }),
   })
 
@@ -946,6 +1216,78 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
     } catch { } finally { setUploading(false) }
   }
 
+  function resetForm(nextKind: StoryBannerKind = 'story') {
+    setEditingItem(null)
+    setKind(nextKind)
+    setTitle('')
+    setCaption('')
+    setCtaText('')
+    setCtaUrl('')
+    setExpiresHours('24')
+    setMediaUrl('')
+    setIsActive(true)
+  }
+
+  function openCreateForm(nextKind: StoryBannerKind = 'story') {
+    resetForm(nextKind)
+    setShowForm(true)
+  }
+
+  function openEditForm(item: StoryBannerItem) {
+    const normalized = normalizeStoryBanner(item, 0)
+    setEditingItem(normalized)
+    setKind(normalized.kind ?? 'story')
+    setTitle(normalized.title ?? '')
+    setCaption(normalized.caption ?? '')
+    setCtaText(normalized.cta_text ?? '')
+    setCtaUrl(normalized.cta_url ?? '')
+    setExpiresHours(normalized.expires_at ? 'custom' : '0')
+    setMediaUrl(normalized.media_url ?? '')
+    setIsActive(normalized.is_active !== false)
+    setShowForm(true)
+  }
+
+  function closeForm() {
+    setShowForm(false)
+    resetForm()
+  }
+
+  function submitItem() {
+    const body = {
+      kind,
+      title: title.trim() || null,
+      caption: caption.trim() || null,
+      media_url: mediaUrl.trim() || null,
+      image_url: mediaUrl.trim() || null,
+      cta_text: ctaText.trim() || null,
+      cta_url: ctaUrl.trim() || null,
+      expires_at: expiresHours === '0' || expiresHours === 'custom'
+        ? editingItem?.expires_at ?? null
+        : new Date(Date.now() + Number(expiresHours) * 3600 * 1000).toISOString(),
+      is_active: isActive,
+      sort_order: editingItem?.sort_order ?? items.length,
+    }
+
+    if (editingItem?.id) {
+      updateMutation.mutate({ id: editingItem.id, body })
+    } else {
+      createMutation.mutate(body)
+    }
+  }
+
+  function moveItem(index: number, direction: -1 | 1) {
+    const nextIndex = index + direction
+    if (nextIndex < 0 || nextIndex >= items.length) return
+    const current = items[index]
+    const target = items[nextIndex]
+    reorderMutation.mutate([
+      { id: current.id, sort_order: target.sort_order ?? nextIndex },
+      { id: target.id, sort_order: current.sort_order ?? index },
+    ])
+  }
+
+  const isSaving = createMutation.isPending || updateMutation.isPending
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 20, background: 'var(--bg)', borderBottom: '1px solid var(--border)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -954,53 +1296,128 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
         </button>
         <span style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 16, color: 'var(--ink)', flex: 1 }}>Stories и Баннеры</span>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => openCreateForm('story')}
           style={{ padding: '7px 14px', borderRadius: 10, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 13 }}
         >+ Добавить</button>
       </div>
       <div style={{ flex: 1, padding: '16px 16px 100px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+          {(['story', 'banner'] as StoryBannerKind[]).map(type => (
+            <button
+              key={type}
+              onClick={() => openCreateForm(type)}
+              style={{
+                border: '1px solid var(--border)',
+                background: 'var(--card)',
+                borderRadius: 14,
+                padding: '12px 10px',
+                textAlign: 'left',
+                display: 'flex',
+                gap: 10,
+                alignItems: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <span style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
+                {STORY_BANNER_KIND_COPY[type].icon}
+              </span>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{STORY_BANNER_KIND_COPY[type].label}</span>
+                <span style={{ display: 'block', fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                  Активно: {type === 'story' ? activeStoriesCount : activeBannersCount}
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+
         {isLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
             <div style={{ width: 24, height: 24, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
             <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
           </div>
-        ) : (stories as any[]).length === 0 ? (
+        ) : items.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🎬</div>
-            <div style={{ fontFamily: 'Sora', fontWeight: 600, fontSize: 15, color: 'var(--ink)', marginBottom: 8 }}>Нет активных stories</div>
-            <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>Добавьте stories или баннеры чтобы привлечь внимание покупателей</div>
+            <div style={{ fontFamily: 'Sora', fontWeight: 600, fontSize: 15, color: 'var(--ink)', marginBottom: 8 }}>Нет stories и баннеров</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>Добавьте story или баннер, чтобы покупатели сразу видели акции, новинки и важные объявления.</div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {(stories as any[]).map((s: any) => {
+            {items.map((s, index) => {
               const expired = s.expires_at && new Date(s.expires_at) < new Date()
+              const type = s.kind ?? 'story'
+              const copy = STORY_BANNER_KIND_COPY[type]
               return (
                 <div key={s.id} style={{ borderRadius: 14, background: 'var(--card)', border: '1px solid var(--border)', overflow: 'hidden' }}>
-                  {s.media_url && (
-                    <div style={{ height: 140, overflow: 'hidden', background: 'var(--subtle)' }}>
-                      <img src={s.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {s.media_url ? (
+                    <div style={{ height: type === 'banner' ? 120 : 150, overflow: 'hidden', background: 'var(--subtle)', borderBottom: '1px solid var(--border)' }}>
+                      <img src={s.media_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
-                  )}
-                  <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  ) : null}
+                  <div style={{ padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <span style={{ padding: '4px 8px', borderRadius: 999, background: type === 'banner' ? '#EEF6FF' : 'var(--accent-soft)', color: type === 'banner' ? '#1565C0' : 'var(--accent)', fontSize: 11, fontWeight: 800 }}>
+                        {copy.icon} {copy.label}
+                      </span>
+                      <span style={{ padding: '4px 8px', borderRadius: 999, background: s.is_active === false ? 'var(--subtle)' : '#ECFDF5', color: s.is_active === false ? 'var(--muted)' : 'var(--accent)', fontSize: 11, fontWeight: 800 }}>
+                        {s.is_active === false ? 'Выключено' : 'Активно'}
+                      </span>
+                      <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted)' }}>#{index + 1}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                      {!s.media_url && (
+                        <div style={{ width: 50, height: 50, borderRadius: 12, background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
+                          {copy.icon}
+                        </div>
+                      )}
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 500, lineHeight: 1.4, marginBottom: 4 }}>
-                        {s.caption || '(без текста)'}
+                      <div style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 800, lineHeight: 1.3, marginBottom: 4 }}>
+                        {s.title || s.caption || (type === 'banner' ? 'Баннер без названия' : 'Story без названия')}
                       </div>
+                      {s.title && s.caption && (
+                        <div style={{ fontSize: 12, color: 'var(--muted-strong)', lineHeight: 1.4, marginBottom: 4 }}>
+                          {s.caption}
+                        </div>
+                      )}
                       {s.cta_text && (
-                        <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>🔗 {s.cta_text}</div>
+                        <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 700 }}>🔗 {s.cta_text}</div>
                       )}
                       <div style={{ fontSize: 11, color: expired ? 'var(--danger)' : 'var(--muted)', marginTop: 4 }}>
                         {expired ? '⏰ Истёк' : s.expires_at ? `До ${new Date(s.expires_at).toLocaleDateString('ru')}` : 'Бессрочно'}
                       </div>
                     </div>
-                    <button
-                      onClick={() => tgConfirm('Удалить story?', () => deleteMutation.mutate(s.id))}
-                      style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--danger-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', flexShrink: 0 }}
-                    >
-                      <Icon name="x" size={14} color="var(--danger)" />
-                    </button>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '40px 40px 1fr 40px', gap: 8, marginTop: 12 }}>
+                      <button
+                        onClick={() => moveItem(index, -1)}
+                        disabled={index === 0 || reorderMutation.isPending}
+                        style={{ height: 38, borderRadius: 10, background: 'var(--subtle)', border: '1px solid var(--border)', color: 'var(--ink)', fontWeight: 800, opacity: index === 0 ? 0.35 : 1 }}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        onClick={() => moveItem(index, 1)}
+                        disabled={index === items.length - 1 || reorderMutation.isPending}
+                        style={{ height: 38, borderRadius: 10, background: 'var(--subtle)', border: '1px solid var(--border)', color: 'var(--ink)', fontWeight: 800, opacity: index === items.length - 1 ? 0.35 : 1 }}
+                      >
+                        ↓
+                      </button>
+                      <button
+                        onClick={() => openEditForm(s)}
+                        style={{ height: 38, borderRadius: 10, background: 'var(--accent-soft)', border: '1px solid rgba(0,179,131,0.22)', color: 'var(--accent)', fontWeight: 800, fontSize: 13 }}
+                      >
+                        Изменить
+                      </button>
+                      <button
+                        onClick={() => tgConfirm(`Удалить ${type === 'banner' ? 'баннер' : 'story'}?`, () => deleteMutation.mutate(s.id))}
+                        style={{ height: 38, borderRadius: 10, background: 'var(--danger-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+                      >
+                        <Icon name="x" size={14} color="var(--danger)" />
+                      </button>
+                    </div>
+                      </div>
                   </div>
-                </div>
               )
             })}
           </div>
@@ -1008,8 +1425,30 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
       </div>
 
       {showForm && (
-        <BottomSheet onClose={() => setShowForm(false)} title="Новая story">
+        <BottomSheet onClose={closeForm} title={editingItem ? 'Изменить элемент' : 'Добавить элемент'}>
           <div style={{ padding: '16px 20px 32px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {(['story', 'banner'] as StoryBannerKind[]).map(type => (
+                <button
+                  key={type}
+                  onClick={() => setKind(type)}
+                  style={{
+                    minHeight: 66,
+                    borderRadius: 14,
+                    border: '1.5px solid',
+                    borderColor: kind === type ? 'var(--accent)' : 'var(--border)',
+                    background: kind === type ? 'var(--accent-soft)' : 'var(--card)',
+                    padding: '10px 12px',
+                    textAlign: 'left',
+                  }}
+                >
+                  <div style={{ fontSize: 18, marginBottom: 4 }}>{STORY_BANNER_KIND_COPY[type].icon}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: kind === type ? 'var(--accent)' : 'var(--ink)' }}>{STORY_BANNER_KIND_COPY[type].label}</div>
+                  <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 2, lineHeight: 1.25 }}>{STORY_BANNER_KIND_COPY[type].hint}</div>
+                </button>
+              ))}
+            </div>
+
             <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleFile} />
             <button
               onClick={() => fileRef.current?.click()}
@@ -1022,11 +1461,23 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
                 : <><div style={{ fontSize: 28 }}>📸</div><div style={{ fontSize: 13, color: 'var(--muted)' }}>Добавить медиа</div></>
               }
             </button>
+            <input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder={kind === 'banner' ? 'Название баннера' : 'Название story'}
+              style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--subtle)', fontSize: 14, color: 'var(--ink)' }}
+            />
             <textarea
               value={caption}
               onChange={e => setCaption(e.target.value)}
-              placeholder="Текст story (необязательно)"
+              placeholder={kind === 'banner' ? 'Текст баннера' : 'Текст story'}
               style={{ width: '100%', height: 80, padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--subtle)', fontSize: 14, color: 'var(--ink)', resize: 'none' }}
+            />
+            <input
+              value={mediaUrl}
+              onChange={e => setMediaUrl(e.target.value)}
+              placeholder="Ссылка на изображение или видео"
+              style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--subtle)', fontSize: 14, color: 'var(--ink)' }}
             />
             <input
               value={ctaText}
@@ -1056,17 +1507,15 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
                 ))}
               </div>
             </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)' }}>
+              <input type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} />
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Показывать на витрине</span>
+            </label>
             <button
-              onClick={() => createMutation.mutate({
-                media_url: mediaUrl || null,
-                caption: caption.trim() || null,
-                cta_text: ctaText.trim() || null,
-                cta_url: ctaUrl.trim() || null,
-                expires_at: expiresHours === '0' ? null : new Date(Date.now() + Number(expiresHours) * 3600 * 1000).toISOString(),
-              })}
-              disabled={createMutation.isPending}
-              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', opacity: createMutation.isPending ? 0.7 : 1 }}
-            >{createMutation.isPending ? 'Создание...' : 'Добавить story'}</button>
+              onClick={submitItem}
+              disabled={isSaving}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', opacity: isSaving ? 0.7 : 1 }}
+            >{isSaving ? 'Сохранение...' : editingItem ? 'Сохранить изменения' : `Добавить ${kind === 'banner' ? 'баннер' : 'story'}`}</button>
           </div>
         </BottomSheet>
       )}
@@ -1965,17 +2414,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
     tenant.settings?.notify_group_chat_id ? String(tenant.settings.notify_group_chat_id) : '',
   )
 
-  // Bot menu button state
-  const [editBotMenu, setEditBotMenu] = useState(false)
-  const [botMenuText, setBotMenuText] = useState(tenant.settings?.bot_menu_text ?? '🛍 Открыть магазин')
-
   // Bot commands state
   const [editBotCommands, setEditBotCommands] = useState(false)
-  const [botCommands, setBotCommands] = useState<{ command: string; description: string }[]>(
-    () => tenant.settings?.bot_commands ?? []
-  )
-  const [newCmdCommand, setNewCmdCommand] = useState('')
-  const [newCmdDesc, setNewCmdDesc] = useState('')
 
   // Plan picker state
   const [showPlanPicker, setShowPlanPicker] = useState(false)
@@ -2031,8 +2471,11 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
   })
 
   const savePaymentSettings = () => {
+    const availablePaymentMethodIds = ALL_PAYMENT_METHODS
+      .filter(method => !method.comingSoon && !method.alwaysEnabled)
+      .map(method => method.id)
     paymentMutation.mutate({
-      payment_methods: paymentMethods,
+      payment_methods: paymentMethods.filter(id => availablePaymentMethodIds.includes(id)),
       transfer_card_number: transferCardNumber.trim() || null,
       transfer_card_holder: transferCardHolder.trim() || null,
     })
@@ -2117,8 +2560,27 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
-  function handleCopyShopUrl() {
-    navigator.clipboard?.writeText(shopUrl)
+  async function handleCopyShopUrl() {
+    const tg = (window as any).Telegram?.WebApp
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shopUrl)
+      } else {
+        const input = document.createElement('input')
+        input.value = shopUrl
+        input.style.position = 'fixed'
+        input.style.opacity = '0'
+        document.body.appendChild(input)
+        input.select()
+        document.execCommand('copy')
+        document.body.removeChild(input)
+      }
+      tg?.HapticFeedback?.notificationOccurred?.('success')
+      tg?.showAlert?.('Ссылка на магазин скопирована')
+    } catch {
+      tg?.HapticFeedback?.notificationOccurred?.('error')
+      tg?.showAlert?.(shopUrl)
+    }
   }
 
   function handleSaveProfile() {
@@ -2150,6 +2612,28 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       return
     }
     setupBotMutation.mutate(botToken.trim())
+  }
+
+  async function handleOpenBotLink() {
+    if (!tenant.bot_username) return
+    const tg = (window as any).Telegram?.WebApp
+    const botUrl = `https://t.me/${tenant.bot_username}`
+
+    try {
+      if (tg?.openTelegramLink) {
+        tg.openTelegramLink(botUrl)
+        return
+      }
+      window.open(botUrl, '_blank')
+    } catch {
+      try {
+        await navigator.clipboard?.writeText(botUrl)
+        tg?.HapticFeedback?.notificationOccurred?.('success')
+        tg?.showAlert?.('Ссылка на бота скопирована')
+      } catch {
+        tg?.showAlert?.(botUrl)
+      }
+    }
   }
 
   function openEditProfile() {
@@ -2210,7 +2694,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
   const [presetConfirm, setPresetConfirm] = useState<string | null>(null)
   const [blocksConfig, setBlocksConfig] = useState(() => ({
     stories_enabled: tenant.settings?.stories_enabled ?? true,
-    stories_style: tenant.settings?.stories_style ?? 'instagram',
     featured_banner_enabled: tenant.settings?.featured_banner_enabled ?? true,
     featured_banner_autorotate: tenant.settings?.featured_banner_autorotate ?? true,
     trust_strip_enabled: tenant.settings?.trust_strip_enabled ?? true,
@@ -2484,7 +2967,7 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
               icon="copy"
               label="Ссылка на бота"
               value={`t.me/${tenant.bot_username}`}
-              onPress={() => navigator.clipboard?.writeText(`https://t.me/${tenant.bot_username}`)}
+              onPress={handleOpenBotLink}
             />
             <Row
               icon="send"
@@ -2502,20 +2985,10 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
               onPress={() => { setWelcomeMsg(tenant.settings?.welcome_message ?? ''); setEditWelcomeMsg(true) }}
             />
             <Row
-              icon="sparkles"
-              label="Кнопка меню бота"
-              value={tenant.settings?.bot_menu_text ?? '🛍 Открыть магазин'}
-              onPress={() => { setBotMenuText(tenant.settings?.bot_menu_text ?? '🛍 Открыть магазин'); setEditBotMenu(true) }}
-            />
-            <Row
               icon="star"
               label="Команды бота"
-              value={`${(tenant.settings?.bot_commands ?? []).length} команд`}
-              onPress={() => {
-                setBotCommands(tenant.settings?.bot_commands ?? [])
-                setNewCmdCommand(''); setNewCmdDesc('')
-                setEditBotCommands(true)
-              }}
+              value="3 стандартные"
+              onPress={() => setEditBotCommands(true)}
             />
             <Row
               icon="sparkles"
@@ -2667,37 +3140,36 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
             <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
               Структура главной страницы вашего магазина
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-              {([
-                { id: 'boutique',    emoji: '🛍', label: 'Boutique',     hint: 'Мода, Красота — крупные фото, hero-баннер' },
-                { id: 'catalog',     emoji: '📋', label: 'Catalog',      hint: 'Электроника, Авто — фильтры, компактные карточки' },
-                { id: 'lookbook',    emoji: '📖', label: 'Lookbook',     hint: 'Премиум, Декор — stories на первом плане' },
-                { id: 'marketplace', emoji: '🏪', label: 'Marketplace',  hint: 'Много категорий — поиск и сетка категорий' },
-                { id: 'bento',       emoji: '🗃', label: 'Bento',        hint: 'Lifestyle — журнальная раскладка карточек' },
-              ] as { id: string; emoji: string; label: string; hint: string }[]).map(layout => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+              {LAYOUT_OPTIONS.map(layout => (
                 <button
                   key={layout.id}
                   onClick={() => setPickedLayout(layout.id)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 14, width: '100%', textAlign: 'left',
-                    padding: '14px 16px', borderRadius: 14,
+                    display: 'grid',
+                    gridTemplateColumns: 'minmax(0, 1fr) 122px',
+                    gap: 12,
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: 12,
+                    borderRadius: 16,
                     border: pickedLayout === layout.id ? '2px solid var(--accent)' : '2px solid var(--border)',
                     background: pickedLayout === layout.id ? 'var(--accent-soft)' : 'var(--card)',
                     cursor: 'pointer',
+                    alignItems: 'stretch',
                   }}
                 >
-                  <span style={{ fontSize: 28, flexShrink: 0 }}>{layout.emoji}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: pickedLayout === layout.id ? 'var(--accent)' : 'var(--ink)' }}>{layout.label}</div>
-                    <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{layout.hint}</div>
-                  </div>
-                  {pickedLayout === layout.id && (
-                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-                        <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+                  <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                      <span style={{ fontSize: 24, flexShrink: 0 }}>{layout.emoji}</span>
+                      <div style={{ fontWeight: 800, fontSize: 16, color: pickedLayout === layout.id ? 'var(--accent)' : 'var(--ink)' }}>{layout.label}</div>
                     </div>
-                  )}
+                    <div style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.35 }}>{layout.hint}</div>
+                    <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 6, color: pickedLayout === layout.id ? 'var(--accent)' : 'var(--muted)', fontSize: 11, fontWeight: 800 }}>
+                      {pickedLayout === layout.id ? 'Выбрано' : 'Нажмите для выбора'}
+                    </div>
+                  </div>
+                  <LayoutWireframePreview type={layout.preview} active={pickedLayout === layout.id} />
                 </button>
               ))}
             </div>
@@ -3462,6 +3934,7 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
                     display: 'flex', alignItems: 'center', gap: 12,
                     padding: '13px 16px', background: 'var(--card)',
                     borderBottom: i < ALL_PAYMENT_METHODS.length - 1 ? '1px solid var(--border)' : 'none',
+                    opacity: pm.comingSoon ? 0.68 : 1,
                   }}>
                     <span style={{ fontSize: 20, flexShrink: 0 }}>{pm.emoji}</span>
                     <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>
@@ -3469,6 +3942,23 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
                     </span>
                     {pm.alwaysEnabled ? (
                       <span style={{ fontSize: 12, color: 'var(--muted)' }}>Всегда</span>
+                    ) : pm.comingSoon ? (
+                      <span style={{
+                        height: 28,
+                        padding: '0 12px',
+                        borderRadius: 999,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'var(--subtle)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--muted-strong)',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        flexShrink: 0,
+                      }}>
+                        Скоро
+                      </span>
                     ) : (
                       <button
                         onClick={() =>
@@ -3804,27 +4294,18 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       {editBlocks && (
         <BottomSheet onClose={() => setEditBlocks(false)} title="Блоки витрины">
           <div style={{ padding: '20px 16px 8px' }}>
-            <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>Настройте видимость и стиль блоков</p>
+            <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>Выберите, какие блоки показывать на витрине</p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
 
               {/* Stories */}
               <div style={{ borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', background: 'var(--card)', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', background: 'var(--card)' }}>
                   <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', flex: 1 }}>🎬 Stories</span>
                   <button onClick={() => setBlocksConfig(c => ({ ...c, stories_enabled: !c.stories_enabled }))} style={{ width: 44, height: 26, borderRadius: 999, background: blocksConfig.stories_enabled ? 'var(--accent)' : 'var(--border)', position: 'relative', border: 'none', cursor: 'pointer' }}>
                     <div style={{ position: 'absolute', top: 2, width: 20, height: 20, borderRadius: 999, background: 'white', left: blocksConfig.stories_enabled ? 22 : 2, transition: 'left 0.2s' }} />
                   </button>
                 </div>
-                {blocksConfig.stories_enabled && (
-                  <div style={{ padding: '10px 14px', background: 'var(--bg)', display: 'flex', gap: 8 }}>
-                    {(['instagram', 'tiktok', 'hidden'] as const).map(s => (
-                      <button key={s} onClick={() => setBlocksConfig(c => ({ ...c, stories_style: s }))} style={{ flex: 1, padding: '7px 4px', borderRadius: 8, fontSize: 11, fontWeight: 600, border: '1.5px solid', borderColor: blocksConfig.stories_style === s ? 'var(--accent)' : 'var(--border)', background: blocksConfig.stories_style === s ? 'var(--accent-soft)' : 'var(--card)', color: blocksConfig.stories_style === s ? 'var(--accent)' : 'var(--muted)' }}>
-                        {s === 'instagram' ? 'Instagram' : s === 'tiktok' ? 'TikTok' : 'Скрыто'}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
 
               {/* Featured Banner */}
@@ -3854,12 +4335,34 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
                   </button>
                 </div>
                 {blocksConfig.categories_enabled && (
-                  <div style={{ padding: '10px 14px', background: 'var(--bg)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {(['bento', 'burger', 'scrolling', 'tabs', 'grid'] as const).map(s => (
-                      <button key={s} onClick={() => setBlocksConfig(c => ({ ...c, categories_style: s }))} style={{ padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, border: '1.5px solid', borderColor: blocksConfig.categories_style === s ? 'var(--accent)' : 'var(--border)', background: blocksConfig.categories_style === s ? 'var(--accent-soft)' : 'var(--card)', color: blocksConfig.categories_style === s ? 'var(--accent)' : 'var(--muted)', textTransform: 'capitalize' }}>
-                        {s}
+                  <div style={{ padding: '12px 14px', background: 'var(--bg)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    {CATEGORY_STYLE_OPTIONS.map(option => {
+                      const active = blocksConfig.categories_style === option.id
+                      return (
+                      <button
+                        key={option.id}
+                        onClick={() => setBlocksConfig(c => ({ ...c, categories_style: option.id }))}
+                        style={{
+                          minHeight: 112,
+                          padding: 10,
+                          borderRadius: 12,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          border: '1.5px solid',
+                          borderColor: active ? 'var(--accent)' : 'var(--border)',
+                          background: active ? 'var(--accent-soft)' : 'var(--card)',
+                          color: active ? 'var(--accent)' : 'var(--muted)',
+                          textAlign: 'left',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 8,
+                        }}
+                      >
+                        <CategoryStylePreview type={option.preview} active={active} />
+                        <span style={{ fontSize: 13, fontWeight: 800, color: active ? 'var(--accent)' : 'var(--ink)' }}>{option.label}</span>
+                        <span style={{ fontSize: 10, fontWeight: 600, lineHeight: 1.3, color: 'var(--muted)' }}>{option.hint}</span>
                       </button>
-                    ))}
+                    )})}
                   </div>
                 )}
               </div>
@@ -3992,44 +4495,13 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
         </BottomSheet>
       )}
 
-      {/* ── Bot menu button modal ───────────────────────────────────────────── */}
-      {editBotMenu && (
-        <BottomSheet onClose={() => setEditBotMenu(false)} title="Кнопка меню бота">
-          <div style={{ padding: '16px 16px 32px' }}>
-            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>Текст кнопки, которую видит покупатель при открытии бота</div>
-            <input
-              value={botMenuText}
-              onChange={e => setBotMenuText(e.target.value)}
-              placeholder="🛍 Открыть магазин"
-              maxLength={40}
-              style={{ width: '100%', height: 48, borderRadius: 12, border: '1.5px solid var(--border)', background: 'var(--card)', padding: '0 14px', fontSize: 15, color: 'var(--ink)', boxSizing: 'border-box', marginBottom: 8 }}
-            />
-            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 16 }}>{botMenuText.length}/40 символов</div>
-            {/* Preview */}
-            <div style={{ background: 'var(--subtle)', borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 6 }}>Предпросмотр</div>
-              <div style={{ display: 'inline-block', background: 'var(--accent)', color: 'white', borderRadius: 8, padding: '8px 16px', fontSize: 14, fontWeight: 600 }}>
-                {botMenuText || '🛍 Открыть магазин'}
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                updateSettingsMutation.mutate({ bot_menu_text: botMenuText })
-                setEditBotMenu(false)
-              }}
-              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer' }}
-            >
-              Сохранить
-            </button>
-          </div>
-        </BottomSheet>
-      )}
-
       {/* ── Bot commands modal ──────────────────────────────────────────────── */}
       {editBotCommands && (
         <BottomSheet onClose={() => setEditBotCommands(false)} title="Команды бота">
           <div style={{ padding: '16px 16px 32px' }}>
-            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>Пользователи могут вызывать эти команды в чате с ботом</div>
+            <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16, lineHeight: 1.5 }}>
+              Эти команды встроены в бота. Дополнительные команды пока не поддерживаются, потому что для каждой команды нужна отдельная логика на сервере.
+            </div>
 
             {/* Default commands (read-only) */}
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted-strong)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Стандартные</div>
@@ -4044,64 +4516,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
                 <span style={{ fontSize: 10, color: 'var(--muted)', background: 'var(--border)', borderRadius: 999, padding: '2px 8px' }}>обязательная</span>
               </div>
             ))}
-
-            {/* Custom commands */}
-            {botCommands.length > 0 && (
-              <>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted-strong)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 12, marginBottom: 8 }}>Пользовательские</div>
-                {botCommands.map((cmd, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 10, background: 'var(--card)', border: '1px solid var(--border)', marginBottom: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', minWidth: 80 }}>{cmd.command}</span>
-                    <span style={{ fontSize: 13, color: 'var(--ink)', flex: 1 }}>{cmd.description}</span>
-                    <button
-                      onClick={() => setBotCommands(prev => prev.filter((_, j) => j !== i))}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--muted)', padding: '0 4px' }}
-                    >×</button>
-                  </div>
-                ))}
-              </>
-            )}
-
-            {/* Add new command */}
-            <div style={{ marginTop: 16, marginBottom: 12 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Добавить команду</div>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                <input
-                  value={newCmdCommand}
-                  onChange={e => setNewCmdCommand(e.target.value.replace(/[^a-z0-9_]/g, '').toLowerCase())}
-                  placeholder="/команда"
-                  style={{ width: '40%', height: 40, borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--card)', padding: '0 12px', fontSize: 14, color: 'var(--ink)', boxSizing: 'border-box' }}
-                />
-                <input
-                  value={newCmdDesc}
-                  onChange={e => setNewCmdDesc(e.target.value)}
-                  placeholder="Описание команды"
-                  style={{ flex: 1, height: 40, borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--card)', padding: '0 12px', fontSize: 14, color: 'var(--ink)', boxSizing: 'border-box' }}
-                />
-              </div>
-              <button
-                onClick={() => {
-                  if (!newCmdCommand || !newCmdDesc) return
-                  const cmd = newCmdCommand.startsWith('/') ? newCmdCommand : `/${newCmdCommand}`
-                  setBotCommands(prev => [...prev, { command: cmd, description: newCmdDesc }])
-                  setNewCmdCommand(''); setNewCmdDesc('')
-                }}
-                disabled={!newCmdCommand || !newCmdDesc}
-                style={{ width: '100%', height: 44, borderRadius: 12, background: newCmdCommand && newCmdDesc ? 'var(--accent-soft)' : 'var(--subtle)', color: newCmdCommand && newCmdDesc ? 'var(--accent)' : 'var(--muted)', fontWeight: 600, fontSize: 14, border: 'none', cursor: 'pointer' }}
-              >
-                + Добавить
-              </button>
-            </div>
-
-            <button
-              onClick={() => {
-                updateSettingsMutation.mutate({ bot_commands: botCommands })
-                setEditBotCommands(false)
-              }}
-              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 15, marginTop: 8, border: 'none', cursor: 'pointer' }}
-            >
-              Сохранить команды
-            </button>
           </div>
         </BottomSheet>
       )}

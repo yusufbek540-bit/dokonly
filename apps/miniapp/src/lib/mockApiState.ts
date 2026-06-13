@@ -227,7 +227,30 @@ export function createDemoMailings(nowIso = new Date().toISOString()) {
 
 export function createDemoStories() {
   return [
-    { id: 'story-1', title: 'Новинки', image_url: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80', is_active: true },
+    {
+      id: 'story-1',
+      kind: 'story',
+      title: 'Новинки',
+      caption: 'Новая коллекция уже в каталоге',
+      image_url: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80',
+      media_url: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80',
+      cta_text: 'Смотреть',
+      cta_url: '',
+      sort_order: 0,
+      is_active: true,
+    },
+    {
+      id: 'banner-1',
+      kind: 'banner',
+      title: 'Скидка недели',
+      caption: 'Бесплатная доставка при заказе от 300 000 сум',
+      image_url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80',
+      media_url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80',
+      cta_text: 'Купить сейчас',
+      cta_url: '',
+      sort_order: 1,
+      is_active: true,
+    },
   ]
 }
 

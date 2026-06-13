@@ -24,6 +24,8 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'more',      label: 'Ещё',        icon: 'moreH'      },
 ]
 
+const SELLER_BOTTOM_NAV_SPACE = 'calc(72px + env(safe-area-inset-bottom))'
+
 interface Props {
   /**
    * Slug from URL — present when opened via merchant's own bot (?shop=slug).
@@ -196,7 +198,14 @@ export function SellerApp({ tenantSlug, shop }: Props) {
         </button>
       )}
       {/* Tab content */}
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        paddingBottom: SELLER_BOTTOM_NAV_SPACE,
+        boxSizing: 'border-box',
+      }}>
         {tab === 'home'      && <HomeTab      tenant={tenant} onTabChange={(t, deepLink) => { setTab(t as Tab); if (deepLink) setMoreDeepLink(deepLink) }} />}
         {tab === 'catalog'   && <CatalogTab   tenant={tenant} />}
         {tab === 'orders'    && <OrdersTab    tenant={tenant} />}
@@ -214,10 +223,15 @@ export function SellerApp({ tenantSlug, shop }: Props) {
 
       {/* Bottom nav */}
       <div style={{
-        flexShrink: 0, zIndex: 40,
+        position: 'fixed',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 70,
         background: 'var(--bg)', borderTop: '1px solid var(--border)',
         display: 'flex',
         paddingBottom: 'env(safe-area-inset-bottom)',
+        boxShadow: '0 -10px 28px rgba(15, 23, 42, 0.06)',
       }}>
         {TABS.map(t => {
           const badgeCount = t.id === 'orders'

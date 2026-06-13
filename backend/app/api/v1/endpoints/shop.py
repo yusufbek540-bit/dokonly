@@ -1101,7 +1101,9 @@ async def get_stories(tenant_id: str, db: AsyncSession = Depends(get_db)):
     tenant = result.scalar_one_or_none()
     if not tenant:
         raise HTTPException(404, "Shop not found")
-    return (tenant.settings or {}).get("stories", [])
+    stories = (tenant.settings or {}).get("stories", [])
+    active_stories = [story for story in stories if story.get("is_active", True)]
+    return sorted(active_stories, key=lambda item: item.get("sort_order", 0))
 
 
 @router.get("/{tenant_id}/my-loyalty-history")
@@ -1272,4 +1274,3 @@ async def ai_chat(
     except Exception:
         reply = "Здравствуйте! Чем могу помочь?"
     return {"reply": reply}
-
