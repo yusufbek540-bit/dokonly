@@ -253,7 +253,7 @@ export function isMockApiEnabled() {
     maybeResetDemoStateFromUrl()
     resetChecked = true
   }
-  return import.meta.env.DEV && new URLSearchParams(window.location.search).get('mock_api') === '1'
+  return new URLSearchParams(window.location.search).get('mock_api') === '1'
 }
 
 export function mockUpload(file?: File) {
