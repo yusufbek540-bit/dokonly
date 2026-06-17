@@ -42,6 +42,92 @@ function tone(name: string) {
   return Math.abs(h) % 8
 }
 
+type PresetId = 'boutique' | 'marketplace' | 'food' | 'minimal'
+
+const PRESET_ALIASES: Record<string, PresetId> = {
+  boutique: 'boutique',
+  lookbook: 'boutique',
+  bento: 'boutique',
+  marketplace: 'marketplace',
+  catalog: 'marketplace',
+  food: 'food',
+  minimal: 'minimal',
+}
+
+const PRESET_COPY: Record<PresetId, {
+  eyebrow: string
+  headline: string
+  cta: string
+  section: string
+  chip: string
+  bg: string
+  hero: string
+  heroText: string
+  card: string
+  radius: number
+}> = {
+  boutique: {
+    eyebrow: 'Новая витрина',
+    headline: 'Коллекция, которую удобно выбрать в Telegram',
+    cta: 'Смотреть коллекцию',
+    section: 'Избранное',
+    chip: 'Бутик',
+    bg: '#f8f4ed',
+    hero: 'linear-gradient(135deg, #191714 0%, #6f5a3f 48%, #efe3cd 100%)',
+    heroText: '#fff8ec',
+    card: '#fffaf2',
+    radius: 24,
+  },
+  marketplace: {
+    eyebrow: 'Быстрый поиск',
+    headline: 'Каталог, фильтры и товары в одном сценарии',
+    cta: 'Открыть каталог',
+    section: 'Популярное сейчас',
+    chip: 'Маркетплейс',
+    bg: '#f5f8fb',
+    hero: 'linear-gradient(135deg, #0f172a 0%, #126e82 52%, #d7f7ff 100%)',
+    heroText: '#ffffff',
+    card: '#ffffff',
+    radius: 18,
+  },
+  food: {
+    eyebrow: 'Сегодня доступно',
+    headline: 'Заказы, доставка и быстрый повтор покупки',
+    cta: 'Выбрать товары',
+    section: 'Сегодня берут',
+    chip: 'Доставка',
+    bg: '#fff8ef',
+    hero: 'linear-gradient(135deg, #4a2418 0%, #d16b46 52%, #fff0c7 100%)',
+    heroText: '#fffaf2',
+    card: '#fffdf8',
+    radius: 22,
+  },
+  minimal: {
+    eyebrow: 'Премиум витрина',
+    headline: 'Чистая подача для товаров с высоким доверием',
+    cta: 'Посмотреть товары',
+    section: 'Рекомендации',
+    chip: 'Minimal',
+    bg: '#f7f7f4',
+    hero: 'linear-gradient(135deg, #111111 0%, #5d625d 50%, #f1f0ea 100%)',
+    heroText: '#ffffff',
+    card: '#ffffff',
+    radius: 12,
+  },
+}
+
+function categoryName(product: any) {
+  return product.category ?? product.category_name ?? product.category_title ?? null
+}
+
+function imageOf(product: any) {
+  return product.images?.[0] ?? product.image_url ?? null
+}
+
+function clampText(text: string, max = 62) {
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text
+}
+
 // ─── Shared sub-components ─────────────────────────────────────────────────
 
 function CompactHeader({ shop }: { shop: ShopData }) {
@@ -916,6 +1002,333 @@ function BentoLayout({
   )
 }
 
+function PresetProductCard({
+  p, shop, preset, wishlistIds, justAdded, toggleWishlist, handleQuickAdd, handleViewProduct, featured = false,
+}: {
+  p: any
+  shop: ShopData
+  preset: PresetId
+  wishlistIds: string[]
+  justAdded: string | null
+  toggleWishlist: (id: string) => void
+  handleQuickAdd: (e: React.MouseEvent, p: any) => void
+  handleViewProduct: (id: string) => void
+  featured?: boolean
+}) {
+  const copy = PRESET_COPY[preset]
+  const inWishlist = wishlistIds.includes(p.id)
+  const img = imageOf(p)
+  const hasDiscount = p.compare_at_price && Number(p.compare_at_price) > Number(p.price)
+  return (
+    <button
+      onClick={() => handleViewProduct(p.id)}
+      style={{
+        minWidth: featured ? 220 : undefined,
+        textAlign: 'left',
+        border: preset === 'minimal' ? '1px solid rgba(17,17,17,0.10)' : '1px solid rgba(15,23,42,0.08)',
+        borderRadius: copy.radius,
+        background: copy.card,
+        overflow: 'hidden',
+        boxShadow: preset === 'minimal' ? 'none' : '0 14px 34px rgba(15,23,42,0.08)',
+      }}
+    >
+      <div style={{ position: 'relative', aspectRatio: featured ? '4/3' : '1/1', background: 'rgba(15,23,42,0.04)' }}>
+        {img ? (
+          <img src={img} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        ) : (
+          <div className="img-ph" data-tone={tone(p.name)} style={{ width: '100%', height: '100%', borderRadius: 0 }}>
+            <span>{p.name.split(' ').slice(0, 2).join(' ')}</span>
+          </div>
+        )}
+        {hasDiscount && (
+          <div style={{
+            position: 'absolute', top: 10, left: 10,
+            borderRadius: 999, background: 'var(--accent)', color: 'white',
+            padding: '4px 8px', fontSize: 11, fontWeight: 800,
+          }}>
+            -{Math.round((1 - Number(p.price) / Number(p.compare_at_price)) * 100)}%
+          </div>
+        )}
+        <button
+          onClick={e => { e.stopPropagation(); toggleWishlist(p.id) }}
+          style={{
+            position: 'absolute', top: 10, right: 10,
+            width: 32, height: 32, borderRadius: 999,
+            background: 'rgba(255,255,255,0.88)', backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 6px 18px rgba(15,23,42,0.12)',
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill={inWishlist ? 'var(--accent)' : 'none'} stroke={inWishlist ? 'var(--accent)' : '#6b7280'} strokeWidth="1.6">
+            <path d="M8 13.5S1.5 9.5 1.5 5.5A3.5 3.5 0 0 1 8 3.8a3.5 3.5 0 0 1 6.5 1.7C14.5 9.5 8 13.5 8 13.5z" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <div style={{ padding: featured ? 14 : 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{
+              fontSize: featured ? 15 : 13,
+              fontWeight: 760,
+              color: '#111827',
+              lineHeight: 1.25,
+              minHeight: featured ? 38 : 33,
+            }}>
+              {clampText(p.name, featured ? 52 : 38)}
+            </div>
+            <div style={{ marginTop: 6, display: 'flex', alignItems: 'baseline', gap: 7 }}>
+              <span style={{ fontFamily: 'JetBrains Mono', fontSize: featured ? 14 : 12, fontWeight: 800, color: '#111827' }}>
+                {fmtPrice(Number(p.price), shop.currency)}
+              </span>
+              {hasDiscount && (
+                <span style={{ fontSize: 11, color: '#9ca3af', textDecoration: 'line-through' }}>
+                  {fmtPrice(Number(p.compare_at_price), shop.currency)}
+                </span>
+              )}
+            </div>
+          </div>
+          {p.stock !== 0 && (
+            <button
+              onClick={e => handleQuickAdd(e, p)}
+              aria-label="Добавить"
+              style={{
+                width: 34, height: 34, borderRadius: preset === 'minimal' ? 999 : 11,
+                flexShrink: 0,
+                background: justAdded === p.id ? 'var(--accent)' : '#111827',
+                color: 'white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transform: justAdded === p.id ? 'scale(0.92)' : 'scale(1)',
+                transition: 'transform 0.16s, background 0.16s',
+              }}
+            >
+              {justAdded === p.id
+                ? <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                : <Icon name="plus" size={15} color="white" />
+              }
+            </button>
+          )}
+        </div>
+      </div>
+    </button>
+  )
+}
+
+function PresetStorefront({
+  preset, shop, activeProducts, onShowCatalog, stories, shopStats, uniqueCats, catCounts,
+  wishlistIds, justAdded, toggleWishlist, handleQuickAdd, handleViewProduct, setActiveStory,
+}: {
+  preset: PresetId
+  shop: ShopData
+  activeProducts: any[]
+  onShowCatalog: (cat?: string) => void
+  stories: any[]
+  shopStats: any
+  uniqueCats: string[]
+  catCounts: Record<string, number>
+  wishlistIds: string[]
+  justAdded: string | null
+  toggleWishlist: (id: string) => void
+  handleQuickAdd: (e: React.MouseEvent, p: any) => void
+  handleViewProduct: (id: string) => void
+  setActiveStory: (s: any) => void
+}) {
+  const copy = PRESET_COPY[preset]
+  const featured = activeProducts.filter((p: any) => p.is_featured).concat(activeProducts).filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i)
+  const heroProduct = featured[0] ?? activeProducts[0]
+  const heroImage = heroProduct ? imageOf(heroProduct) : shop.cover_url
+  const storyItems = stories.filter((s: any) => s.kind !== 'banner' && s.is_active !== false).slice(0, 8)
+  const banner = stories.find((s: any) => s.kind === 'banner' && s.is_active !== false)
+  const gridCols = preset === 'marketplace' ? '1fr 1fr' : preset === 'minimal' ? '1fr' : '1fr 1fr'
+
+  return (
+    <div className="screen-scroll" style={{ flex: 1, paddingBottom: 24, background: copy.bg }}>
+      <div style={{ padding: '14px 16px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          width: 38, height: 38, borderRadius: preset === 'minimal' ? 999 : 14,
+          background: '#fff', border: '1px solid rgba(15,23,42,0.08)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          overflow: 'hidden', boxShadow: '0 10px 24px rgba(15,23,42,0.08)',
+        }}>
+          {shop.logo_url ? <img src={shop.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontWeight: 900, color: 'var(--accent)' }}>{shop.name.slice(0, 1)}</span>}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 850, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{shop.name}</div>
+          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>{copy.chip}</div>
+        </div>
+        <button onClick={() => onShowCatalog()} style={{
+          width: 40, height: 40, borderRadius: 999, background: 'rgba(255,255,255,0.78)',
+          border: '1px solid rgba(15,23,42,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name="search" size={18} color="#111827" />
+        </button>
+      </div>
+
+      <div style={{ padding: '14px 16px 0' }}>
+        <button
+          onClick={() => onShowCatalog()}
+          style={{
+            width: '100%',
+            minHeight: preset === 'marketplace' ? 178 : 218,
+            position: 'relative',
+            overflow: 'hidden',
+            border: 'none',
+            borderRadius: preset === 'minimal' ? 20 : 28,
+            background: copy.hero,
+            textAlign: 'left',
+            boxShadow: preset === 'minimal' ? 'none' : '0 24px 50px rgba(15,23,42,0.18)',
+          }}
+        >
+          {heroImage && (
+            <img src={heroImage} alt="" style={{
+              position: 'absolute', inset: 0, width: '100%', height: '100%',
+              objectFit: 'cover', opacity: preset === 'minimal' ? 0.34 : 0.46,
+            }} />
+          )}
+          <div style={{ position: 'absolute', inset: 0, background: preset === 'marketplace' ? 'linear-gradient(90deg, rgba(15,23,42,0.92), rgba(15,23,42,0.28))' : 'linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.58))' }} />
+          <div style={{ position: 'relative', padding: preset === 'marketplace' ? 20 : 22, minHeight: preset === 'marketplace' ? 178 : 218, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ display: 'inline-flex', padding: '6px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.18)', color: copy.heroText, fontSize: 11, fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                {copy.eyebrow}
+              </div>
+              <div style={{ maxWidth: preset === 'marketplace' ? '82%' : '92%', marginTop: 14, fontSize: preset === 'minimal' ? 28 : 25, fontWeight: 900, lineHeight: 1.06, color: copy.heroText, letterSpacing: '-0.03em' }}>
+                {copy.headline}
+              </div>
+            </div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, alignSelf: 'flex-start', padding: '10px 13px', borderRadius: 999, background: '#ffffff', color: '#111827', fontSize: 13, fontWeight: 850 }}>
+              {copy.cta}
+              <Icon name="chevronRight" size={14} color="#111827" />
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {storyItems.length > 0 && (
+        <div style={{ padding: '16px 16px 0', display: 'flex', gap: 12, overflowX: 'auto', scrollbarWidth: 'none' }}>
+          {storyItems.map((s: any) => {
+            const mediaUrl = s.media_url || s.image_url
+            return (
+              <button key={s.id} onClick={() => setActiveStory(s)} style={{ width: 70, flexShrink: 0, background: 'none', border: 'none', textAlign: 'center' }}>
+                <div style={{ width: 64, height: 64, margin: '0 auto', padding: 2, borderRadius: 999, background: 'linear-gradient(135deg, var(--accent), rgba(17,24,39,0.7))' }}>
+                  <div style={{ width: '100%', height: '100%', borderRadius: 999, overflow: 'hidden', border: `3px solid ${copy.bg}`, background: '#fff' }}>
+                    {mediaUrl ? <img src={mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span />}
+                  </div>
+                </div>
+                <div style={{ marginTop: 6, fontSize: 10, color: '#374151', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title || 'Story'}</div>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {uniqueCats.length > 0 && (
+        <div style={{
+          padding: '16px 16px 0',
+          display: preset === 'marketplace' ? 'grid' : 'flex',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 9,
+          overflowX: preset === 'marketplace' ? undefined : 'auto',
+          scrollbarWidth: 'none',
+        }}>
+          {uniqueCats.slice(0, preset === 'marketplace' ? 6 : 8).map((c, idx) => (
+            <button
+              key={c}
+              onClick={() => onShowCatalog(c)}
+              style={{
+                flexShrink: 0,
+                minWidth: preset === 'marketplace' ? undefined : 118,
+                minHeight: preset === 'marketplace' ? 68 : 40,
+                borderRadius: preset === 'minimal' ? 999 : 16,
+                border: '1px solid rgba(15,23,42,0.08)',
+                background: preset === 'marketplace' ? '#ffffff' : 'rgba(255,255,255,0.76)',
+                padding: preset === 'marketplace' ? '10px 12px' : '0 14px',
+                textAlign: preset === 'marketplace' ? 'left' : 'center',
+                boxShadow: preset === 'marketplace' ? '0 12px 24px rgba(15,23,42,0.06)' : 'none',
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 850, color: '#111827' }}>{c}</div>
+              <div style={{ marginTop: preset === 'marketplace' ? 5 : 0, fontSize: 11, color: '#6b7280' }}>{catCounts[c]} товаров</div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {banner && (
+        <div style={{ padding: '16px 16px 0' }}>
+          <button onClick={() => banner.cta_url && window.open(banner.cta_url, '_blank')} style={{
+            width: '100%', minHeight: 86, borderRadius: copy.radius, border: '1px solid rgba(15,23,42,0.08)',
+            background: preset === 'food' ? '#fff0d8' : '#ffffff', textAlign: 'left', padding: 15,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+          }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Акция</div>
+              <div style={{ marginTop: 6, fontSize: 16, lineHeight: 1.2, fontWeight: 850, color: '#111827' }}>{banner.title || banner.caption}</div>
+            </div>
+            <div style={{ width: 42, height: 42, borderRadius: 999, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon name="chevronRight" size={18} color="white" />
+            </div>
+          </button>
+        </div>
+      )}
+
+      {activeProducts.length > 0 ? (
+        <div style={{ padding: '22px 16px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.10em' }}>{copy.section}</div>
+              <h2 style={{ margin: '5px 0 0', fontSize: 21, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#111827' }}>Товары магазина</h2>
+            </div>
+            <button onClick={() => onShowCatalog()} style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 800, whiteSpace: 'nowrap' }}>Все</button>
+          </div>
+
+          {preset === 'food' && featured.length > 0 && (
+            <div style={{ display: 'flex', gap: 12, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 14 }}>
+              {featured.slice(0, 4).map((p: any) => (
+                <PresetProductCard
+                  key={p.id}
+                  p={p}
+                  shop={shop}
+                  preset={preset}
+                  featured
+                  wishlistIds={wishlistIds}
+                  justAdded={justAdded}
+                  toggleWishlist={toggleWishlist}
+                  handleQuickAdd={handleQuickAdd}
+                  handleViewProduct={handleViewProduct}
+                />
+              ))}
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: preset === 'minimal' ? 12 : 11 }}>
+            {activeProducts.slice(0, preset === 'minimal' ? 5 : 6).map((p: any) => (
+              <PresetProductCard
+                key={p.id}
+                p={p}
+                shop={shop}
+                preset={preset}
+                wishlistIds={wishlistIds}
+                justAdded={justAdded}
+                toggleWishlist={toggleWishlist}
+                handleQuickAdd={handleQuickAdd}
+                handleViewProduct={handleViewProduct}
+              />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div style={{ textAlign: 'center', padding: '48px 24px', color: '#6b7280' }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>🛍</div>
+          <p style={{ fontSize: 14 }}>Товары появятся скоро</p>
+        </div>
+      )}
+
+      <div style={{ marginTop: 18 }}>
+        <TrustStrip shop={shop} shopStats={shopStats} />
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: Props) {
@@ -926,9 +1339,9 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
   const featured = (featuredProducts.length > 0 ? featuredProducts : activeProducts).slice(0, 5)
   const preview = activeProducts.slice(0, 4)
 
-  const uniqueCats = Array.from(new Set(activeProducts.map((p: any) => p.category).filter(Boolean))) as string[]
+  const uniqueCats = Array.from(new Set(activeProducts.map(categoryName).filter(Boolean))) as string[]
   const catCounts: Record<string, number> = {}
-  for (const c of uniqueCats) catCounts[c] = activeProducts.filter((p: any) => p.category === c).length
+  for (const c of uniqueCats) catCounts[c] = activeProducts.filter((p: any) => categoryName(p) === c).length
 
   const hasCover = !!shop.cover_url
 
@@ -1065,11 +1478,36 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
   ) : null
 
   const layout = shop.layout ?? shop.settings?.layout ?? 'boutique'
+  const preset = PRESET_ALIASES[layout] ?? 'boutique'
 
   const sharedLayoutProps = {
     shop, tenantId, activeProducts, onProduct, onShowCatalog,
     stories: stories as any[], shopStats, wishlistIds,
     justAdded, toggleWishlist, handleQuickAdd, handleViewProduct, setActiveStory,
+  }
+
+  if (['boutique', 'marketplace', 'food', 'minimal'].includes(preset)) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <PresetStorefront
+          preset={preset}
+          shop={shop}
+          activeProducts={activeProducts}
+          onShowCatalog={onShowCatalog}
+          stories={stories as any[]}
+          shopStats={shopStats}
+          uniqueCats={uniqueCats}
+          catCounts={catCounts}
+          wishlistIds={wishlistIds}
+          justAdded={justAdded}
+          toggleWishlist={toggleWishlist}
+          handleQuickAdd={handleQuickAdd}
+          handleViewProduct={handleViewProduct}
+          setActiveStory={setActiveStory}
+        />
+        {storyOverlay}
+      </div>
+    )
   }
 
   // ── Catalog ──

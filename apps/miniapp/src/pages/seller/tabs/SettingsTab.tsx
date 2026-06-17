@@ -953,37 +953,30 @@ const LAYOUT_OPTIONS = [
   {
     id: 'boutique',
     emoji: '🛍',
-    label: 'Бутик',
-    hint: 'Крупный баннер, stories и визуальные карточки',
+    label: 'Boutique',
+    hint: 'Премиальная витрина для fashion, beauty и подарков',
     preview: 'boutique',
-  },
-  {
-    id: 'catalog',
-    emoji: '📋',
-    label: 'Каталог',
-    hint: 'Поиск, фильтры и компактный список товаров',
-    preview: 'catalog',
-  },
-  {
-    id: 'lookbook',
-    emoji: '📖',
-    label: 'Лукбук',
-    hint: 'Stories и подборки на первом плане',
-    preview: 'lookbook',
   },
   {
     id: 'marketplace',
     emoji: '🏪',
-    label: 'Маркетплейс',
-    hint: 'Много категорий, поиск и сетка товаров',
+    label: 'Marketplace',
+    hint: 'Для больших каталогов, техники и много категорий',
     preview: 'marketplace',
   },
   {
-    id: 'bento',
-    emoji: '🗃',
-    label: 'Журнал',
-    hint: 'Неровная журнальная раскладка карточек',
-    preview: 'bento',
+    id: 'food',
+    emoji: '🍽',
+    label: 'Food',
+    hint: 'Для кафе, доставки, продуктов и локальных магазинов',
+    preview: 'food',
+  },
+  {
+    id: 'minimal',
+    emoji: '◻️',
+    label: 'Minimal',
+    hint: 'Чистая премиум-витрина для декора, аптек и luxury',
+    preview: 'minimal',
   },
 ] as const
 
@@ -1063,10 +1056,16 @@ function LayoutWireframePreview({ type, active }: { type: string; active: boolea
       ['Категории', 'six'],
       ['Товары', 'grid'],
     ],
-    bento: [
-      ['Баннер', 'full'],
-      ['Главный товар', 'bento'],
+    food: [
+      ['Доставка', 'full'],
+      ['Меню', 'pill'],
+      ['Хиты', 'thirds'],
+      ['Товары', 'grid'],
+    ],
+    minimal: [
+      ['Hero', 'full'],
       ['Категории', 'pill'],
+      ['Товары', 'grid-large'],
     ],
   }
   const rows = rowsByType[type] ?? []
@@ -2717,14 +2716,14 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
   const THEME_PRESETS = [
     { id: 'fashion_rose', label: 'Fashion Rose', emoji: '🌸', accent: 'rose', typography: 'editorial', layout: 'boutique' },
-    { id: 'tech_blue', label: 'Tech Blue', emoji: '💎', accent: 'blue', typography: 'modern', layout: 'catalog' },
+    { id: 'tech_blue', label: 'Tech Blue', emoji: '💎', accent: 'blue', typography: 'modern', layout: 'marketplace' },
     { id: 'nature_green', label: 'Nature Green', emoji: '🌿', accent: 'emerald', typography: 'warm', layout: 'boutique' },
-    { id: 'luxury_dark', label: 'Luxury Dark', emoji: '✨', accent: 'amber', typography: 'editorial', layout: 'lookbook' },
-    { id: 'sport_orange', label: 'Sport Orange', emoji: '🏆', accent: 'orange', typography: 'bold', layout: 'catalog' },
-    { id: 'minimal_bw', label: 'Minimal B&W', emoji: '⬜', accent: 'zinc', typography: 'minimal', layout: 'boutique' },
+    { id: 'luxury_dark', label: 'Luxury Dark', emoji: '✨', accent: 'amber', typography: 'editorial', layout: 'minimal' },
+    { id: 'sport_orange', label: 'Sport Orange', emoji: '🏆', accent: 'orange', typography: 'bold', layout: 'marketplace' },
+    { id: 'minimal_bw', label: 'Minimal B&W', emoji: '⬜', accent: 'zinc', typography: 'minimal', layout: 'minimal' },
     { id: 'kids_bright', label: 'Kids Bright', emoji: '🎨', accent: 'pink', typography: 'bold', layout: 'marketplace' },
-    { id: 'food_warm', label: 'Food Warm', emoji: '🍊', accent: 'orange', typography: 'warm', layout: 'bento' },
-    { id: 'beauty_peach', label: 'Beauty Peach', emoji: '🍑', accent: 'pink', typography: 'editorial', layout: 'lookbook' },
+    { id: 'food_warm', label: 'Food Warm', emoji: '🍊', accent: 'orange', typography: 'warm', layout: 'food' },
+    { id: 'beauty_peach', label: 'Beauty Peach', emoji: '🍑', accent: 'pink', typography: 'editorial', layout: 'boutique' },
     { id: 'market_purple', label: 'Market Purple', emoji: '🛍', accent: 'violet', typography: 'modern', layout: 'marketplace' },
   ]
 
