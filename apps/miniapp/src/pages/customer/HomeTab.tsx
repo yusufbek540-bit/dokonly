@@ -65,34 +65,37 @@ const PRESET_COPY: Record<PresetId, {
   heroText: string
   card: string
   radius: number
+  productTitle: string
 }> = {
   boutique: {
-    eyebrow: 'Новая витрина',
-    headline: 'Коллекция, которую удобно выбрать в Telegram',
+    eyebrow: 'Закрытая подборка',
+    headline: 'Новая коллекция в один аккуратный Telegram-магазин',
     cta: 'Смотреть коллекцию',
     section: 'Избранное',
     chip: 'Бутик',
-    bg: '#f8f4ed',
-    hero: 'linear-gradient(135deg, #191714 0%, #6f5a3f 48%, #efe3cd 100%)',
+    bg: '#f6f0e7',
+    hero: 'linear-gradient(135deg, #181410 0%, #5d4934 48%, #efe0c8 100%)',
     heroText: '#fff8ec',
     card: '#fffaf2',
     radius: 24,
+    productTitle: 'Редакционная подборка',
   },
   marketplace: {
-    eyebrow: 'Быстрый поиск',
+    eyebrow: 'Умный каталог',
     headline: 'Каталог, фильтры и товары в одном сценарии',
     cta: 'Открыть каталог',
     section: 'Популярное сейчас',
     chip: 'Маркетплейс',
-    bg: '#f5f8fb',
+    bg: '#f3f7fb',
     hero: 'linear-gradient(135deg, #0f172a 0%, #126e82 52%, #d7f7ff 100%)',
     heroText: '#ffffff',
     card: '#ffffff',
     radius: 18,
+    productTitle: 'Популярные товары',
   },
   food: {
-    eyebrow: 'Сегодня доступно',
-    headline: 'Заказы, доставка и быстрый повтор покупки',
+    eyebrow: 'Свежий заказ',
+    headline: 'Меню, доставка и повторные заказы без переписки',
     cta: 'Выбрать товары',
     section: 'Сегодня берут',
     chip: 'Доставка',
@@ -101,9 +104,10 @@ const PRESET_COPY: Record<PresetId, {
     heroText: '#fffaf2',
     card: '#fffdf8',
     radius: 22,
+    productTitle: 'Меню и товары',
   },
   minimal: {
-    eyebrow: 'Премиум витрина',
+    eyebrow: 'Чистая витрина',
     headline: 'Чистая подача для товаров с высоким доверием',
     cta: 'Посмотреть товары',
     section: 'Рекомендации',
@@ -113,6 +117,7 @@ const PRESET_COPY: Record<PresetId, {
     heroText: '#ffffff',
     card: '#ffffff',
     radius: 12,
+    productTitle: 'Выбранные позиции',
   },
 }
 
@@ -126,6 +131,20 @@ function imageOf(product: any) {
 
 function clampText(text: string, max = 62) {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text
+}
+
+function presetBorder(preset: PresetId) {
+  if (preset === 'minimal') return '1px solid rgba(17,17,17,0.12)'
+  if (preset === 'marketplace') return '1px solid rgba(2,132,199,0.12)'
+  if (preset === 'food') return '1px solid rgba(209,107,70,0.16)'
+  return '1px solid rgba(111,90,63,0.14)'
+}
+
+function presetShadow(preset: PresetId) {
+  if (preset === 'minimal') return '0 1px 0 rgba(17,17,17,0.06)'
+  if (preset === 'marketplace') return '0 18px 34px rgba(15, 44, 67, 0.10)'
+  if (preset === 'food') return '0 18px 34px rgba(117, 58, 34, 0.10)'
+  return '0 20px 40px rgba(63, 48, 31, 0.12)'
 }
 
 // ─── Shared sub-components ─────────────────────────────────────────────────
@@ -1025,14 +1044,14 @@ function PresetProductCard({
       style={{
         minWidth: featured ? 220 : undefined,
         textAlign: 'left',
-        border: preset === 'minimal' ? '1px solid rgba(17,17,17,0.10)' : '1px solid rgba(15,23,42,0.08)',
+        border: presetBorder(preset),
         borderRadius: copy.radius,
         background: copy.card,
         overflow: 'hidden',
-        boxShadow: preset === 'minimal' ? 'none' : '0 14px 34px rgba(15,23,42,0.08)',
+        boxShadow: presetShadow(preset),
       }}
     >
-      <div style={{ position: 'relative', aspectRatio: featured ? '4/3' : '1/1', background: 'rgba(15,23,42,0.04)' }}>
+      <div style={{ position: 'relative', aspectRatio: featured ? '4/3' : preset === 'minimal' ? '16/10' : '1/1.08', background: 'rgba(15,23,42,0.04)' }}>
         {img ? (
           <img src={img} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
         ) : (
@@ -1064,12 +1083,24 @@ function PresetProductCard({
           </svg>
         </button>
       </div>
-      <div style={{ padding: featured ? 14 : 12 }}>
+      <div style={{ padding: featured ? 15 : 13 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
           <div style={{ minWidth: 0 }}>
+            {categoryName(p) && (
+              <div style={{
+                fontSize: 9,
+                fontWeight: 900,
+                letterSpacing: '0.10em',
+                textTransform: 'uppercase',
+                color: preset === 'minimal' ? '#71717a' : 'var(--accent)',
+                marginBottom: 5,
+              }}>
+                {categoryName(p)}
+              </div>
+            )}
             <div style={{
               fontSize: featured ? 15 : 13,
-              fontWeight: 760,
+              fontWeight: 820,
               color: '#111827',
               lineHeight: 1.25,
               minHeight: featured ? 38 : 33,
@@ -1094,7 +1125,7 @@ function PresetProductCard({
               style={{
                 width: 34, height: 34, borderRadius: preset === 'minimal' ? 999 : 11,
                 flexShrink: 0,
-                background: justAdded === p.id ? 'var(--accent)' : '#111827',
+                background: justAdded === p.id ? 'var(--accent)' : preset === 'boutique' ? '#1d1712' : '#111827',
                 color: 'white',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transform: justAdded === p.id ? 'scale(0.92)' : 'scale(1)',
@@ -1135,66 +1166,92 @@ function PresetStorefront({
   const copy = PRESET_COPY[preset]
   const featured = activeProducts.filter((p: any) => p.is_featured).concat(activeProducts).filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i)
   const heroProduct = featured[0] ?? activeProducts[0]
-  const heroImage = heroProduct ? imageOf(heroProduct) : shop.cover_url
+  const heroImage = shop.cover_url ?? (heroProduct ? imageOf(heroProduct) : null)
   const storyItems = stories.filter((s: any) => s.kind !== 'banner' && s.is_active !== false).slice(0, 8)
   const banner = stories.find((s: any) => s.kind === 'banner' && s.is_active !== false)
   const gridCols = preset === 'marketplace' ? '1fr 1fr' : preset === 'minimal' ? '1fr' : '1fr 1fr'
+  const heroStats = [
+    uniqueCats.length ? `${uniqueCats.length} категории` : null,
+    activeProducts.length ? `${activeProducts.length} товаров` : null,
+    shopStats?.avg_rating ? `★ ${shopStats.avg_rating}` : null,
+  ].filter(Boolean)
 
   return (
     <div className="screen-scroll" style={{ flex: 1, paddingBottom: 24, background: copy.bg }}>
-      <div style={{ padding: '14px 16px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ padding: '16px 18px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
-          width: 38, height: 38, borderRadius: preset === 'minimal' ? 999 : 14,
-          background: '#fff', border: '1px solid rgba(15,23,42,0.08)',
+          width: 42, height: 42, borderRadius: preset === 'minimal' ? 999 : 16,
+          background: '#fff', border: presetBorder(preset),
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          overflow: 'hidden', boxShadow: '0 10px 24px rgba(15,23,42,0.08)',
+          overflow: 'hidden', boxShadow: presetShadow(preset),
         }}>
           {shop.logo_url ? <img src={shop.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontWeight: 900, color: 'var(--accent)' }}>{shop.name.slice(0, 1)}</span>}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 850, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{shop.name}</div>
-          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>{copy.chip}</div>
+          <div style={{ fontSize: 15, fontWeight: 900, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.01em' }}>{shop.name}</div>
+          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>{copy.chip}{heroStats[0] ? ` · ${heroStats[0]}` : ''}</div>
         </div>
         <button onClick={() => onShowCatalog()} style={{
-          width: 40, height: 40, borderRadius: 999, background: 'rgba(255,255,255,0.78)',
-          border: '1px solid rgba(15,23,42,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: 42, height: 42, borderRadius: 999, background: 'rgba(255,255,255,0.86)',
+          border: presetBorder(preset), display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 10px 24px rgba(15,23,42,0.08)',
         }}>
           <Icon name="search" size={18} color="#111827" />
         </button>
       </div>
 
-      <div style={{ padding: '14px 16px 0' }}>
+      <div style={{ padding: '14px 18px 0' }}>
         <button
           onClick={() => onShowCatalog()}
           style={{
             width: '100%',
-            minHeight: preset === 'marketplace' ? 178 : 218,
+            minHeight: preset === 'marketplace' ? 202 : preset === 'minimal' ? 236 : 252,
             position: 'relative',
             overflow: 'hidden',
             border: 'none',
-            borderRadius: preset === 'minimal' ? 20 : 28,
+            borderRadius: preset === 'minimal' ? 10 : preset === 'boutique' ? 34 : 28,
             background: copy.hero,
             textAlign: 'left',
-            boxShadow: preset === 'minimal' ? 'none' : '0 24px 50px rgba(15,23,42,0.18)',
+            boxShadow: preset === 'minimal' ? '0 1px 0 rgba(17,17,17,0.12)' : '0 30px 60px rgba(15,23,42,0.20)',
           }}
         >
           {heroImage && (
             <img src={heroImage} alt="" style={{
               position: 'absolute', inset: 0, width: '100%', height: '100%',
-              objectFit: 'cover', opacity: preset === 'minimal' ? 0.34 : 0.46,
+              objectFit: 'cover',
+              opacity: preset === 'minimal' ? 0.42 : preset === 'marketplace' ? 0.36 : 0.58,
+              filter: preset === 'boutique' ? 'saturate(0.92) contrast(1.02)' : 'saturate(0.98)',
             }} />
           )}
-          <div style={{ position: 'absolute', inset: 0, background: preset === 'marketplace' ? 'linear-gradient(90deg, rgba(15,23,42,0.92), rgba(15,23,42,0.28))' : 'linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.58))' }} />
-          <div style={{ position: 'relative', padding: preset === 'marketplace' ? 20 : 22, minHeight: preset === 'marketplace' ? 178 : 218, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: preset === 'marketplace'
+              ? 'linear-gradient(90deg, rgba(15,23,42,0.94), rgba(15,23,42,0.30) 62%, rgba(255,255,255,0.10))'
+              : preset === 'minimal'
+                ? 'linear-gradient(180deg, rgba(17,17,17,0.18), rgba(17,17,17,0.76))'
+                : 'linear-gradient(180deg, rgba(0,0,0,0.04), rgba(0,0,0,0.72))',
+          }} />
+          {preset === 'boutique' && (
+            <div style={{ position: 'absolute', right: -28, top: 18, width: 126, height: 126, borderRadius: 999, border: '1px solid rgba(255,255,255,0.32)' }} />
+          )}
+          <div style={{ position: 'relative', padding: preset === 'marketplace' ? 22 : 24, minHeight: preset === 'marketplace' ? 202 : preset === 'minimal' ? 236 : 252, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
-              <div style={{ display: 'inline-flex', padding: '6px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.18)', color: copy.heroText, fontSize: 11, fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <div style={{ display: 'inline-flex', padding: '6px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.18)', color: copy.heroText, fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em', backdropFilter: 'blur(12px)' }}>
                 {copy.eyebrow}
               </div>
-              <div style={{ maxWidth: preset === 'marketplace' ? '82%' : '92%', marginTop: 14, fontSize: preset === 'minimal' ? 28 : 25, fontWeight: 900, lineHeight: 1.06, color: copy.heroText, letterSpacing: '-0.03em' }}>
+              <div style={{ maxWidth: preset === 'marketplace' ? '82%' : '94%', marginTop: 14, fontSize: preset === 'minimal' ? 31 : preset === 'boutique' ? 30 : 27, fontWeight: 950, lineHeight: 1.02, color: copy.heroText, letterSpacing: '-0.045em' }}>
                 {copy.headline}
               </div>
+              {heroStats.length > 0 && (
+                <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+                  {heroStats.map((stat) => (
+                    <span key={stat} style={{ padding: '5px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.14)', color: 'rgba(255,255,255,0.88)', fontSize: 11, fontWeight: 800, backdropFilter: 'blur(12px)' }}>{stat}</span>
+                  ))}
+                </div>
+              )}
             </div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, alignSelf: 'flex-start', padding: '10px 13px', borderRadius: 999, background: '#ffffff', color: '#111827', fontSize: 13, fontWeight: 850 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, alignSelf: 'flex-start', padding: '11px 14px', borderRadius: 999, background: '#ffffff', color: '#111827', fontSize: 13, fontWeight: 900, boxShadow: '0 14px 30px rgba(0,0,0,0.18)' }}>
               {copy.cta}
               <Icon name="chevronRight" size={14} color="#111827" />
             </div>
@@ -1222,10 +1279,10 @@ function PresetStorefront({
 
       {uniqueCats.length > 0 && (
         <div style={{
-          padding: '16px 16px 0',
+          padding: '18px 18px 0',
           display: preset === 'marketplace' ? 'grid' : 'flex',
           gridTemplateColumns: '1fr 1fr',
-          gap: 9,
+          gap: 10,
           overflowX: preset === 'marketplace' ? undefined : 'auto',
           scrollbarWidth: 'none',
         }}>
@@ -1235,17 +1292,17 @@ function PresetStorefront({
               onClick={() => onShowCatalog(c)}
               style={{
                 flexShrink: 0,
-                minWidth: preset === 'marketplace' ? undefined : 118,
-                minHeight: preset === 'marketplace' ? 68 : 40,
-                borderRadius: preset === 'minimal' ? 999 : 16,
-                border: '1px solid rgba(15,23,42,0.08)',
-                background: preset === 'marketplace' ? '#ffffff' : 'rgba(255,255,255,0.76)',
-                padding: preset === 'marketplace' ? '10px 12px' : '0 14px',
+                minWidth: preset === 'marketplace' ? undefined : 126,
+                minHeight: preset === 'marketplace' ? 78 : 44,
+                borderRadius: preset === 'minimal' ? 999 : preset === 'boutique' ? 18 : 16,
+                border: presetBorder(preset),
+                background: preset === 'marketplace' ? '#ffffff' : 'rgba(255,255,255,0.82)',
+                padding: preset === 'marketplace' ? '12px 13px' : '0 15px',
                 textAlign: preset === 'marketplace' ? 'left' : 'center',
-                boxShadow: preset === 'marketplace' ? '0 12px 24px rgba(15,23,42,0.06)' : 'none',
+                boxShadow: preset === 'marketplace' ? '0 12px 24px rgba(15,23,42,0.06)' : '0 8px 18px rgba(15,23,42,0.04)',
               }}
             >
-              <div style={{ fontSize: 13, fontWeight: 850, color: '#111827' }}>{c}</div>
+              <div style={{ fontSize: 13, fontWeight: 900, color: '#111827' }}>{c}</div>
               <div style={{ marginTop: preset === 'marketplace' ? 5 : 0, fontSize: 11, color: '#6b7280' }}>{catCounts[c]} товаров</div>
             </button>
           ))}
@@ -1253,17 +1310,23 @@ function PresetStorefront({
       )}
 
       {banner && (
-        <div style={{ padding: '16px 16px 0' }}>
+        <div style={{ padding: '18px 18px 0' }}>
           <button onClick={() => banner.cta_url && window.open(banner.cta_url, '_blank')} style={{
-            width: '100%', minHeight: 86, borderRadius: copy.radius, border: '1px solid rgba(15,23,42,0.08)',
-            background: preset === 'food' ? '#fff0d8' : '#ffffff', textAlign: 'left', padding: 15,
+            width: '100%', minHeight: 92, borderRadius: preset === 'minimal' ? 12 : copy.radius, border: presetBorder(preset),
+            background: preset === 'food' ? '#fff0d8' : preset === 'boutique' ? 'linear-gradient(135deg, #fffaf2 0%, #efe0c8 100%)' : '#ffffff',
+            textAlign: 'left',
+            padding: 16,
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            boxShadow: presetShadow(preset),
           }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Акция</div>
-              <div style={{ marginTop: 6, fontSize: 16, lineHeight: 1.2, fontWeight: 850, color: '#111827' }}>{banner.title || banner.caption}</div>
+              <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Акция магазина</div>
+              <div style={{ marginTop: 7, fontSize: 17, lineHeight: 1.15, fontWeight: 900, color: '#111827', letterSpacing: '-0.015em' }}>{banner.title || banner.caption}</div>
+              {banner.caption && banner.title && (
+                <div style={{ marginTop: 4, fontSize: 12, color: '#6b7280', lineHeight: 1.3 }}>{banner.caption}</div>
+              )}
             </div>
-            <div style={{ width: 42, height: 42, borderRadius: 999, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 999, background: preset === 'boutique' ? '#1d1712' : 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Icon name="chevronRight" size={18} color="white" />
             </div>
           </button>
@@ -1271,11 +1334,11 @@ function PresetStorefront({
       )}
 
       {activeProducts.length > 0 ? (
-        <div style={{ padding: '22px 16px 0' }}>
+        <div style={{ padding: '24px 18px 0' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
             <div>
               <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.10em' }}>{copy.section}</div>
-              <h2 style={{ margin: '5px 0 0', fontSize: 21, lineHeight: 1.1, letterSpacing: '-0.02em', color: '#111827' }}>Товары магазина</h2>
+              <h2 style={{ margin: '5px 0 0', fontSize: 22, lineHeight: 1.05, letterSpacing: '-0.035em', color: '#111827' }}>{copy.productTitle}</h2>
             </div>
             <button onClick={() => onShowCatalog()} style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 800, whiteSpace: 'nowrap' }}>Все</button>
           </div>
