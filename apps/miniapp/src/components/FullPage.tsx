@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { useSafeTop } from '@/hooks/useTelegram'
 import { Icon } from '@/components/Icon'
 
 interface FullPageProps {
@@ -10,8 +9,6 @@ interface FullPageProps {
 }
 
 export function FullPage({ onClose, title, children, bottomInset = 'calc(88px + env(safe-area-inset-bottom))' }: FullPageProps) {
-  const safeTop = useSafeTop()
-
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -23,7 +20,6 @@ export function FullPage({ onClose, title, children, bottomInset = 'calc(88px + 
       style={{
         position: 'fixed', inset: 0, zIndex: 50,
         background: 'var(--bg)',
-        paddingTop: safeTop,
         display: 'flex', flexDirection: 'column',
         animation: 'slideUpFull 0.25s cubic-bezier(0.16,1,0.3,1)',
       }}
