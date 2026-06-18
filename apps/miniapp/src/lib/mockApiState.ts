@@ -118,10 +118,10 @@ export function applyDemoSettingsPatch(shop: DemoShop, patch: Record<string, any
 
 export function createDemoCategories() {
   return [
-    { id: 'cat-1', tenant_id: tenantId, name: 'Одежда', sort_order: 1 },
-    { id: 'cat-2', tenant_id: tenantId, name: 'Аксессуары', sort_order: 2 },
-    { id: 'cat-3', tenant_id: tenantId, name: 'Уход', sort_order: 3 },
-    { id: 'cat-4', tenant_id: tenantId, name: 'Подарки', sort_order: 4 },
+    { id: 'cat-1', tenant_id: tenantId, name: 'Одежда', sort_order: 1, image_url: 'https://images.unsplash.com/photo-1485230895905-ec40ba36b9bc?auto=format&fit=crop&w=300&q=80' },
+    { id: 'cat-2', tenant_id: tenantId, name: 'Аксессуары', sort_order: 2, image_url: 'https://images.unsplash.com/photo-1594223274512-ad4803739b7c?auto=format&fit=crop&w=300&q=80' },
+    { id: 'cat-3', tenant_id: tenantId, name: 'Уход', sort_order: 3, image_url: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=300&q=80' },
+    { id: 'cat-4', tenant_id: tenantId, name: 'Подарки', sort_order: 4, image_url: 'https://images.unsplash.com/photo-1513201099705-a9746e1e201f?auto=format&fit=crop&w=300&q=80' },
   ]
 }
 

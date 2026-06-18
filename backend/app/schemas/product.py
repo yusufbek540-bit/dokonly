@@ -7,6 +7,7 @@ from typing import Optional
 class CategoryCreate(BaseModel):
     name: str
     slug: str
+    image_url: Optional[str] = None
     sort_order: int = 0
 
 
@@ -14,6 +15,7 @@ class CategoryResponse(BaseModel):
     id: UUID
     name: str
     slug: str
+    image_url: Optional[str] = None
     sort_order: int
     model_config = {"from_attributes": True}
 

@@ -173,14 +173,14 @@ async def get_shop_role(
 async def get_shop_products(tenant_id: str, db: AsyncSession = Depends(get_db)):
     from app.models.product import Category
     result = await db.execute(
-        select(Product, Category.name.label("category_name"))
+        select(Product, Category.name.label("category_name"), Category.image_url.label("category_image_url"))
         .outerjoin(Category, Product.category_id == Category.id)
         .where(Product.tenant_id == tenant_id, Product.is_active == True)  # noqa: E712
         .order_by(Product.sort_order)
     )
     rows = result.all()
     out = []
-    for product, category_name in rows:
+    for product, category_name, category_image_url in rows:
         meta = product.meta or {}
         d = {
             "id": str(product.id),
@@ -196,6 +196,7 @@ async def get_shop_products(tenant_id: str, db: AsyncSession = Depends(get_db)):
             "sort_order": product.sort_order,
             "category_id": str(product.category_id) if product.category_id else None,
             "category": category_name,
+            "category_image_url": category_image_url,
             "sizes": meta.get("sizes", []),
             "colors": meta.get("colors", []),
             "is_featured": meta.get("is_featured", False),

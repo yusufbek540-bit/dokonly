@@ -27,6 +27,7 @@ from app.models.mailing import MassMailing
 from app.schemas.tenant import TenantResponse, normalize_tenant_slug
 from app.schemas.product import ProductCreate, ProductUpdate, ProductResponse
 from app.schemas.order import OrderStatusUpdate
+from app.services.category_payload import category_payload
 from app.services.tenant_settings import apply_tenant_settings_update
 
 router = APIRouter(prefix="/miniapp", tags=["miniapp"])
@@ -292,7 +293,7 @@ async def seller_list_categories(
     result = await db.execute(
         select(Category).where(Category.tenant_id == tenant.id).order_by(Category.sort_order)
     )
-    return result.scalars().all()
+    return [category_payload(category) for category in result.scalars().all()]
 
 
 @router.post("/categories", status_code=201)
@@ -327,12 +328,46 @@ async def seller_create_category(
         tenant_id=tenant.id,
         name=name,
         slug=slug,
+        image_url=(body.get("image_url") or None),
         sort_order=max_order + 1,
     )
     db.add(category)
     await db.commit()
     await db.refresh(category)
-    return category
+    return category_payload(category)
+
+
+@router.patch("/categories/{category_id}")
+async def seller_update_category(
+    category_id: UUID,
+    body: dict,
+    user: dict = Depends(get_tg_user),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _require_tenant(user, db)
+    result = await db.execute(
+        select(Category).where(Category.id == category_id, Category.tenant_id == tenant.id)
+    )
+    category = result.scalar_one_or_none()
+    if not category:
+        raise HTTPException(404, "Category not found")
+
+    if "name" in body:
+        name = str(body.get("name") or "").strip()
+        if not name:
+            raise HTTPException(400, "Category name is required")
+        category.name = name
+
+    if "image_url" in body:
+        image_url = str(body.get("image_url") or "").strip()
+        category.image_url = image_url or None
+
+    if "sort_order" in body and body.get("sort_order") is not None:
+        category.sort_order = int(body["sort_order"])
+
+    await db.commit()
+    await db.refresh(category)
+    return category_payload(category)
 
 
 @router.delete("/categories/{category_id}", status_code=204)
@@ -363,14 +398,14 @@ async def seller_list_products(
 ):
     tenant = await _require_tenant(user, db)
     result = await db.execute(
-        select(Product, Category.name.label("category_name"))
+        select(Product, Category.name.label("category_name"), Category.image_url.label("category_image_url"))
         .outerjoin(Category, Product.category_id == Category.id)
         .where(Product.tenant_id == tenant.id)
         .order_by(Product.sort_order)
     )
     rows = result.all()
     out = []
-    for p, category_name in rows:
+    for p, category_name, category_image_url in rows:
         meta = p.meta or {}
         out.append({
             "id": str(p.id),
@@ -387,6 +422,7 @@ async def seller_list_products(
             "sort_order": p.sort_order,
             "category_id": str(p.category_id) if p.category_id else None,
             "category": category_name,
+            "category_image_url": category_image_url,
             "sizes": meta.get("sizes", []),
             "colors": meta.get("colors", []),
             "is_featured": meta.get("is_featured", False),

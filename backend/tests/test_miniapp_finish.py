@@ -153,3 +153,25 @@ def test_prepared_product_share_result_has_clean_button_without_raw_link():
         "text": "Открыть в IDESERVE",
         "url": "https://t.me/ideserve_shop_bot?startapp=product_p_1",
     }
+
+
+def test_category_payload_includes_editable_image_url():
+    from app.services.category_payload import category_payload
+
+    category = SimpleNamespace(
+        id="cat-1",
+        tenant_id="tenant-1",
+        name="Одежда",
+        slug="odezhda",
+        sort_order=3,
+        image_url="https://cdn.example/categories/fashion.jpg",
+    )
+
+    assert category_payload(category) == {
+        "id": "cat-1",
+        "tenant_id": "tenant-1",
+        "name": "Одежда",
+        "slug": "odezhda",
+        "sort_order": 3,
+        "image_url": "https://cdn.example/categories/fashion.jpg",
+    }

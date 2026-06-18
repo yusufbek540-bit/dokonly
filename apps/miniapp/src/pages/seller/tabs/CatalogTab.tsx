@@ -691,36 +691,138 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
 function CategoriesView({ tenant }: { tenant: any }) {
   const qc = useQueryClient()
   const [newName, setNewName] = useState('')
+  const [newImageUrl, setNewImageUrl] = useState('')
+  const [editing, setEditing] = useState<any | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editImageUrl, setEditImageUrl] = useState('')
+  const [uploadingTarget, setUploadingTarget] = useState<'new' | 'edit' | null>(null)
+  const createImageRef = useRef<HTMLInputElement>(null)
+  const editImageRef = useRef<HTMLInputElement>(null)
 
   const { data: categories = [], isLoading } = useQuery({
     queryKey: ['seller-categories'],
     queryFn: api.seller.categories,
   })
 
+  const refreshCategories = () => {
+    qc.invalidateQueries({ queryKey: ['seller-categories'] })
+    qc.invalidateQueries({ queryKey: ['seller-products'] })
+  }
+
   const createMutation = useMutation({
-    mutationFn: (name: string) => api.seller.createCategory({ name }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['seller-categories'] }); setNewName('') },
+    mutationFn: (payload: { name: string; image_url?: string | null }) => api.seller.createCategory(payload),
+    onSuccess: () => {
+      refreshCategories()
+      setNewName('')
+      setNewImageUrl('')
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: { name: string; image_url?: string | null } }) =>
+      api.seller.updateCategory(id, payload),
+    onSuccess: () => {
+      refreshCategories()
+      setEditing(null)
+      setEditName('')
+      setEditImageUrl('')
+    },
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.seller.deleteCategory(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['seller-categories'] }),
+    onSuccess: () => refreshCategories(),
   })
+
+  const uploadCategoryImage = async (file: File, target: 'new' | 'edit') => {
+    setUploadingTarget(target)
+    try {
+      const result = await api.seller.uploadFile(file)
+      if (target === 'new') setNewImageUrl(result.url)
+      else setEditImageUrl(result.url)
+    } finally {
+      setUploadingTarget(null)
+    }
+  }
+
+  const openEdit = (cat: any) => {
+    setEditing(cat)
+    setEditName(cat.name ?? '')
+    setEditImageUrl(cat.image_url ?? '')
+  }
+
+  const saveEdit = () => {
+    if (!editing || !editName.trim()) return
+    updateMutation.mutate({
+      id: editing.id,
+      payload: { name: editName.trim(), image_url: editImageUrl || null },
+    })
+  }
+
+  const createCategory = () => {
+    if (!newName.trim()) return
+    createMutation.mutate({ name: newName.trim(), image_url: newImageUrl || null })
+  }
+
+  const imageButton = (
+    imageUrl: string,
+    onClick: () => void,
+    uploading: boolean,
+    size = 54,
+  ) => (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: 14,
+        overflow: 'hidden',
+        background: imageUrl ? 'var(--subtle)' : 'var(--card)',
+        border: '1px dashed var(--border)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        position: 'relative',
+      }}
+    >
+      {imageUrl ? (
+        <img src={imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : uploading ? (
+        <div style={{ width: 20, height: 20, borderRadius: 999, border: '2px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+      ) : (
+        <Icon name="plus" size={18} color="var(--muted)" />
+      )}
+    </button>
+  )
 
   return (
     <div>
       {/* Add category input */}
-      <div style={{ display:'flex', gap:8, marginBottom:16 }}>
+      <div style={{ display:'flex', gap:10, marginBottom:16, alignItems: 'center' }}>
+        {imageButton(newImageUrl, () => createImageRef.current?.click(), uploadingTarget === 'new')}
+        <input
+          ref={createImageRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            e.target.value = ''
+            if (file) uploadCategoryImage(file, 'new')
+          }}
+        />
         <input
           value={newName}
           onChange={e => setNewName(e.target.value)}
           placeholder="Название категории"
-          onKeyDown={e => e.key === 'Enter' && newName.trim() && createMutation.mutate(newName.trim())}
+          onKeyDown={e => e.key === 'Enter' && createCategory()}
           style={{ flex:1, height:44, padding:'0 12px', borderRadius:10, background:'var(--card)', border:'1px solid var(--border)', fontSize:14, color:'var(--ink)', outline:'none' }}
         />
         <button
           disabled={!newName.trim() || createMutation.isPending}
-          onClick={() => newName.trim() && createMutation.mutate(newName.trim())}
+          onClick={createCategory}
           style={{ width:44, height:44, borderRadius:10, background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}
         >
           <Icon name="plus" size={20} color="white"/>
@@ -746,18 +848,85 @@ function CategoriesView({ tenant }: { tenant: any }) {
               padding:'13px 16px', background:'var(--card)',
               borderBottom: i < categories.length - 1 ? '1px solid var(--border)' : 'none',
             }}>
-              <div style={{ width:34, height:34, borderRadius:8, background:'var(--subtle)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:16 }}>
-                📋
+              <div style={{ width:42, height:42, borderRadius:12, background:'var(--subtle)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:16, overflow: 'hidden' }}>
+                {cat.image_url ? <img src={cat.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '📋'}
               </div>
               <span style={{ flex:1, fontSize:14, fontWeight:500, color:'var(--ink)' }}>{cat.name}</span>
               <button
+                onClick={() => openEdit(cat)}
+                style={{ width:32, height:32, borderRadius:8, background:'var(--subtle)', display:'flex', alignItems:'center', justifyContent:'center' }}
+                aria-label="Редактировать категорию"
+              >
+                <Icon name="pen" size={14} color="var(--muted-strong)"/>
+              </button>
+              <button
                 onClick={() => tgConfirm(`Удалить "${cat.name}"?`, () => deleteMutation.mutate(cat.id))}
                 style={{ width:32, height:32, borderRadius:8, background:'var(--danger-soft)', display:'flex', alignItems:'center', justifyContent:'center' }}
+                aria-label="Удалить категорию"
               >
                 <Icon name="x" size={14} color="var(--danger)"/>
               </button>
             </div>
           ))}
+        </div>
+      )}
+      {editing && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 120, background: 'rgba(15,23,42,0.32)', display: 'flex', alignItems: 'flex-end' }} onClick={() => setEditing(null)}>
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '100%',
+              borderRadius: '22px 22px 0 0',
+              background: 'var(--bg)',
+              padding: '18px 16px calc(18px + env(safe-area-inset-bottom))',
+              boxShadow: '0 -18px 50px rgba(15,23,42,0.18)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)' }}>Редактировать категорию</div>
+              <button onClick={() => setEditing(null)} style={{ width: 34, height: 34, borderRadius: 999, background: 'var(--subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name="x" size={16} />
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
+              {imageButton(editImageUrl, () => editImageRef.current?.click(), uploadingTarget === 'edit', 68)}
+              <input
+                ref={editImageRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ''
+                  if (file) uploadCategoryImage(file, 'edit')
+                }}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 650, color: 'var(--muted)', marginBottom: 6 }}>Фото категории</div>
+                <button onClick={() => editImageRef.current?.click()} style={{ height: 36, padding: '0 12px', borderRadius: 10, background: 'var(--subtle)', color: 'var(--ink)', fontSize: 13, fontWeight: 650 }}>
+                  Загрузить фото
+                </button>
+                {editImageUrl && (
+                  <button onClick={() => setEditImageUrl('')} style={{ marginLeft: 8, height: 36, padding: '0 10px', borderRadius: 10, background: 'var(--danger-soft)', color: 'var(--danger)', fontSize: 13, fontWeight: 650 }}>
+                    Убрать
+                  </button>
+                )}
+              </div>
+            </div>
+            <input
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              placeholder="Название категории"
+              style={{ width: '100%', height: 48, padding: '0 14px', borderRadius: 12, background: 'var(--card)', border: '1px solid var(--border)', fontSize: 15, color: 'var(--ink)', outline: 'none', marginBottom: 14 }}
+            />
+            <button
+              disabled={!editName.trim() || updateMutation.isPending}
+              onClick={saveEdit}
+              style={{ width: '100%', height: 52, borderRadius: 14, background: 'var(--accent)', color: 'white', fontSize: 16, fontWeight: 800, opacity: !editName.trim() || updateMutation.isPending ? 0.6 : 1 }}
+            >
+              {updateMutation.isPending ? 'Сохраняю...' : 'Сохранить'}
+            </button>
+          </div>
         </div>
       )}
     </div>

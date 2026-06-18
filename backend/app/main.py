@@ -134,6 +134,10 @@ MIGRATIONS = [
         )
     WHERE slug = 'test'
     """,
+    # 006 - category media
+    """
+    ALTER TABLE categories ADD COLUMN IF NOT EXISTS image_url TEXT;
+    """,
 ]
 
 

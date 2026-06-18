@@ -118,6 +118,7 @@ function normalizeProduct(input: any, existing?: any) {
     compare_at_price: input.compare_at_price ?? input.compare_price ?? existing?.compare_at_price ?? null,
     category_id: input.category_id ?? category?.id ?? existing?.category_id ?? null,
     category_name: input.category_name ?? input.category ?? category?.name ?? existing?.category_name ?? 'Без категории',
+    category_image_url: category?.image_url ?? existing?.category_image_url ?? null,
     images: input.images ?? existing?.images ?? [],
     is_active: input.is_active ?? existing?.is_active ?? true,
     stock: Number(input.stock ?? existing?.stock ?? 0),
@@ -367,15 +368,47 @@ export async function mockRequest<T>(path: string, init?: RequestInit): Promise<
   }
   if (path === '/api/v1/miniapp/categories') {
     if (method === 'POST') {
-      const created = { id: `cat-${Date.now()}`, tenant_id: tenantId, sort_order: categories.length + 1, ...body(init) }
+      const payload = body(init)
+      const created = {
+        id: `cat-${Date.now()}`,
+        tenant_id: tenantId,
+        slug: String(payload.name ?? `category-${Date.now()}`).toLowerCase().replace(/[^a-z0-9]+/g, '-') || `category-${Date.now()}`,
+        sort_order: categories.length + 1,
+        image_url: payload.image_url ?? null,
+        ...payload,
+      }
       writeDemoCategories([created, ...categories])
       return ok(created) as T
     }
     return ok(categories) as T
   }
+  if (pathname.startsWith('/api/v1/miniapp/categories/') && method === 'PATCH') {
+    const id = idFromPath(pathname, '/api/v1/miniapp/categories/')
+    const payload = body(init)
+    let updated: any = null
+    const nextCategories = categories.map((cat: any) => {
+      if (cat.id !== id) return cat
+      updated = { ...cat, ...payload, image_url: payload.image_url ?? cat.image_url ?? null }
+      return updated
+    })
+    writeDemoCategories(nextCategories)
+    if (updated) {
+      writeDemoProducts(products.map((product: any) => (
+        product.category_id === id
+          ? { ...product, category_name: updated.name, category: updated.name, category_image_url: updated.image_url ?? null }
+          : product
+      )))
+    }
+    return ok(updated ?? { ok: false }) as T
+  }
   if (pathname.startsWith('/api/v1/miniapp/categories/') && method === 'DELETE') {
     const id = idFromPath(pathname, '/api/v1/miniapp/categories/')
     writeDemoCategories(categories.filter((cat: any) => cat.id !== id))
+    writeDemoProducts(products.map((product: any) => (
+      product.category_id === id
+        ? { ...product, category_id: null, category_name: 'Без категории', category: 'Без категории', category_image_url: null }
+        : product
+    )))
     return ok({ ok: true }) as T
   }
   if (path === '/api/v1/miniapp/orders/manual' && method === 'POST') {

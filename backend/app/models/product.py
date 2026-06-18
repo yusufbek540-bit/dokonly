@@ -21,6 +21,7 @@ class Category(Base, TimestampMixin):
     )
     name = Column(String(255), nullable=False)
     slug = Column(String(100), nullable=False)
+    image_url = Column(Text)
     sort_order = Column(Integer, nullable=False, default=0)
 
 

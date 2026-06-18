@@ -19,7 +19,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
   })
   if (!res.ok) throw new Error(await res.text())
-  return res.json()
+  if (res.status === 204) return undefined as T
+  const text = await res.text()
+  if (!text) return undefined as T
+  return JSON.parse(text) as T
 }
 
 async function getWishlistWithFallback(tenantId: string): Promise<string[]> {
@@ -240,6 +243,8 @@ export const api = {
     categories: () => request<any[]>('/api/v1/miniapp/categories'),
     createCategory: (body: object) =>
       request<any>('/api/v1/miniapp/categories', { method: 'POST', body: JSON.stringify(body) }),
+    updateCategory: (id: string, body: object) =>
+      request<any>(`/api/v1/miniapp/categories/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
     deleteCategory: (id: string) =>
       request<void>(`/api/v1/miniapp/categories/${id}`, { method: 'DELETE' }),
     promoCodes: () => request<any[]>('/api/v1/miniapp/promo-codes'),
