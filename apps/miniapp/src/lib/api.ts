@@ -1,4 +1,5 @@
 import { isMockApiEnabled, mockRequest, mockUpload } from './mockApi'
+import { mergeWishlist, readLocalWishlist, toggleLocalWishlist, writeLocalWishlist } from './wishlistStorage'
 
 const BASE = import.meta.env.VITE_API_URL ?? ''
 
@@ -19,6 +20,44 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   })
   if (!res.ok) throw new Error(await res.text())
   return res.json()
+}
+
+async function getWishlistWithFallback(tenantId: string): Promise<string[]> {
+  const local = readLocalWishlist(tenantId)
+  const initData = getInitData()
+  if (!initData && !isMockApiEnabled()) return local
+
+  try {
+    const remote = await request<string[]>(`/api/v1/shop/${tenantId}/wishlist`)
+    const merged = mergeWishlist(remote, local)
+    writeLocalWishlist(tenantId, merged)
+    return merged
+  } catch {
+    return local
+  }
+}
+
+async function toggleWishlistWithFallback(tenantId: string, productId: string): Promise<{ in_wishlist: boolean; product_id: string }> {
+  const localResult = toggleLocalWishlist(tenantId, productId)
+  const initData = getInitData()
+  if (!initData && !isMockApiEnabled()) {
+    return { in_wishlist: localResult.inWishlist, product_id: productId }
+  }
+
+  try {
+    const remote = await request<{ in_wishlist: boolean; product_id: string }>(
+      `/api/v1/shop/${tenantId}/wishlist/toggle`,
+      { method: 'POST', body: JSON.stringify({ product_id: productId }) },
+    )
+    const current = readLocalWishlist(tenantId)
+    const next = remote.in_wishlist
+      ? [productId, ...current.filter((id) => id !== productId)]
+      : current.filter((id) => id !== productId)
+    writeLocalWishlist(tenantId, next)
+    return remote
+  } catch {
+    return { in_wishlist: localResult.inWishlist, product_id: productId }
+  }
 }
 
 export const api = {
@@ -58,12 +97,9 @@ export const api = {
   checkChannelMembership: (tenantId: string) =>
     request<{ is_member: boolean }>(`/api/v1/shop/${tenantId}/check-channel-membership`),
   getWishlist: (tenantId: string) =>
-    request<string[]>(`/api/v1/shop/${tenantId}/wishlist`),
+    getWishlistWithFallback(tenantId),
   toggleWishlist: (tenantId: string, productId: string) =>
-    request<{ in_wishlist: boolean; product_id: string }>(
-      `/api/v1/shop/${tenantId}/wishlist/toggle`,
-      { method: 'POST', body: JSON.stringify({ product_id: productId }) },
-    ),
+    toggleWishlistWithFallback(tenantId, productId),
   getMyProfile: (tenantId: string) =>
     request<{
       first_name: string; last_name: string; username: string;

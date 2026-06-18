@@ -1209,10 +1209,9 @@ function PresetStorefront({
       <div style={{
         padding: '14px 18px 0',
         display: 'flex',
-        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 8,
+        gap: 10,
         textAlign: 'center',
       }}>
         <div style={{
@@ -1274,13 +1273,13 @@ function PresetStorefront({
           )}
         </div>
         {heroBanners.length > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginTop: 9 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 10, minHeight: 8 }}>
             {heroBanners.map((b: any, i: number) => (
               <div key={b.id ?? i} style={{
-                width: i === heroBannerIndex % heroBanners.length ? 18 : 6,
-                height: 6,
+                width: i === heroBannerIndex % heroBanners.length ? 24 : 8,
+                height: 5,
                 borderRadius: 999,
-                background: i === heroBannerIndex % heroBanners.length ? 'var(--accent)' : 'rgba(15,23,42,0.18)',
+                background: i === heroBannerIndex % heroBanners.length ? '#111827' : 'rgba(17,24,39,0.22)',
                 transition: 'width 0.2s ease, background 0.2s ease',
               }} />
             ))}
