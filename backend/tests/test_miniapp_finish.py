@@ -111,3 +111,18 @@ def test_public_shop_payload_exposes_saved_layout():
     assert payload["id"] == str(tenant_id)
     assert payload["layout"] == "marketplace"
     assert payload["settings"]["layout"] == "marketplace"
+
+
+def test_inline_product_share_copy_uses_bot_style_message_without_raw_link():
+    from app.bot.share import product_share_button_text, product_share_caption
+
+    product = SimpleNamespace(name="Рандомная Сумка")
+    tenant = SimpleNamespace(name="IDESERVE")
+
+    caption = product_share_caption(product, tenant, "5 000 000 сум")
+
+    assert "Смотри, что я нашла на IDESERVE" in caption
+    assert "<b>Рандомная Сумка</b>" in caption
+    assert "5 000 000 сум" in caption
+    assert "http" not in caption.lower()
+    assert product_share_button_text(tenant) == "Открыть в IDESERVE"

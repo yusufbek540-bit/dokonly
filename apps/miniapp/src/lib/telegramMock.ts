@@ -2,6 +2,10 @@ const DEFAULT_TEST_OWNER_ID = 'a414389d-a2c3-5c42-8486-095020e84b01'
 
 function noop() {}
 
+function showMockAlert(message: string) {
+  window.alert(message)
+}
+
 function getParam(name: string) {
   return new URLSearchParams(window.location.search).get(name)
 }
@@ -94,8 +98,16 @@ export function installTelegramMock() {
       offEvent,
       openLink: (url: string) => window.open(url, '_blank', 'noopener,noreferrer'),
       openTelegramLink: (url: string) => window.open(url, '_blank', 'noopener,noreferrer'),
-      switchInlineQuery: noop,
+      switchInlineQuery: (query: string) => {
+        showMockAlert(
+          `Mock Telegram: в настоящем Telegram откроется выбор чата, а бот отправит карточку товара с inline-кнопкой.\n\nInline query: ${query}`,
+        )
+      },
       shareToStory: noop,
+      showAlert: (message: string, callback?: () => void) => {
+        showMockAlert(message)
+        callback?.()
+      },
       showConfirm: (_message: string, callback?: (confirmed: boolean) => void) => callback?.(window.confirm(_message)),
       requestContact: (callback?: (ok: boolean, contact?: unknown) => void) => {
         callback?.(true, {

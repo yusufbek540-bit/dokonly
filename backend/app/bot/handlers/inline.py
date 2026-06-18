@@ -6,14 +6,13 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineQuery,
     InlineQueryResultArticle,
-    InlineQueryResultPhoto,
     InputTextMessageContent,
-    LinkPreviewOptions,
 )
 from sqlalchemy import select
 
 from app.core.database import AsyncSessionLocal
 from app.core.miniapp_urls import shop_miniapp_url
+from app.bot.share import product_share_button_text, product_share_caption
 from app.models.product import Product
 from app.models.tenant import Tenant
 
@@ -70,43 +69,21 @@ async def handle_product_inline_query(query: InlineQuery, tenant: Tenant | None)
         pct = round((1 - float(product.price) / float(product.compare_at_price)) * 100)
         discount_line = f" 🔥 -{pct}%"
 
-    caption = (
-        f"<b>{product.name}</b>{discount_line}\n\n"
-        f"💰 <b>{price_str}</b>\n\n"
-        f"🏪 {tenant.name}"
-    )
+    caption = product_share_caption(product, tenant, price_str, discount_line)
 
     open_btn = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="🛍 Открыть магазин", url=deep_link)
+        InlineKeyboardButton(text=product_share_button_text(tenant), url=deep_link)
     ]])
 
-    if product.images:
-        photo_url = product.images[0]
-        result_item = InlineQueryResultPhoto(
-            id=str(product.id),
-            photo_url=photo_url,
-            thumbnail_url=photo_url,
-            title=product.name,
-            description=f"{price_str} · {tenant.name}",
-            caption=caption,
+    result_item = InlineQueryResultArticle(
+        id=str(product.id),
+        title=product.name,
+        description=f"{price_str} · {tenant.name}",
+        input_message_content=InputTextMessageContent(
+            message_text=caption,
             parse_mode="HTML",
-            reply_markup=open_btn,
-        )
-    else:
-        result_item = InlineQueryResultArticle(
-            id=str(product.id),
-            title=product.name,
-            description=f"{price_str} · {tenant.name}",
-            input_message_content=InputTextMessageContent(
-                message_text=caption,
-                parse_mode="HTML",
-                link_preview_options=LinkPreviewOptions(
-                    url=deep_link,
-                    prefer_large_media=True,
-                    show_above_text=True,
-                ),
-            ),
-            reply_markup=open_btn,
-        )
+        ),
+        reply_markup=open_btn,
+    )
 
     await query.answer([result_item], cache_time=300, is_personal=True)

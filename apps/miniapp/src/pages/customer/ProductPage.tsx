@@ -153,15 +153,20 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
 
   const handleTelegramShare = () => {
     const tg = (window as any).Telegram?.WebApp
-    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(productUrl)}&text=${encodeURIComponent(product.name)}`
-    if (tg?.openTelegramLink) {
-      tg.openTelegramLink(shareUrl)
-    } else if (tg?.openLink) {
-      tg.openLink(shareUrl)
-    } else {
-      window.open(shareUrl, '_blank', 'noopener,noreferrer')
+    if (botUsername && typeof tg?.switchInlineQuery === 'function') {
+      try {
+        tg.switchInlineQuery(`${productId}`, ['users', 'groups', 'channels'])
+        setShowShare(false)
+        return
+      } catch {
+        // Fall through to a visible fallback below.
+      }
     }
-    setShowShare(false)
+    const message = 'Telegram не открыл выбор чата. Для кнопки без ссылки у бота должен быть включен Inline Mode.'
+    tg?.showAlert?.(message) ?? window.alert(message)
+    navigator.clipboard?.writeText(productUrl).catch(() => {})
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
   }
 
   const handleCopyLink = () => {
@@ -616,7 +621,7 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
               </div>
               <div style={{ flex: 1, textAlign: 'left' }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Отправить в Telegram</div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>Выберите чат и отправьте ссылку на товар</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>Сообщение от бота с кнопкой товара</div>
               </div>
             </button>
             {/* Copy link */}
