@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import type { CSSProperties } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Icon } from '@/components/Icon'
@@ -1255,6 +1255,7 @@ function PresetStorefront({
   const heroBanners = activeBanners.filter((s: any) => s.media_url || s.image_url)
   const announcements = activeBanners.filter((s: any) => !(s.media_url || s.image_url))
   const [heroBannerIndex, setHeroBannerIndex] = useState(0)
+  const heroSwipeStartX = useRef<number | null>(null)
   const activeHeroBanner = heroBanners.length ? heroBanners[heroBannerIndex % heroBanners.length] : null
   const heroImage = activeHeroBanner?.media_url || activeHeroBanner?.image_url || shop.cover_url || (heroProduct ? imageOf(heroProduct) : null)
   const heroTitle = clampText(activeHeroBanner?.title || activeHeroBanner?.caption || copy.headline, 82)
@@ -1274,35 +1275,28 @@ function PresetStorefront({
     openStoryTarget(item, onShowCatalog)
   }
 
+  function showHeroBanner(offset: number) {
+    if (heroBanners.length <= 1) return
+    setHeroBannerIndex((i) => (i + offset + heroBanners.length) % heroBanners.length)
+  }
+
   return (
     <div className="screen-scroll" style={{ flex: 1, paddingBottom: 24, background: copy.bg }}>
-      <div style={{
-        padding: '14px 18px 0',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 10,
-        textAlign: 'center',
-      }}>
-        <div style={{
-          width: 46, height: 46, borderRadius: preset === 'minimal' ? 999 : 16,
-          background: '#fff', border: presetBorder(preset),
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          overflow: 'hidden', boxShadow: presetShadow(preset),
-        }}>
-          {shop.logo_url ? <img src={shop.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontWeight: 900, color: 'var(--accent)' }}>{shop.name.slice(0, 1)}</span>}
-        </div>
-        <div style={{ maxWidth: '82%', minWidth: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 900, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.01em' }}>{shop.name}</div>
-        </div>
-      </div>
-
       <div style={{ padding: '0' }}>
         <div
+          onTouchStart={(event) => {
+            heroSwipeStartX.current = event.touches[0]?.clientX ?? null
+          }}
+          onTouchEnd={(event) => {
+            if (heroSwipeStartX.current === null || heroBanners.length <= 1) return
+            const deltaX = event.changedTouches[0].clientX - heroSwipeStartX.current
+            if (Math.abs(deltaX) > 42) showHeroBanner(deltaX < 0 ? 1 : -1)
+            heroSwipeStartX.current = null
+          }}
           style={{
             width: '100%',
-            height: 'clamp(300px, 48dvh, 390px)',
-            minHeight: 300,
+            height: 'clamp(230px, 38dvh, 310px)',
+            minHeight: 230,
             position: 'relative',
             overflow: 'hidden',
             border: 'none',
@@ -1310,6 +1304,7 @@ function PresetStorefront({
             background: copy.hero,
             textAlign: 'left',
             boxShadow: 'none',
+            touchAction: 'pan-y',
           }}
         >
           {heroImage && (
@@ -1321,20 +1316,20 @@ function PresetStorefront({
           )}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(3,7,18,0.70) 0%, rgba(3,7,18,0.30) 38%, rgba(3,7,18,0.02) 72%, transparent 100%)', pointerEvents: 'none' }} />
 
-          <div style={{ position: 'absolute', left: 20, right: 20, bottom: 42, zIndex: 3 }}>
+          <div style={{ position: 'absolute', left: 18, right: 18, bottom: 34, zIndex: 3 }}>
             <div style={{
-              maxWidth: 280,
-              fontSize: 'clamp(26px, 8.4vw, 40px)',
-              lineHeight: 1,
+              maxWidth: 240,
+              fontSize: 'clamp(18px, 5.4vw, 26px)',
+              lineHeight: 1.04,
               fontWeight: 950,
-              letterSpacing: '-0.035em',
+              letterSpacing: '-0.02em',
               color: 'white',
               textShadow: '0 2px 22px rgba(0,0,0,0.30)',
             }}>
               {heroTitle}
             </div>
             {heroCaption && (
-              <div style={{ marginTop: 14, maxWidth: 250, color: 'rgba(255,255,255,0.92)', fontSize: 17, lineHeight: 1.18, fontWeight: 650, textShadow: '0 2px 18px rgba(0,0,0,0.28)' }}>
+              <div style={{ marginTop: 8, maxWidth: 220, color: 'rgba(255,255,255,0.92)', fontSize: 12, lineHeight: 1.2, fontWeight: 650, textShadow: '0 2px 18px rgba(0,0,0,0.28)' }}>
                 {clampText(heroCaption, 72)}
               </div>
             )}
@@ -1343,19 +1338,19 @@ function PresetStorefront({
                 type="button"
                 onClick={() => activeHeroBanner ? openStoryTarget(activeHeroBanner, onShowCatalog) : onShowCatalog()}
                 style={{
-                  marginTop: 22,
-                  minHeight: 46,
-                  maxWidth: '92%',
+                  marginTop: 12,
+                  minHeight: 28,
+                  maxWidth: '68%',
                   borderRadius: 999,
-                  padding: '0 14px 0 18px',
+                  padding: '0 8px 0 11px',
                   background: 'rgba(255,255,255,0.94)',
                   color: '#111827',
-                  boxShadow: '0 16px 38px rgba(0,0,0,0.22)',
+                  boxShadow: '0 10px 24px rgba(0,0,0,0.18)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 13,
-                  fontSize: 14,
+                  gap: 7,
+                  fontSize: 10,
                   fontWeight: 820,
                   lineHeight: 1.15,
                   whiteSpace: 'normal',
@@ -1363,7 +1358,7 @@ function PresetStorefront({
                 }}
               >
                 <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{heroCta}</span>
-                <span style={{ width: 26, height: 26, borderRadius: 999, background: '#1f2937', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ width: 16, height: 16, borderRadius: 999, background: '#1f2937', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 14, lineHeight: 1 }}>
                   ›
                 </span>
               </button>
