@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import type { CSSProperties } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Icon } from '@/components/Icon'
 import { api } from '@/lib/api'
@@ -147,6 +148,78 @@ function presetShadow(preset: PresetId) {
   return '0 20px 40px rgba(63, 48, 31, 0.12)'
 }
 
+type StoryHighlight = {
+  id: string
+  title: string
+  coverUrl: string | null
+  items: any[]
+}
+
+function storyMediaUrl(story: any) {
+  return story?.media_url || story?.image_url || null
+}
+
+function isVideoMedia(url?: string | null) {
+  return !!url && /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(url)
+}
+
+function StorefrontMedia({ src, style }: { src?: string | null; style?: CSSProperties }) {
+  if (!src) return null
+  if (isVideoMedia(src)) {
+    return (
+      <video
+        src={src}
+        muted
+        playsInline
+        autoPlay
+        loop
+        style={style}
+      />
+    )
+  }
+  return <img src={src} alt="" style={style} />
+}
+
+function highlightSlug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9а-яё]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function buildStoryHighlights(stories: any[]): StoryHighlight[] {
+  const groups = new Map<string, StoryHighlight>()
+  const activeStories = stories
+    .filter((story: any) => story.kind !== 'banner' && story.is_active !== false)
+    .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+
+  activeStories.forEach((story: any, index: number) => {
+    const rawTitle = story.highlight_title || story.title || story.caption || `Story ${index + 1}`
+    const title = String(rawTitle).trim() || `Story ${index + 1}`
+    const id = story.highlight_id || highlightSlug(title) || `highlight-${story.id || index}`
+    const existing = groups.get(id)
+    const coverUrl = story.highlight_cover_url || storyMediaUrl(story)
+    if (existing) {
+      existing.items.push(story)
+      if (!existing.coverUrl && coverUrl) existing.coverUrl = coverUrl
+      return
+    }
+    groups.set(id, { id, title, coverUrl: coverUrl || null, items: [story] })
+  })
+
+  return Array.from(groups.values())
+}
+
+function openStoryTarget(item: any, onShowCatalog: (category?: string) => void) {
+  const url = item?.cta_url || ''
+  if (url.startsWith('category:')) {
+    onShowCatalog(url.replace('category:', ''))
+    return
+  }
+  if (url) window.open(url, '_blank')
+}
+
 // ─── Shared sub-components ─────────────────────────────────────────────────
 
 function CompactHeader({ shop }: { shop: ShopData }) {
@@ -181,10 +254,10 @@ function CompactHeader({ shop }: { shop: ShopData }) {
   )
 }
 
-function StoriesRow({ stories, setActiveStory }: { stories: any[]; setActiveStory: (s: any) => void }) {
+function StoriesRow({ stories, setActiveStory, onShowCatalog }: { stories: any[]; setActiveStory: (s: any) => void; onShowCatalog: (category?: string) => void }) {
   if (!stories.length) return null
   const banners = stories.filter((s: any) => s.kind === 'banner' && s.is_active !== false)
-  const storyItems = stories.filter((s: any) => s.kind !== 'banner' && s.is_active !== false)
+  const highlights = buildStoryHighlights(stories)
   return (
     <>
       {banners.length > 0 && (
@@ -194,7 +267,7 @@ function StoriesRow({ stories, setActiveStory }: { stories: any[]; setActiveStor
             return (
               <button
                 key={banner.id}
-                onClick={() => banner.cta_url && window.open(banner.cta_url, '_blank')}
+                onClick={() => openStoryTarget(banner, onShowCatalog)}
                 style={{
                   minHeight: 112,
                   borderRadius: 18,
@@ -206,7 +279,7 @@ function StoriesRow({ stories, setActiveStory }: { stories: any[]; setActiveStor
                   padding: 0,
                 }}
               >
-                {mediaUrl && <img src={mediaUrl} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
+                <StorefrontMedia src={mediaUrl} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                 <div style={{ position: 'absolute', inset: 0, background: mediaUrl ? 'linear-gradient(90deg, rgba(0,0,0,0.62), rgba(0,0,0,0.14))' : 'linear-gradient(135deg, var(--accent-soft), var(--card))' }} />
                 <div style={{ position: 'relative', padding: 16, maxWidth: '78%' }}>
                   <div style={{ fontSize: 11, fontWeight: 800, color: mediaUrl ? 'rgba(255,255,255,0.72)' : 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Баннер</div>
@@ -224,14 +297,14 @@ function StoriesRow({ stories, setActiveStory }: { stories: any[]; setActiveStor
           })}
         </div>
       )}
-      {storyItems.length > 0 && (
+      {highlights.length > 0 && (
         <div style={{ padding: '12px 16px 0', display: 'flex', gap: 14, overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {storyItems.map((s: any) => {
-            const mediaUrl = s.media_url || s.image_url
+          {highlights.map((highlight) => {
+            const mediaUrl = highlight.coverUrl
             return (
               <button
-                key={s.id}
-                onClick={() => setActiveStory(s)}
+                key={highlight.id}
+                onClick={() => setActiveStory(highlight.items[0])}
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
               >
                 <div style={{
@@ -242,13 +315,13 @@ function StoriesRow({ stories, setActiveStory }: { stories: any[]; setActiveStor
                 }}>
                   <div style={{ width: '100%', height: '100%', borderRadius: 999, overflow: 'hidden', border: '2px solid var(--bg)', background: 'var(--subtle)' }}>
                     {mediaUrl
-                      ? <img src={mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ? <StorefrontMedia src={mediaUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎬</div>
                     }
                   </div>
                 </div>
                 <span style={{ fontSize: 10, color: 'var(--ink)', fontWeight: 500, maxWidth: 60, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {s.title || s.caption?.split(' ').slice(0, 2).join(' ') || 'Story'}
+                  {highlight.title}
                 </span>
               </button>
             )
@@ -481,7 +554,7 @@ function CatalogLayout({
       <CompactHeader shop={shop} />
 
       {/* Small stories row */}
-      <StoriesRow stories={stories} setActiveStory={setActiveStory} />
+      <StoriesRow stories={stories} setActiveStory={setActiveStory} onShowCatalog={onShowCatalog} />
 
       {/* Prominent search bar */}
       <div style={{ padding: '14px 16px 0' }}>
@@ -960,7 +1033,7 @@ function BentoLayout({
       </div>
 
       {/* Stories row */}
-      <StoriesRow stories={stories} setActiveStory={setActiveStory} />
+      <StoriesRow stories={stories} setActiveStory={setActiveStory} onShowCatalog={onShowCatalog} />
 
       {/* Bento product grid */}
       {activeProducts.length > 0 ? (
@@ -1185,7 +1258,7 @@ function PresetStorefront({
   const activeHeroBanner = heroBanners.length ? heroBanners[heroBannerIndex % heroBanners.length] : null
   const heroImage = activeHeroBanner?.media_url || activeHeroBanner?.image_url || shop.cover_url || (heroProduct ? imageOf(heroProduct) : null)
   const heroTitle = clampText(activeHeroBanner?.title || activeHeroBanner?.caption || copy.headline, 82)
-  const storyItems = stories.filter((s: any) => s.kind !== 'banner' && s.is_active !== false).slice(0, 8)
+  const storyHighlights = buildStoryHighlights(stories).slice(0, 8)
   const announcement = announcements[0]
   const gridCols = preset === 'marketplace' ? '1fr 1fr' : preset === 'minimal' ? '1fr' : '1fr 1fr'
 
@@ -1196,12 +1269,7 @@ function PresetStorefront({
   }, [heroBanners.length])
 
   function openAnnouncement(item: any) {
-    const url = item?.cta_url || ''
-    if (url.startsWith('category:')) {
-      onShowCatalog(url.replace('category:', ''))
-      return
-    }
-    if (url) window.open(url, '_blank')
+    openStoryTarget(item, onShowCatalog)
   }
 
   return (
@@ -1242,7 +1310,7 @@ function PresetStorefront({
           }}
         >
           {heroImage && (
-            <img src={heroImage} alt="" style={{
+            <StorefrontMedia src={heroImage} style={{
               position: 'absolute', inset: 0, width: '100%', height: '100%',
               objectFit: 'cover',
               opacity: 1,
@@ -1271,6 +1339,60 @@ function PresetStorefront({
               </div>
             </div>
           )}
+          {activeHeroBanner && (activeHeroBanner.title || activeHeroBanner.caption || activeHeroBanner.cta_text) && (
+            <div style={{
+              position: 'absolute',
+              left: 16,
+              right: 16,
+              bottom: 16,
+              display: 'flex',
+              alignItems: 'flex-end',
+              justifyContent: 'space-between',
+              gap: 12,
+              pointerEvents: 'none',
+            }}>
+              <div style={{
+                maxWidth: activeHeroBanner.cta_text ? '68%' : '88%',
+                padding: '10px 12px',
+                borderRadius: 16,
+                background: 'rgba(255,255,255,0.88)',
+                color: '#111827',
+                boxShadow: '0 14px 32px rgba(15,23,42,0.16)',
+                backdropFilter: 'blur(12px)',
+              }}>
+                {activeHeroBanner.title && (
+                  <div style={{ fontSize: 16, lineHeight: 1.15, fontWeight: 900, letterSpacing: '-0.02em' }}>
+                    {clampText(activeHeroBanner.title, 48)}
+                  </div>
+                )}
+                {activeHeroBanner.caption && (
+                  <div style={{ marginTop: activeHeroBanner.title ? 4 : 0, fontSize: 12, lineHeight: 1.35, color: '#374151', fontWeight: 700 }}>
+                    {clampText(activeHeroBanner.caption, activeHeroBanner.title ? 70 : 90)}
+                  </div>
+                )}
+              </div>
+              {activeHeroBanner.cta_text && (
+                <button
+                  type="button"
+                  onClick={() => openStoryTarget(activeHeroBanner, onShowCatalog)}
+                  style={{
+                    pointerEvents: 'auto',
+                    minHeight: 42,
+                    borderRadius: 999,
+                    padding: '0 14px',
+                    background: '#111827',
+                    color: 'white',
+                    fontSize: 12,
+                    fontWeight: 900,
+                    boxShadow: '0 12px 26px rgba(15,23,42,0.24)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {activeHeroBanner.cta_text}
+                </button>
+              )}
+            </div>
+          )}
         </div>
         {heroBanners.length > 1 && (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 10, minHeight: 8 }}>
@@ -1287,18 +1409,18 @@ function PresetStorefront({
         )}
       </div>
 
-      {storyItems.length > 0 && (
+      {storyHighlights.length > 0 && (
         <div style={{ padding: '16px 16px 0', display: 'flex', gap: 12, overflowX: 'auto', scrollbarWidth: 'none' }}>
-          {storyItems.map((s: any) => {
-            const mediaUrl = s.media_url || s.image_url
+          {storyHighlights.map((highlight: StoryHighlight) => {
+            const mediaUrl = highlight.coverUrl
             return (
-              <button key={s.id} onClick={() => setActiveStory(s)} style={{ width: 70, flexShrink: 0, background: 'none', border: 'none', textAlign: 'center' }}>
+              <button key={highlight.id} onClick={() => setActiveStory(highlight.items[0])} style={{ width: 76, flexShrink: 0, background: 'none', border: 'none', textAlign: 'center' }}>
                 <div style={{ width: 64, height: 64, margin: '0 auto', padding: 2, borderRadius: 999, background: 'linear-gradient(135deg, var(--accent), rgba(17,24,39,0.7))' }}>
                   <div style={{ width: '100%', height: '100%', borderRadius: 999, overflow: 'hidden', border: `3px solid ${copy.bg}`, background: '#fff' }}>
-                    {mediaUrl ? <img src={mediaUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span />}
+                    {mediaUrl ? <StorefrontMedia src={mediaUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span />}
                   </div>
                 </div>
-                <div style={{ marginTop: 6, fontSize: 10, color: '#374151', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.title || 'Story'}</div>
+                <div style={{ marginTop: 6, fontSize: 10, color: '#374151', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{highlight.title}</div>
               </button>
             )
           })}
@@ -1472,12 +1594,48 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
     queryFn: () => api.getStories(tenantId),
     staleTime: 5 * 60 * 1000,
   })
-  const [activeStory, setActiveStory] = useState<any | null>(null)
+  const [activeStoryId, setActiveStoryId] = useState<string | null>(null)
   const [storyProgress, setStoryProgress] = useState(0)
-  const storyViewerItems = useMemo(
-    () => (stories as any[]).filter((s: any) => s.kind !== 'banner' && s.is_active !== false),
+  const storyHighlights = useMemo(
+    () => buildStoryHighlights(stories as any[]),
     [stories],
   )
+  const storyViewerItems = useMemo(
+    () => storyHighlights.flatMap((highlight, highlightIndex) =>
+      highlight.items.map((story, storyIndex) => ({
+        ...story,
+        __highlight_id: highlight.id,
+        __highlight_title: highlight.title,
+        __highlight_index: highlightIndex,
+        __story_index: storyIndex,
+      })),
+    ),
+    [storyHighlights],
+  )
+  const activeStory = activeStoryId ? storyViewerItems.find((s: any) => s.id === activeStoryId) ?? null : null
+  const activeStoryIndex = activeStory ? storyViewerItems.findIndex((s: any) => s.id === activeStory.id) : -1
+  const activeHighlight = activeStory
+    ? storyHighlights.find((highlight) => highlight.id === activeStory.__highlight_id)
+    : null
+  const activeHighlightStoryIndex = activeHighlight && activeStory
+    ? activeHighlight.items.findIndex((s: any) => s.id === activeStory.id)
+    : -1
+
+  function openStory(item: any) {
+    if (item?.id) setActiveStoryId(item.id)
+  }
+
+  function goToStory(index: number) {
+    if (index < 0) {
+      setActiveStoryId(storyViewerItems[0]?.id ?? null)
+      return
+    }
+    if (index >= storyViewerItems.length) {
+      setActiveStoryId(null)
+      return
+    }
+    setActiveStoryId(storyViewerItems[index].id)
+  }
 
   useEffect(() => {
     if (!activeStory) return
@@ -1485,19 +1643,14 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
     const interval = setInterval(() => {
       setStoryProgress(p => {
         if (p >= 100) {
-          const idx = storyViewerItems.findIndex((s: any) => s.id === activeStory.id)
-          if (idx < storyViewerItems.length - 1) {
-            setActiveStory(storyViewerItems[idx + 1])
-          } else {
-            setActiveStory(null)
-          }
+          goToStory(activeStoryIndex + 1)
           return 0
         }
         return p + 2
       })
     }, 100)
     return () => clearInterval(interval)
-  }, [activeStory, storyViewerItems])
+  }, [activeStory?.id, activeStoryIndex, storyViewerItems.length])
 
   const { data: shopStats } = useQuery({
     queryKey: ['shopStats', tenantId],
@@ -1534,42 +1687,85 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
   // Story viewer overlay — shared across all layouts
   const storyOverlay = activeStory ? (
     <div
-      style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 200, display: 'flex', flexDirection: 'column' }}
-      onClick={() => setActiveStory(null)}
+      style={{ position: 'fixed', inset: 0, background: '#050507', zIndex: 200, display: 'flex', flexDirection: 'column' }}
     >
-      {/* Progress bars */}
-      <div style={{ display: 'flex', gap: 3, padding: '12px 12px 8px', zIndex: 10 }}>
-        {storyViewerItems.map((s: any) => (
-          <div key={s.id} style={{ flex: 1, height: 3, borderRadius: 999, background: 'rgba(255,255,255,0.3)', overflow: 'hidden' }}>
-            <div style={{
-              height: '100%', borderRadius: 999, background: 'white',
-              width: s.id === activeStory.id ? `${storyProgress}%` : storyViewerItems.indexOf(s) < storyViewerItems.findIndex((x: any) => x.id === activeStory.id) ? '100%' : '0%',
-              transition: s.id === activeStory.id ? 'width 0.1s linear' : 'none',
-            }} />
-          </div>
-        ))}
-      </div>
-      {/* Media */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {activeStory.media_url || activeStory.image_url
-          ? <img src={activeStory.media_url || activeStory.image_url} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-          : <div style={{ fontSize: 60 }}>🎬</div>
-        }
-      </div>
-      {/* Caption + CTA */}
-      {(activeStory.caption || activeStory.cta_text) && (
-        <div style={{ padding: '16px 20px', background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)' }} onClick={e => e.stopPropagation()}>
-          {activeStory.caption && (
-            <p style={{ fontSize: 16, color: 'white', lineHeight: 1.5, marginBottom: activeStory.cta_text ? 12 : 0 }}>{activeStory.caption}</p>
-          )}
-          {activeStory.cta_text && (
-            <button
-              onClick={() => activeStory.cta_url && window.open(activeStory.cta_url, '_blank')}
-              style={{ padding: '10px 24px', borderRadius: 12, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 14 }}
-            >{activeStory.cta_text}</button>
-          )}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20, padding: '12px 12px 8px' }}>
+        <div style={{ display: 'flex', gap: 3, marginBottom: 10 }}>
+          {(activeHighlight?.items ?? [activeStory]).map((s: any, index: number) => (
+            <div key={s.id ?? index} style={{ flex: 1, height: 3, borderRadius: 999, background: 'rgba(255,255,255,0.34)', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%',
+                borderRadius: 999,
+                background: 'white',
+                width: index < activeHighlightStoryIndex ? '100%' : index === activeHighlightStoryIndex ? `${storyProgress}%` : '0%',
+                transition: index === activeHighlightStoryIndex ? 'width 0.1s linear' : 'none',
+              }} />
+            </div>
+          ))}
         </div>
-      )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 30, height: 30, borderRadius: 999, overflow: 'hidden', background: 'rgba(255,255,255,0.16)', border: '1px solid rgba(255,255,255,0.28)', flexShrink: 0 }}>
+            <StorefrontMedia src={activeHighlight?.coverUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0, color: 'white', fontSize: 13, fontWeight: 850, textShadow: '0 1px 10px rgba(0,0,0,0.55)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {activeHighlight?.title || activeStory.title || 'Story'}
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveStoryId(null)}
+            style={{ width: 34, height: 34, borderRadius: 999, background: 'rgba(255,255,255,0.14)', color: 'white', fontSize: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            aria-label="Закрыть stories"
+          >
+            ×
+          </button>
+        </div>
+      </div>
+
+      <div style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', zIndex: 12 }}>
+        <button
+          type="button"
+          onClick={() => goToStory(activeStoryIndex - 1)}
+          aria-label="Предыдущая story"
+          style={{ background: 'transparent', border: 'none' }}
+        />
+        <button
+          type="button"
+          onClick={() => goToStory(activeStoryIndex + 1)}
+          aria-label="Следующая story"
+          style={{ background: 'transparent', border: 'none' }}
+        />
+      </div>
+
+      <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        {storyMediaUrl(activeStory) ? (
+          <StorefrontMedia src={storyMediaUrl(activeStory)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 64, background: 'linear-gradient(145deg, #111827, #0f766e)' }}>🎬</div>
+        )}
+        {(activeStory.title || activeStory.caption || activeStory.cta_text) && (
+          <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 18, padding: '96px 20px 28px', background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.42) 52%, transparent 100%)', pointerEvents: 'none' }}>
+            {activeStory.title && (
+              <div style={{ fontSize: 24, color: 'white', lineHeight: 1.08, fontWeight: 950, letterSpacing: '-0.035em', marginBottom: activeStory.caption ? 8 : 0 }}>
+                {activeStory.title}
+              </div>
+            )}
+            {activeStory.caption && (
+              <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.92)', lineHeight: 1.45, marginBottom: activeStory.cta_text ? 14 : 0, fontWeight: 650 }}>
+                {activeStory.caption}
+              </p>
+            )}
+            {activeStory.cta_text && (
+              <button
+                type="button"
+                onClick={() => openStoryTarget(activeStory, onShowCatalog)}
+                style={{ pointerEvents: 'auto', minHeight: 46, padding: '0 18px', borderRadius: 999, background: 'white', color: '#111827', fontWeight: 900, fontSize: 14, boxShadow: '0 14px 30px rgba(0,0,0,0.24)' }}
+              >
+                {activeStory.cta_text}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   ) : null
 
@@ -1579,7 +1775,7 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
   const sharedLayoutProps = {
     shop, tenantId, activeProducts, onProduct, onShowCatalog,
     stories: stories as any[], shopStats, wishlistIds,
-    justAdded, toggleWishlist, handleQuickAdd, handleViewProduct, setActiveStory,
+    justAdded, toggleWishlist, handleQuickAdd, handleViewProduct, setActiveStory: openStory,
   }
 
   if (['boutique', 'marketplace', 'food', 'minimal'].includes(preset)) {
@@ -1599,7 +1795,7 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
           toggleWishlist={toggleWishlist}
           handleQuickAdd={handleQuickAdd}
           handleViewProduct={handleViewProduct}
-          setActiveStory={setActiveStory}
+          setActiveStory={openStory}
         />
         {storyOverlay}
       </div>
@@ -1756,12 +1952,12 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
         </div>
 
         {/* Stories carousel */}
-        {(stories as any[]).length > 0 && (
+        {storyHighlights.length > 0 && (
           <div style={{ padding: '12px 16px 0', display: 'flex', gap: 14, overflowX: 'auto', scrollbarWidth: 'none' }}>
-            {(stories as any[]).map((s: any) => (
+            {storyHighlights.map((highlight) => (
               <button
-                key={s.id}
-                onClick={() => setActiveStory(s)}
+                key={highlight.id}
+                onClick={() => openStory(highlight.items[0])}
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
               >
                 <div style={{
@@ -1771,14 +1967,14 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
                   flexShrink: 0,
                 }}>
                   <div style={{ width: '100%', height: '100%', borderRadius: 999, overflow: 'hidden', border: '2px solid var(--bg)', background: 'var(--subtle)' }}>
-                    {s.media_url
-                      ? <img src={s.media_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    {highlight.coverUrl
+                      ? <StorefrontMedia src={highlight.coverUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎬</div>
                     }
                   </div>
                 </div>
                 <span style={{ fontSize: 10, color: 'var(--ink)', fontWeight: 500, maxWidth: 60, textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {s.caption?.split(' ').slice(0, 2).join(' ') || 'Story'}
+                  {highlight.title}
                 </span>
               </button>
             ))}

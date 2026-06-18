@@ -919,6 +919,9 @@ type StoryBannerItem = {
   kind?: StoryBannerKind
   title?: string | null
   caption?: string | null
+  highlight_id?: string | null
+  highlight_title?: string | null
+  highlight_cover_url?: string | null
   media_url?: string | null
   image_url?: string | null
   cta_text?: string | null
@@ -926,6 +929,14 @@ type StoryBannerItem = {
   expires_at?: string | null
   is_active?: boolean
   sort_order?: number
+}
+
+function storyHighlightSlug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9а-яё]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
 }
 
 const STORY_BANNER_KIND_COPY: Record<StoryBannerKind, { label: string; icon: string; hint: string }> = {
@@ -1091,6 +1102,9 @@ function normalizeStoryBanner(item: StoryBannerItem, index: number): StoryBanner
     kind: item.kind === 'banner' ? 'banner' : 'story',
     media_url: mediaUrl,
     image_url: mediaUrl,
+    highlight_title: item.highlight_title ?? null,
+    highlight_id: item.highlight_id ?? (item.highlight_title ? storyHighlightSlug(item.highlight_title) : null),
+    highlight_cover_url: item.highlight_cover_url ?? null,
     sort_order: item.sort_order ?? index,
     is_active: item.is_active !== false,
   }
@@ -1103,6 +1117,8 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
   const [kind, setKind] = useState<StoryBannerKind>('story')
   const [title, setTitle] = useState('')
   const [caption, setCaption] = useState('')
+  const [highlightTitle, setHighlightTitle] = useState('')
+  const [highlightCoverUrl, setHighlightCoverUrl] = useState('')
   const [ctaText, setCtaText] = useState('')
   const [ctaUrl, setCtaUrl] = useState('')
   const [expiresHours, setExpiresHours] = useState('24')
@@ -1123,6 +1139,11 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
   const items = (stories as StoryBannerItem[])
     .map(normalizeStoryBanner)
     .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+  const existingHighlights = Array.from(new Map(
+    items
+      .filter(item => item.kind !== 'banner' && item.highlight_title)
+      .map(item => [item.highlight_title!, item]),
+  ).values())
   const activeStoriesCount = items.filter(item => item.kind === 'story' && item.is_active !== false).length
   const activeBannersCount = items.filter(item => item.kind === 'banner' && item.is_active !== false).length
 
@@ -1175,6 +1196,8 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
     setKind(nextKind)
     setTitle('')
     setCaption('')
+    setHighlightTitle('')
+    setHighlightCoverUrl('')
     setCtaText('')
     setCtaUrl('')
     setExpiresHours('24')
@@ -1193,6 +1216,8 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
     setKind(normalized.kind ?? 'story')
     setTitle(normalized.title ?? '')
     setCaption(normalized.caption ?? '')
+    setHighlightTitle(normalized.highlight_title ?? normalized.title ?? '')
+    setHighlightCoverUrl(normalized.highlight_cover_url ?? '')
     setCtaText(normalized.cta_text ?? '')
     setCtaUrl(normalized.cta_url ?? '')
     setExpiresHours(normalized.expires_at ? 'custom' : '0')
@@ -1207,10 +1232,16 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
   }
 
   function submitItem() {
+    const nextHighlightTitle = kind === 'story'
+      ? (highlightTitle.trim() || title.trim() || 'Актуальное')
+      : ''
     const body = {
       kind,
       title: title.trim() || null,
       caption: caption.trim() || null,
+      highlight_id: kind === 'story' ? storyHighlightSlug(nextHighlightTitle) : null,
+      highlight_title: kind === 'story' ? nextHighlightTitle : null,
+      highlight_cover_url: kind === 'story' ? (highlightCoverUrl.trim() || mediaUrl.trim() || null) : null,
       media_url: mediaUrl.trim() || null,
       image_url: mediaUrl.trim() || null,
       cta_text: ctaText.trim() || null,
@@ -1317,6 +1348,11 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
                       <span style={{ padding: '4px 8px', borderRadius: 999, background: s.is_active === false ? 'var(--subtle)' : '#ECFDF5', color: s.is_active === false ? 'var(--muted)' : 'var(--accent)', fontSize: 11, fontWeight: 800 }}>
                         {s.is_active === false ? 'Выключено' : 'Активно'}
                       </span>
+                      {type === 'story' && s.highlight_title && (
+                        <span style={{ padding: '4px 8px', borderRadius: 999, background: '#FFF7ED', color: '#C2410C', fontSize: 11, fontWeight: 800 }}>
+                          Хайлайт: {s.highlight_title}
+                        </span>
+                      )}
                       <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted)' }}>#{index + 1}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
@@ -1404,6 +1440,31 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
             </div>
 
             <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleFile} />
+            {kind === 'story' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
+                <input
+                  value={highlightTitle}
+                  onChange={e => setHighlightTitle(e.target.value)}
+                  list="story-highlight-options"
+                  placeholder="Название хайлайта"
+                  style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--subtle)', fontSize: 14, color: 'var(--ink)' }}
+                />
+                <datalist id="story-highlight-options">
+                  {existingHighlights.map((highlight: StoryBannerItem) => (
+                    <option key={highlight.highlight_id ?? highlight.highlight_title ?? highlight.id} value={highlight.highlight_title ?? ''} />
+                  ))}
+                </datalist>
+                <input
+                  value={highlightCoverUrl}
+                  onChange={e => setHighlightCoverUrl(e.target.value)}
+                  placeholder="Обложка хайлайта (необязательно)"
+                  style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--subtle)', fontSize: 14, color: 'var(--ink)' }}
+                />
+                <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>
+                  Stories с одинаковым названием хайлайта будут открываться как одна подборка. Если обложка пустая, используется медиа первой story.
+                </div>
+              </div>
+            )}
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
@@ -1437,7 +1498,7 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
               <input
                 value={ctaText}
                 onChange={e => setCtaText(e.target.value)}
-                placeholder="Текст кнопки в объявлении"
+                placeholder="Текст кнопки CTA"
                 style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--subtle)', fontSize: 14, color: 'var(--ink)' }}
               />
               {ctaText && (
@@ -1456,7 +1517,7 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
               )}
               {kind === 'banner' && mediaUrl && (
                 <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>
-                  Баннер с медиа показывается в верхнем hero и использует только заголовок. Кнопка показывается только у текстового объявления без медиа.
+                  Баннер с медиа показывается в верхнем hero. Заголовок, текст и кнопка показываются поверх баннера.
                 </div>
               )}
             </div>
