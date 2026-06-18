@@ -410,6 +410,8 @@ function LargeProductCard({
         )}
         <button
           onClick={e => { e.stopPropagation(); toggleWishlist(p.id) }}
+          type="button"
+          aria-label={inWishlist ? 'Убрать из избранного' : 'Добавить в избранное'}
           style={{
             position: 'absolute', top: 10, right: 10,
             width: 32, height: 32, borderRadius: 999,
@@ -1039,8 +1041,16 @@ function PresetProductCard({
   const img = imageOf(p)
   const hasDiscount = p.compare_at_price && Number(p.compare_at_price) > Number(p.price)
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => handleViewProduct(p.id)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          handleViewProduct(p.id)
+        }
+      }}
       style={{
         minWidth: featured ? 220 : undefined,
         textAlign: 'left',
@@ -1049,6 +1059,7 @@ function PresetProductCard({
         background: copy.card,
         overflow: 'hidden',
         boxShadow: presetShadow(preset),
+        cursor: 'pointer',
       }}
     >
       <div style={{ position: 'relative', aspectRatio: featured ? '4/3' : preset === 'minimal' ? '16/10' : '1/1.08', background: 'rgba(15,23,42,0.04)' }}>
@@ -1121,6 +1132,7 @@ function PresetProductCard({
           {p.stock !== 0 && (
             <button
               onClick={e => handleQuickAdd(e, p)}
+              type="button"
               aria-label="Добавить"
               style={{
                 width: 34, height: 34, borderRadius: preset === 'minimal' ? 999 : 11,
@@ -1140,7 +1152,7 @@ function PresetProductCard({
           )}
         </div>
       </div>
-    </button>
+    </div>
   )
 }
 
@@ -1194,16 +1206,24 @@ function PresetStorefront({
 
   return (
     <div className="screen-scroll" style={{ flex: 1, paddingBottom: 24, background: copy.bg }}>
-      <div style={{ padding: '12px 18px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{
+        padding: '14px 18px 0',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        textAlign: 'center',
+      }}>
         <div style={{
-          width: 42, height: 42, borderRadius: preset === 'minimal' ? 999 : 16,
+          width: 46, height: 46, borderRadius: preset === 'minimal' ? 999 : 16,
           background: '#fff', border: presetBorder(preset),
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           overflow: 'hidden', boxShadow: presetShadow(preset),
         }}>
           {shop.logo_url ? <img src={shop.logo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontWeight: 900, color: 'var(--accent)' }}>{shop.name.slice(0, 1)}</span>}
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ maxWidth: '82%', minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 900, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.01em' }}>{shop.name}</div>
         </div>
       </div>
@@ -1226,49 +1246,46 @@ function PresetStorefront({
             <img src={heroImage} alt="" style={{
               position: 'absolute', inset: 0, width: '100%', height: '100%',
               objectFit: 'cover',
-              opacity: preset === 'minimal' ? 0.42 : preset === 'marketplace' ? 0.36 : 0.58,
-              filter: preset === 'boutique' ? 'saturate(0.92) contrast(1.02)' : 'saturate(0.98)',
+              opacity: 1,
             }} />
           )}
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            background: preset === 'marketplace'
-              ? 'linear-gradient(90deg, rgba(15,23,42,0.82), rgba(15,23,42,0.20) 68%, rgba(255,255,255,0.08))'
-              : preset === 'minimal'
-                ? 'linear-gradient(180deg, rgba(17,17,17,0.04), rgba(17,17,17,0.60))'
-                : 'linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.62))',
-          }} />
-          {preset === 'boutique' && (
+          {!heroImage && preset === 'boutique' && (
             <div style={{ position: 'absolute', right: -28, top: 18, width: 126, height: 126, borderRadius: 999, border: '1px solid rgba(255,255,255,0.32)' }} />
           )}
-          <div style={{
-            position: 'relative',
-            padding: preset === 'marketplace' ? 22 : 24,
-            minHeight: preset === 'marketplace' ? 178 : preset === 'minimal' ? 204 : 216,
-            display: 'flex',
-            alignItems: 'flex-end',
-          }}>
+          {!heroImage && (
             <div style={{
-              maxWidth: preset === 'marketplace' ? '82%' : '92%',
-              fontSize: preset === 'minimal' ? 25 : preset === 'boutique' ? 27 : 25,
-              fontWeight: 950,
-              lineHeight: 1.08,
-              color: copy.heroText,
-              letterSpacing: '-0.035em',
-              textShadow: '0 14px 30px rgba(0,0,0,0.22)',
+              position: 'relative',
+              padding: preset === 'marketplace' ? 22 : 24,
+              minHeight: preset === 'marketplace' ? 178 : preset === 'minimal' ? 204 : 216,
+              display: 'flex',
+              alignItems: 'flex-end',
             }}>
-              {heroTitle}
-            </div>
-          </div>
-          {heroBanners.length > 1 && (
-            <div style={{ position: 'absolute', left: 24, right: 24, bottom: 14, display: 'flex', gap: 5 }}>
-              {heroBanners.map((b: any, i: number) => (
-                <div key={b.id ?? i} style={{ flex: 1, height: 3, borderRadius: 999, background: i === heroBannerIndex % heroBanners.length ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.34)' }} />
-              ))}
+              <div style={{
+                maxWidth: preset === 'marketplace' ? '82%' : '92%',
+                fontSize: preset === 'minimal' ? 25 : preset === 'boutique' ? 27 : 25,
+                fontWeight: 950,
+                lineHeight: 1.08,
+                color: copy.heroText,
+                letterSpacing: '-0.035em',
+              }}>
+                {heroTitle}
+              </div>
             </div>
           )}
         </div>
+        {heroBanners.length > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginTop: 9 }}>
+            {heroBanners.map((b: any, i: number) => (
+              <div key={b.id ?? i} style={{
+                width: i === heroBannerIndex % heroBanners.length ? 18 : 6,
+                height: 6,
+                borderRadius: 999,
+                background: i === heroBannerIndex % heroBanners.length ? 'var(--accent)' : 'rgba(15,23,42,0.18)',
+                transition: 'width 0.2s ease, background 0.2s ease',
+              }} />
+            ))}
+          </div>
+        )}
       </div>
 
       {storyItems.length > 0 && (

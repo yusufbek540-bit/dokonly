@@ -994,7 +994,7 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
                       {/* Low stock badge */}
                       {p.stock !== null && p.stock !== undefined && p.stock > 0 && p.stock <= 5 && p.stock !== 0 && (
                         <div style={{
-                          position: 'absolute', top: 6, right: 6,
+                          position: 'absolute', top: 42, right: 6, zIndex: 2,
                           background: 'rgba(217,119,6,0.9)', color: 'white',
                           borderRadius: 6, fontSize: 10, fontWeight: 700,
                           padding: '2px 6px',
@@ -1016,13 +1016,15 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
                       {/* Wishlist heart */}
                       <button
                         onClick={e => { e.stopPropagation(); toggleWishlist(p.id) }}
+                        type="button"
                         style={{
-                          position: 'absolute', top: 6, right: 6,
-                          width: 30, height: 30, borderRadius: 999,
+                          position: 'absolute', top: 7, right: 7, zIndex: 4,
+                          width: 34, height: 34, borderRadius: 999,
                           background: 'rgba(255,255,255,0.92)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                          boxShadow: '0 6px 18px rgba(15,23,42,0.14)',
                         }}
+                        aria-label={inWishlist ? 'Убрать из избранного' : 'Добавить в избранное'}
                       >
                         <svg width="16" height="16" viewBox="0 0 16 16" fill={inWishlist ? 'var(--accent)' : 'none'} stroke={inWishlist ? 'var(--accent)' : 'var(--muted)'} strokeWidth="1.5">
                           <path d="M8 13.5S1.5 9.5 1.5 5.5A3.5 3.5 0 0 1 8 3.8a3.5 3.5 0 0 1 6.5 1.7C14.5 9.5 8 13.5 8 13.5z" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1048,6 +1050,7 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
                         {(!p.sizes?.length && !p.colors?.length) && p.stock !== 0 && (
                           <button
                             onClick={e => handleQuickAdd(e, p)}
+                            type="button"
                             style={{
                               width: 28, height: 28, borderRadius: 999, flexShrink: 0,
                               background: justAdded === p.id ? 'var(--accent)' : 'var(--subtle)',
