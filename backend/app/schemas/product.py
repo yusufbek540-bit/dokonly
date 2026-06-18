@@ -32,6 +32,7 @@ class ProductCreate(BaseModel):
     sizes: list[str] = []
     colors: list[str] = []
     is_featured: bool = False
+    collection_ids: list[str] = []
     video_url: Optional[str] = None
 
 
@@ -47,6 +48,7 @@ class ProductUpdate(BaseModel):
     sizes: Optional[list[str]] = None
     colors: Optional[list[str]] = None
     is_featured: Optional[bool] = None
+    collection_ids: Optional[list[str]] = None
     video_url: Optional[str] = None
 
 
@@ -62,6 +64,7 @@ class ProductResponse(BaseModel):
     images: list[str]
     is_active: bool
     is_featured: bool = False
+    collection_ids: list[str] = []
     sort_order: int
     category_id: Optional[UUID]
     video_url: Optional[str] = None

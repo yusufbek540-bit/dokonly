@@ -45,6 +45,7 @@ JSON_SETTINGS_FIELDS = {
     "show_trust_strip",
     "categories_enabled",
     "categories_style",
+    "product_collections",
     "card_style",
     "card_columns",
     "about_block_enabled",

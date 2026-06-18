@@ -426,6 +426,8 @@ async def seller_list_products(
             "sizes": meta.get("sizes", []),
             "colors": meta.get("colors", []),
             "is_featured": meta.get("is_featured", False),
+            "collection_ids": meta.get("collection_ids", []),
+            "created_at": p.created_at.isoformat() if p.created_at else None,
             "video_url": p.video_url,
         })
     return out
@@ -443,6 +445,7 @@ async def seller_create_product(
     sizes = data.pop("sizes", [])
     colors = data.pop("colors", [])
     is_featured = data.pop("is_featured", False)
+    collection_ids = data.pop("collection_ids", [])
     meta = {}
     if sizes:
         meta["sizes"] = sizes
@@ -450,6 +453,8 @@ async def seller_create_product(
         meta["colors"] = colors
     if is_featured:
         meta["is_featured"] = is_featured
+    if collection_ids:
+        meta["collection_ids"] = collection_ids
     product = Product(**data, tenant_id=tenant.id, meta=meta)  # video_url passed through via **data
     db.add(product)
     await db.commit()
@@ -477,9 +482,10 @@ async def seller_update_product(
     sizes = update_data.pop("sizes", None)
     colors = update_data.pop("colors", None)
     is_featured = update_data.pop("is_featured", None)
+    collection_ids = update_data.pop("collection_ids", None)
     for k, v in update_data.items():
         setattr(product, k, v)
-    if sizes is not None or colors is not None or is_featured is not None:
+    if sizes is not None or colors is not None or is_featured is not None or collection_ids is not None:
         current_meta = dict(product.meta or {})
         if sizes is not None:
             current_meta["sizes"] = sizes
@@ -487,6 +493,8 @@ async def seller_update_product(
             current_meta["colors"] = colors
         if is_featured is not None:
             current_meta["is_featured"] = is_featured
+        if collection_ids is not None:
+            current_meta["collection_ids"] = collection_ids
         product.meta = current_meta
     await db.commit()
     await db.refresh(product)

@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import type { CSSProperties } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Icon } from '@/components/Icon'
-import { CategoryImageRail } from '@/components/CategoryImageRail'
 import { api } from '@/lib/api'
 import { useCart } from '@/store/cart'
+import { normalizeProductCollections, productsForCollection, type ProductCollection } from '@/lib/productCollections'
 
 interface ShopData {
   id: string
@@ -1230,9 +1230,34 @@ function PresetProductCard({
   )
 }
 
+function CollectionProductTile({ p, shop, onProduct }: { p: any; shop: ShopData; onProduct: (id: string) => void }) {
+  const image = imageOf(p)
+  return (
+    <button
+      type="button"
+      onClick={() => onProduct(p.id)}
+      style={{ minWidth: 0, textAlign: 'left', color: '#111827' }}
+    >
+      <div style={{ width: '100%', aspectRatio: '1/1', borderRadius: 16, overflow: 'hidden', background: 'rgba(15,23,42,0.04)', boxShadow: '0 10px 22px rgba(15,23,42,0.05)' }}>
+        {image
+          ? <StorefrontMedia src={image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : <div className="img-ph" data-tone={tone(p.name)} style={{ width: '100%', height: '100%' }}><span>{p.name.split(' ').slice(0, 1).join(' ')}</span></div>
+        }
+      </div>
+      <div style={{ marginTop: 8, fontSize: 12, lineHeight: 1.18, fontWeight: 800, minHeight: 28, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+        {p.name}
+      </div>
+      <div style={{ marginTop: 4, fontFamily: 'JetBrains Mono', fontSize: 11, lineHeight: 1.1, fontWeight: 850, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {fmtPrice(Number(p.price), shop.currency)}
+      </div>
+    </button>
+  )
+}
+
 function PresetStorefront({
   preset, shop, activeProducts, onShowCatalog, stories, shopStats, uniqueCats, catCounts,
   categoryImages, wishlistIds, justAdded, toggleWishlist, handleQuickAdd, handleViewProduct, setActiveStory,
+  productCollections,
 }: {
   preset: PresetId
   shop: ShopData
@@ -1249,6 +1274,7 @@ function PresetStorefront({
   handleQuickAdd: (e: React.MouseEvent, p: any) => void
   handleViewProduct: (id: string) => void
   setActiveStory: (s: any) => void
+  productCollections: ProductCollection[]
 }) {
   const copy = PRESET_COPY[preset]
   const featured = activeProducts.filter((p: any) => p.is_featured).concat(activeProducts).filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i)
@@ -1265,11 +1291,13 @@ function PresetStorefront({
   const heroCta = activeHeroBanner?.cta_text || (activeHeroBanner?.cta_url ? 'Смотреть' : null)
   const storyHighlights = buildStoryHighlights(stories).slice(0, 8)
   const announcement = announcements[0]
-  const gridCols = preset === 'marketplace' ? '1fr 1fr' : preset === 'minimal' ? '1fr' : '1fr 1fr'
-  const categoryRailItems = uniqueCats.map((name) => ({
-    name,
-    imageUrl: categoryImages[name],
-  }))
+  const collectionSections = productCollections
+    .filter((collection) => collection.enabled)
+    .map((collection) => ({
+      collection,
+      products: productsForCollection(activeProducts, collection),
+    }))
+    .filter((section) => section.products.length > 0)
 
   useEffect(() => {
     if (heroBanners.length <= 1) return
@@ -1405,16 +1433,6 @@ function PresetStorefront({
         </div>
       )}
 
-      {categoryRailItems.length > 0 && (
-        <div style={{ paddingTop: 18 }}>
-          <CategoryImageRail
-            items={categoryRailItems}
-            maxItems={preset === 'marketplace' ? 6 : 8}
-            onSelect={(name) => onShowCatalog(name)}
-          />
-        </div>
-      )}
-
       {announcement && (
         <div style={{ padding: '18px 18px 0' }}>
           <button onClick={() => openAnnouncement(announcement)} style={{
@@ -1444,50 +1462,32 @@ function PresetStorefront({
         </div>
       )}
 
-      {activeProducts.length > 0 ? (
-        <div style={{ padding: '24px 18px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
-            <div>
-              <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.10em' }}>{copy.section}</div>
-              <h2 style={{ margin: '5px 0 0', fontSize: 22, lineHeight: 1.05, letterSpacing: '-0.035em', color: '#111827' }}>{copy.productTitle}</h2>
-            </div>
-            <button onClick={() => onShowCatalog()} style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 800, whiteSpace: 'nowrap' }}>Все</button>
-          </div>
-
-          {preset === 'food' && featured.length > 0 && (
-            <div style={{ display: 'flex', gap: 12, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 14 }}>
-              {featured.slice(0, 4).map((p: any) => (
-                <PresetProductCard
-                  key={p.id}
-                  p={p}
-                  shop={shop}
-                  preset={preset}
-                  featured
-                  wishlistIds={wishlistIds}
-                  justAdded={justAdded}
-                  toggleWishlist={toggleWishlist}
-                  handleQuickAdd={handleQuickAdd}
-                  handleViewProduct={handleViewProduct}
-                />
-              ))}
-            </div>
-          )}
-
-          <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: preset === 'minimal' ? 12 : 11 }}>
-            {activeProducts.slice(0, preset === 'minimal' ? 5 : 6).map((p: any) => (
-              <PresetProductCard
-                key={p.id}
-                p={p}
-                shop={shop}
-                preset={preset}
-                wishlistIds={wishlistIds}
-                justAdded={justAdded}
-                toggleWishlist={toggleWishlist}
-                handleQuickAdd={handleQuickAdd}
-                handleViewProduct={handleViewProduct}
-              />
-            ))}
-          </div>
+      {collectionSections.length > 0 ? (
+        <div style={{ padding: '22px 18px 0', display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {collectionSections.map(({ collection, products }) => (
+            <section key={collection.id}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.10em' }}>Подборка</div>
+                  <h2 style={{ margin: '4px 0 0', fontSize: 20, lineHeight: 1.05, letterSpacing: '-0.025em', color: '#111827' }}>{collection.title}</h2>
+                </div>
+                {products.length > 6 && (
+                  <button
+                    type="button"
+                    onClick={() => onShowCatalog(`collection:${collection.id}`)}
+                    style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 850, whiteSpace: 'nowrap' }}
+                  >
+                    Все
+                  </button>
+                )}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
+                {products.slice(0, 6).map((p: any) => (
+                  <CollectionProductTile key={p.id} p={p} shop={shop} onProduct={handleViewProduct} />
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
       ) : (
         <div style={{ textAlign: 'center', padding: '48px 24px', color: '#6b7280' }}>
@@ -1536,6 +1536,7 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
       categoryImages[cat] = product.category_image_url
     }
   }
+  const productCollections = normalizeProductCollections(shop.settings?.product_collections)
 
   const hasCover = !!shop.cover_url
 
@@ -1824,6 +1825,7 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
           uniqueCats={uniqueCats}
           catCounts={catCounts}
           categoryImages={categoryImages}
+          productCollections={productCollections}
           wishlistIds={wishlistIds}
           justAdded={justAdded}
           toggleWishlist={toggleWishlist}

@@ -121,6 +121,8 @@ function normalizeProduct(input: any, existing?: any) {
     category_image_url: category?.image_url ?? existing?.category_image_url ?? null,
     images: input.images ?? existing?.images ?? [],
     is_active: input.is_active ?? existing?.is_active ?? true,
+    is_featured: input.is_featured ?? existing?.is_featured ?? false,
+    collection_ids: Array.isArray(input.collection_ids) ? input.collection_ids : existing?.collection_ids ?? [],
     stock: Number(input.stock ?? existing?.stock ?? 0),
     sort_order: input.sort_order ?? existing?.sort_order ?? products.length + 1,
     attributes: input.attributes ?? existing?.attributes ?? {},

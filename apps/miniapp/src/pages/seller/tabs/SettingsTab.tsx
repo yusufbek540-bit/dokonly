@@ -8,6 +8,7 @@ import { PlanPicker } from '../PlanPicker'
 import { tgConfirm } from '@/lib/tgConfirm'
 import { AchievementsPage } from '../AchievementsPage'
 import { StreakDetailPage } from '../StreakDetailPage'
+import { normalizeProductCollections, type ProductCollection } from '@/lib/productCollections'
 
 interface Props {
   tenant: any
@@ -2406,6 +2407,10 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
   const [editPayment, setEditPayment]   = useState(false)
   const [editAppearance, setEditAppearance] = useState(false)
   const [editLayout, setEditLayout] = useState(false)
+  const [editCollections, setEditCollections] = useState(false)
+  const [collectionDrafts, setCollectionDrafts] = useState<ProductCollection[]>(
+    normalizeProductCollections(tenant.settings?.product_collections),
+  )
   const [pickedLayout, setPickedLayout] = useState<string>(
     tenant.layout ?? tenant.settings?.layout ?? 'boutique'
   )
@@ -2414,6 +2419,13 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['seller-me'] })
       setEditLayout(false)
+    },
+  })
+  const collectionsMutation = useMutation({
+    mutationFn: (product_collections: ProductCollection[]) => api.seller.updateSettings({ product_collections }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['seller-me'] })
+      setEditCollections(false)
     },
   })
   const [showCoupons, setShowCoupons]   = useState(false)
@@ -3156,6 +3168,15 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
             <span style={{ fontSize: 10, fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #00B5E2 0%, #0066CC 100%)', padding: '2px 7px', borderRadius: 999 }}>Business+</span>
           </div>
         )}
+        <Row
+          icon="list"
+          label="Подборки товаров"
+          value={`${normalizeProductCollections(tenant.settings?.product_collections).filter((item) => item.enabled).length} активн.`}
+          onPress={() => {
+            setCollectionDrafts(normalizeProductCollections(tenant.settings?.product_collections))
+            setEditCollections(true)
+          }}
+        />
         {(tier === 'business' || tier === 'premium') ? (
           <Row
             icon="sparkles"
@@ -3221,6 +3242,117 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
               style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 16, border: 'none', cursor: 'pointer', opacity: layoutMutation.isPending ? 0.7 : 1 }}
             >
               {layoutMutation.isPending ? 'Сохраняем...' : 'Применить макет'}
+            </button>
+          </div>
+        </BottomSheet>
+      )}
+
+      {/* ── Product collections modal ──────────────────────────────────────── */}
+      {editCollections && (
+        <BottomSheet onClose={() => setEditCollections(false)} title="Подборки товаров">
+          <div style={{ padding: '18px 16px 8px' }}>
+            <p style={{ margin: '0 0 14px', fontSize: 13, lineHeight: 1.45, color: 'var(--muted)' }}>
+              Подборки показываются на главной странице магазина. Категории остаются только для каталога.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {collectionDrafts.map((collection, index) => (
+                <div
+                  key={collection.id}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr auto',
+                    gap: 10,
+                    alignItems: 'center',
+                    padding: 12,
+                    borderRadius: 14,
+                    background: 'var(--card)',
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  <div>
+                    <input
+                      value={collection.title}
+                      onChange={(event) => setCollectionDrafts((items) => items.map((item) => item.id === collection.id ? { ...item, title: event.target.value } : item))}
+                      style={{ width: '100%', height: 40, border: 'none', outline: 'none', background: 'transparent', color: 'var(--ink)', fontSize: 15, fontWeight: 750 }}
+                    />
+                    <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                      {collection.rule === 'manual' ? 'Ручная подборка' : collection.rule === 'new' ? 'Авто: новые товары' : collection.rule === 'sale' ? 'Авто: товары со скидкой' : 'Авто: популярные'}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => setCollectionDrafts((items) => items.map((item) => item.id === collection.id ? { ...item, enabled: !item.enabled } : item))}
+                      style={{
+                        width: 42,
+                        height: 26,
+                        borderRadius: 999,
+                        background: collection.enabled ? 'var(--accent)' : 'var(--border)',
+                        position: 'relative',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute',
+                        top: 3,
+                        left: collection.enabled ? 19 : 3,
+                        width: 20,
+                        height: 20,
+                        borderRadius: 999,
+                        background: '#fff',
+                        transition: 'left 0.18s ease',
+                      }} />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={collectionDrafts.length <= 1}
+                      onClick={() => setCollectionDrafts((items) => items.filter((item) => item.id !== collection.id).map((item, i) => ({ ...item, sort_order: i + 1 })))}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 999,
+                        background: 'var(--subtle)',
+                        color: collectionDrafts.length <= 1 ? 'var(--muted)' : 'var(--danger)',
+                        opacity: collectionDrafts.length <= 1 ? 0.5 : 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      aria-label={`Удалить ${collection.title || `подборку ${index + 1}`}`}
+                    >
+                      <Icon name="x" size={15} color="currentColor" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const nextIndex = collectionDrafts.length + 1
+                setCollectionDrafts((items) => [
+                  ...items,
+                  {
+                    id: `custom-${Date.now()}`,
+                    title: `Подборка ${nextIndex}`,
+                    enabled: true,
+                    rule: 'manual',
+                    sort_order: nextIndex,
+                  },
+                ])
+              }}
+              style={{ width: '100%', height: 46, marginTop: 14, borderRadius: 14, background: 'var(--subtle)', color: 'var(--accent)', fontWeight: 850, fontSize: 14 }}
+            >
+              + Добавить подборку
+            </button>
+          </div>
+          <div style={{ padding: '0 16px 32px' }}>
+            <button
+              onClick={() => collectionsMutation.mutate(normalizeProductCollections(collectionDrafts).map((item, index) => ({ ...item, sort_order: index + 1 })))}
+              disabled={collectionsMutation.isPending}
+              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 800, fontSize: 16, border: 'none', opacity: collectionsMutation.isPending ? 0.7 : 1 }}
+            >
+              {collectionsMutation.isPending ? 'Сохраняем...' : 'Сохранить подборки'}
             </button>
           </div>
         </BottomSheet>

@@ -200,6 +200,8 @@ async def get_shop_products(tenant_id: str, db: AsyncSession = Depends(get_db)):
             "sizes": meta.get("sizes", []),
             "colors": meta.get("colors", []),
             "is_featured": meta.get("is_featured", False),
+            "collection_ids": meta.get("collection_ids", []),
+            "created_at": product.created_at.isoformat() if product.created_at else None,
             "video_url": product.video_url,
         }
         out.append(d)

@@ -5,9 +5,10 @@ import { Icon } from '@/components/Icon'
 import { CategoryImageRail } from '@/components/CategoryImageRail'
 import { useCart } from '@/store/cart'
 import { FullPage } from '@/components/FullPage'
+import { normalizeProductCollections, productsForCollection } from '@/lib/productCollections'
 
 interface Props {
-  shop: { id: string; name: string; currency: string; logo_url: string | null }
+  shop: { id: string; name: string; currency: string; logo_url: string | null; settings?: any }
   onProduct: (id: string) => void
   initialCategory?: string
 }
@@ -37,13 +38,25 @@ const SORT_LABELS: Record<SortOption, string> = {
 }
 
 export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
-  const [cat, setCat] = useState(initialCategory ?? 'Все')
+  const initialCollection = initialCategory?.startsWith('collection:') ? initialCategory.replace('collection:', '') : null
+  const initialCat = initialCategory && !initialCategory.startsWith('collection:') ? initialCategory : 'Все'
+  const [cat, setCat] = useState(initialCat)
+  const [collectionId, setCollectionId] = useState<string | null>(initialCollection)
   const prevInitCat = useRef(initialCategory)
 
   useEffect(() => {
     if (initialCategory !== prevInitCat.current) {
       prevInitCat.current = initialCategory
-      if (initialCategory) setCat(initialCategory)
+      if (initialCategory?.startsWith('collection:')) {
+        setCollectionId(initialCategory.replace('collection:', ''))
+        setCat('Все')
+      } else if (initialCategory) {
+        setCollectionId(null)
+        setCat(initialCategory)
+      } else {
+        setCollectionId(null)
+        setCat('Все')
+      }
     }
   }, [initialCategory])
   const [search, setSearch] = useState('')
@@ -210,6 +223,13 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
     name,
     imageUrl: categoryImages[name],
   }))
+  const productCollections = normalizeProductCollections(shop.settings?.product_collections)
+  const activeCollection = collectionId
+    ? productCollections.find((collection) => collection.id === collectionId && collection.enabled)
+    : null
+  const productsForActiveCollection = activeCollection
+    ? productsForCollection(activeProducts, activeCollection)
+    : activeProducts
 
   // Collect attribute options from all active products
   const attrOptions: Record<string, string[]> = {}
@@ -231,9 +251,9 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
     .slice(0, 5)
     .map((p: any) => p.name as string)
 
-  const visible = activeProducts
+  const visible = productsForActiveCollection
     .filter((p: any) => {
-      if (cat !== 'Все' && (p.category ?? p.category_name ?? p.category_title) !== cat) return false
+      if (!activeCollection && cat !== 'Все' && (p.category ?? p.category_name ?? p.category_title) !== cat) return false
       if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !(p.description ?? '').toLowerCase().includes(search.toLowerCase())) return false
       const price = Number(p.price)
       if (activeMinPrice && price < Number(activeMinPrice)) return false
@@ -267,8 +287,8 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
   const trulyFeatured = allActive.filter((p: any) => p.is_featured)
   const featured = trulyFeatured.length > 0 ? trulyFeatured.slice(0, 4) : allActive.slice(0, 4)
 
-  const pendingFilterCount = activeProducts.filter((p: any) => {
-    if (cat !== 'Все' && (p.category ?? p.category_name ?? p.category_title) !== cat) return false
+  const pendingFilterCount = productsForActiveCollection.filter((p: any) => {
+    if (!activeCollection && cat !== 'Все' && (p.category ?? p.category_name ?? p.category_title) !== cat) return false
     const price = Number(p.price)
     if (filterMinPrice && price < Number(filterMinPrice)) return false
     if (filterMaxPrice && price > Number(filterMaxPrice)) return false
@@ -896,14 +916,17 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
           <div style={{ paddingBottom: 18 }}>
             <CategoryImageRail
               items={categoryRailItems}
-              selected={cat === 'Все' ? null : cat}
-              onSelect={(name) => setCat(name ?? 'Все')}
+              selected={activeCollection || cat === 'Все' ? null : cat}
+              onSelect={(name) => {
+                setCollectionId(null)
+                setCat(name ?? 'Все')
+              }}
             />
           </div>
         )}
 
         {/* Featured strip */}
-        {cat === 'Все' && !search && featured.length > 0 && (
+        {!activeCollection && cat === 'Все' && !search && featured.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 16px 10px' }}>
               <Icon name="starFilled" size={14} color="var(--warning)"/>
@@ -932,7 +955,7 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
         <div style={{ padding: '0 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <h3 style={{ fontFamily: 'Sora', fontWeight: 600, fontSize: 15, color: 'var(--ink)', margin: 0 }}>
-              {cat === 'Все' ? 'Все товары' : cat}
+              {activeCollection ? activeCollection.title : cat === 'Все' ? 'Все товары' : cat}
             </h3>
             {!isLoading && (
               <span style={{ fontSize: 12, color: 'var(--muted)' }}>

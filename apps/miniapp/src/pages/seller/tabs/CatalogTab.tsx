@@ -10,6 +10,7 @@ import { CSVImport } from '../CSVImport'
 import { VoiceImport } from '../VoiceImport'
 import { ChannelImport } from '../ChannelImport'
 import { PlanPicker } from '../PlanPicker'
+import { normalizeProductCollections, type ProductCollection } from '@/lib/productCollections'
 
 function fmtPrice(n: number, currency: string) {
   if (currency === 'UZS') return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' сум'
@@ -48,10 +49,11 @@ function getSphereAttrs(category: string): { key: string; label: string; placeho
   return [{ key: 'brand', label: 'Бренд', placeholder: 'Название бренда' }]
 }
 
-function ProductForm({ mode, currency, sphere, onSave, onClose }: {
+function ProductForm({ mode, currency, sphere, collections, onSave, onClose }: {
   mode: FormMode
   currency: string
   sphere?: string
+  collections: ProductCollection[]
   onSave: (data: any) => void
   onClose: () => void
 }) {
@@ -64,7 +66,9 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
   const [description, setDescription] = useState(p?.description ?? '')
   const [categoryId, setCategoryId] = useState<string>(p?.category_id ?? '')
   const [active, setActive] = useState(p?.is_active ?? true)
-  const [featured, setFeatured] = useState(p?.is_featured ?? false)
+  const initialCollectionIds = Array.isArray(p?.collection_ids) ? p.collection_ids.map(String) : []
+  if (p?.is_featured && !initialCollectionIds.includes('popular')) initialCollectionIds.push('popular')
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>(initialCollectionIds)
   const [images, setImages] = useState<string[]>(p?.images ?? [])
   const [sizesStr, setSizesStr] = useState<string>((p?.sizes ?? []).join(', '))
   const [colorsStr, setColorsStr] = useState<string>((p?.colors ?? []).join(', '))
@@ -88,6 +92,7 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
   const videoInputRef = useRef<HTMLInputElement>(null)
 
   const sphereAttrs = getSphereAttrs(sphere ?? '')
+  const visibleCollections = collections.filter((collection) => collection.enabled)
 
   const { data: categories = [] } = useQuery({
     queryKey: ['seller-categories'],
@@ -111,7 +116,10 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
       stock: stock ? Number(stock) : null,
       description,
       category_id: categoryId || null,
-      is_active: active, is_featured: featured, images,
+      is_active: active,
+      is_featured: selectedCollectionIds.includes('popular'),
+      collection_ids: selectedCollectionIds,
+      images,
       sizes, colors,
       video_url: videoUrl.trim() || null,
       sku: sku.trim() || null,
@@ -131,6 +139,10 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
     isVisible: true,
     disabled: !canSave,
   })
+
+  const toggleCollection = (id: string) => {
+    setSelectedCollectionIds((ids) => ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id])
+  }
 
   return (
     <div
@@ -357,6 +369,36 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted-strong)', display: 'block', marginBottom: 6 }}>Подборки на главной</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {visibleCollections.map((collection) => {
+                const selected = selectedCollectionIds.includes(collection.id)
+                return (
+                  <button
+                    key={collection.id}
+                    type="button"
+                    onClick={() => toggleCollection(collection.id)}
+                    style={{
+                      minHeight: 36,
+                      borderRadius: 999,
+                      padding: '0 12px',
+                      border: selected ? '1.5px solid var(--accent)' : '1px solid var(--border)',
+                      background: selected ? 'var(--accent-soft)' : 'var(--card)',
+                      color: selected ? 'var(--accent)' : 'var(--ink)',
+                      fontSize: 13,
+                      fontWeight: 750,
+                    }}
+                  >
+                    {collection.title}
+                  </button>
+                )
+              })}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
+              Подборки показываются на главной, отдельно от категорий каталога.
+            </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
@@ -588,26 +630,6 @@ function ProductForm({ mode, currency, sphere, onSave, onClose }: {
                 position: 'absolute', top: 3, width: 22, height: 22,
                 borderRadius: 999, background: 'white',
                 left: active ? 23 : 3, transition: 'left 0.2s',
-              }}/>
-            </button>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
-            <div>
-              <span style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>⭐ Хит продаж</span>
-              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>Показывается в разделе «Хиты»</div>
-            </div>
-            <button
-              onClick={() => setFeatured((f: boolean) => !f)}
-              style={{
-                width: 48, height: 28, borderRadius: 999,
-                background: featured ? '#F59E0B' : 'var(--border)',
-                position: 'relative', transition: 'background 0.2s', flexShrink: 0,
-              }}
-            >
-              <div style={{
-                position: 'absolute', top: 3, width: 22, height: 22,
-                borderRadius: 999, background: 'white',
-                left: featured ? 23 : 3, transition: 'left 0.2s',
               }}/>
             </button>
           </div>
@@ -950,6 +972,7 @@ export function CatalogTab({ tenant }: Props) {
   const [channelPostSheet, setChannelPostSheet] = useState<{ product: any } | null>(null)
   const [channelSheetMsg, setChannelSheetMsg] = useState('')
   const [sendingChannelPost, setSendingChannelPost] = useState(false)
+  const productCollections = normalizeProductCollections(tenant.settings?.product_collections)
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['seller-products'],
@@ -1381,6 +1404,7 @@ export function CatalogTab({ tenant }: Props) {
           mode={form}
           currency={tenant.currency}
           sphere={tenant.category ?? ''}
+          collections={productCollections}
           onSave={handleSave}
           onClose={() => setForm(null)}
         />
