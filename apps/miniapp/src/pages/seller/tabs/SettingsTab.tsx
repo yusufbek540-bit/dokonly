@@ -941,14 +941,6 @@ const STORY_BANNER_KIND_COPY: Record<StoryBannerKind, { label: string; icon: str
   },
 }
 
-const CATEGORY_STYLE_OPTIONS = [
-  { id: 'scrolling', label: 'Лента', hint: 'Категории идут горизонтально', preview: 'chips' },
-  { id: 'grid', label: 'Сетка', hint: 'Все категории видны плитками', preview: 'grid' },
-  { id: 'tabs', label: 'Вкладки', hint: 'Переключатель над товарами', preview: 'tabs' },
-  { id: 'bento', label: 'Крупные плитки', hint: 'Акцент на 2-3 категории', preview: 'bento' },
-  { id: 'burger', label: 'Меню', hint: 'Компактный список в кнопке', preview: 'menu' },
-] as const
-
 const LAYOUT_OPTIONS = [
   {
     id: 'boutique',
@@ -979,55 +971,6 @@ const LAYOUT_OPTIONS = [
     preview: 'minimal',
   },
 ] as const
-
-function CategoryStylePreview({ type, active }: { type: string; active: boolean }) {
-  const color = active ? 'var(--accent)' : 'var(--muted)'
-  const line = { height: 6, borderRadius: 999, background: color, opacity: active ? 0.75 : 0.28 }
-  const box = { borderRadius: 6, background: active ? 'var(--accent-soft)' : 'var(--subtle)', border: `1px solid ${active ? 'rgba(0,179,131,0.24)' : 'var(--border)'}` }
-
-  if (type === 'grid') {
-    return (
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 4 }}>
-        {[0, 1, 2, 3, 4, 5].map(i => <span key={i} style={{ ...box, height: 18 }} />)}
-      </div>
-    )
-  }
-  if (type === 'tabs') {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 5 }}>
-          {[0, 1, 2].map(i => <span key={i} style={{ ...box, height: 16, borderRadius: 999 }} />)}
-        </div>
-        <span style={{ ...line, width: '80%' }} />
-      </div>
-    )
-  }
-  if (type === 'bento') {
-    return (
-      <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1fr', gap: 4 }}>
-        <span style={{ ...box, height: 40 }} />
-        <div style={{ display: 'grid', gap: 4 }}>
-          <span style={{ ...box, height: 18 }} />
-          <span style={{ ...box, height: 18 }} />
-        </div>
-      </div>
-    )
-  }
-  if (type === 'menu') {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-        <span style={{ ...box, height: 18, width: '64%' }} />
-        <span style={{ ...line, width: '92%' }} />
-        <span style={{ ...line, width: '72%' }} />
-      </div>
-    )
-  }
-  return (
-    <div style={{ display: 'flex', gap: 5, overflow: 'hidden' }}>
-      {[0, 1, 2, 3].map(i => <span key={i} style={{ ...box, width: 42, height: 22, borderRadius: 999, flexShrink: 0 }} />)}
-    </div>
-  )
-}
 
 function LayoutWireframePreview({ type, active }: { type: string; active: boolean }) {
   const accent = active ? 'var(--accent)' : 'var(--muted-strong)'
@@ -2688,31 +2631,8 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
 
 
   const [showTeam, setShowTeam] = useState(false)
-  const [editBlocks, setEditBlocks] = useState(false)
   const [showPresets, setShowPresets] = useState(false)
   const [presetConfirm, setPresetConfirm] = useState<string | null>(null)
-  const [blocksConfig, setBlocksConfig] = useState(() => ({
-    stories_enabled: tenant.settings?.stories_enabled ?? true,
-    featured_banner_enabled: tenant.settings?.featured_banner_enabled ?? true,
-    featured_banner_autorotate: tenant.settings?.featured_banner_autorotate ?? true,
-    trust_strip_enabled: tenant.settings?.trust_strip_enabled ?? true,
-    trust_strip_items: tenant.settings?.trust_strip_items ?? ['delivery', 'returns', 'payment', 'rating'],
-    categories_enabled: tenant.settings?.categories_enabled ?? true,
-    categories_style: tenant.settings?.categories_style ?? 'scrolling',
-    card_style: tenant.settings?.card_style ?? 'vertical',
-    card_columns: tenant.settings?.card_columns ?? 2,
-    about_block_enabled: tenant.settings?.about_block_enabled ?? true,
-    reviews_enabled: tenant.settings?.reviews_enabled ?? true,
-    reviews_min_rating: tenant.settings?.reviews_min_rating ?? 1,
-    recently_viewed_enabled: tenant.settings?.recently_viewed_enabled ?? true,
-  }))
-  const blocksMutation = useMutation({
-    mutationFn: (cfg: object) => api.seller.updateSettings(cfg),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['seller-me'] })
-      setEditBlocks(false)
-    },
-  })
 
   const THEME_PRESETS = [
     { id: 'fashion_rose', label: 'Fashion Rose', emoji: '🌸', accent: 'rose', typography: 'editorial', layout: 'boutique' },
@@ -3098,20 +3018,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', background: 'var(--card)', borderBottom: '1px solid var(--border)' }}>
             <Icon name="star" size={16} color="var(--muted)" />
             <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--muted)' }}>Макет магазина</span>
-            <span style={{ fontSize: 10, fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #00B5E2 0%, #0066CC 100%)', padding: '2px 7px', borderRadius: 999 }}>Business+</span>
-          </div>
-        )}
-        {(tier === 'business' || tier === 'premium') ? (
-          <Row
-            icon="box"
-            label="Блоки витрины"
-            value="Настроить"
-            onPress={() => setEditBlocks(true)}
-          />
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 16px', background: 'var(--card)', borderBottom: '1px solid var(--border)' }}>
-            <Icon name="box" size={16} color="var(--muted)" />
-            <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--muted)' }}>Блоки витрины</span>
             <span style={{ fontSize: 10, fontWeight: 700, color: 'white', background: 'linear-gradient(135deg, #00B5E2 0%, #0066CC 100%)', padding: '2px 7px', borderRadius: 999 }}>Business+</span>
           </div>
         )}
@@ -4286,146 +4192,6 @@ export function SettingsTab({ tenant, deepLink, onDeepLinkConsumed }: Props) {
       {editLocalization && (
         <BottomSheet onClose={() => setEditLocalization(false)} title="Язык и локализация">
           <LocalizationSheet tenant={tenant} onClose={() => setEditLocalization(false)} />
-        </BottomSheet>
-      )}
-
-      {/* ── Blocks config modal ─────────────────────────────────────────────── */}
-      {editBlocks && (
-        <BottomSheet onClose={() => setEditBlocks(false)} title="Блоки витрины">
-          <div style={{ padding: '20px 16px 8px' }}>
-            <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>Выберите, какие блоки показывать на витрине</p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
-
-              {/* Stories */}
-              <div style={{ borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', background: 'var(--card)' }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', flex: 1 }}>🎬 Stories</span>
-                  <button onClick={() => setBlocksConfig(c => ({ ...c, stories_enabled: !c.stories_enabled }))} style={{ width: 44, height: 26, borderRadius: 999, background: blocksConfig.stories_enabled ? 'var(--accent)' : 'var(--border)', position: 'relative', border: 'none', cursor: 'pointer' }}>
-                    <div style={{ position: 'absolute', top: 2, width: 20, height: 20, borderRadius: 999, background: 'white', left: blocksConfig.stories_enabled ? 22 : 2, transition: 'left 0.2s' }} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Featured Banner */}
-              <div style={{ borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', background: 'var(--card)', borderBottom: blocksConfig.featured_banner_enabled ? '1px solid var(--border)' : 'none' }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', flex: 1 }}>🖼 Баннер</span>
-                  <button onClick={() => setBlocksConfig(c => ({ ...c, featured_banner_enabled: !c.featured_banner_enabled }))} style={{ width: 44, height: 26, borderRadius: 999, background: blocksConfig.featured_banner_enabled ? 'var(--accent)' : 'var(--border)', position: 'relative', border: 'none', cursor: 'pointer' }}>
-                    <div style={{ position: 'absolute', top: 2, width: 20, height: 20, borderRadius: 999, background: 'white', left: blocksConfig.featured_banner_enabled ? 22 : 2, transition: 'left 0.2s' }} />
-                  </button>
-                </div>
-                {blocksConfig.featured_banner_enabled && (
-                  <div style={{ padding: '10px 14px', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 13, color: 'var(--muted)' }}>Автопрокрутка</span>
-                    <button onClick={() => setBlocksConfig(c => ({ ...c, featured_banner_autorotate: !c.featured_banner_autorotate }))} style={{ width: 44, height: 26, borderRadius: 999, background: blocksConfig.featured_banner_autorotate ? 'var(--accent)' : 'var(--border)', position: 'relative', border: 'none', cursor: 'pointer' }}>
-                      <div style={{ position: 'absolute', top: 2, width: 20, height: 20, borderRadius: 999, background: 'white', left: blocksConfig.featured_banner_autorotate ? 22 : 2, transition: 'left 0.2s' }} />
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Categories */}
-              <div style={{ borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
-                <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', background: 'var(--card)', borderBottom: blocksConfig.categories_enabled ? '1px solid var(--border)' : 'none' }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', flex: 1 }}>📂 Категории</span>
-                  <button onClick={() => setBlocksConfig(c => ({ ...c, categories_enabled: !c.categories_enabled }))} style={{ width: 44, height: 26, borderRadius: 999, background: blocksConfig.categories_enabled ? 'var(--accent)' : 'var(--border)', position: 'relative', border: 'none', cursor: 'pointer' }}>
-                    <div style={{ position: 'absolute', top: 2, width: 20, height: 20, borderRadius: 999, background: 'white', left: blocksConfig.categories_enabled ? 22 : 2, transition: 'left 0.2s' }} />
-                  </button>
-                </div>
-                {blocksConfig.categories_enabled && (
-                  <div style={{ padding: '12px 14px', background: 'var(--bg)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    {CATEGORY_STYLE_OPTIONS.map(option => {
-                      const active = blocksConfig.categories_style === option.id
-                      return (
-                      <button
-                        key={option.id}
-                        onClick={() => setBlocksConfig(c => ({ ...c, categories_style: option.id }))}
-                        style={{
-                          minHeight: 112,
-                          padding: 10,
-                          borderRadius: 12,
-                          fontSize: 11,
-                          fontWeight: 600,
-                          border: '1.5px solid',
-                          borderColor: active ? 'var(--accent)' : 'var(--border)',
-                          background: active ? 'var(--accent-soft)' : 'var(--card)',
-                          color: active ? 'var(--accent)' : 'var(--muted)',
-                          textAlign: 'left',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 8,
-                        }}
-                      >
-                        <CategoryStylePreview type={option.preview} active={active} />
-                        <span style={{ fontSize: 13, fontWeight: 800, color: active ? 'var(--accent)' : 'var(--ink)' }}>{option.label}</span>
-                        <span style={{ fontSize: 10, fontWeight: 600, lineHeight: 1.3, color: 'var(--muted)' }}>{option.hint}</span>
-                      </button>
-                    )})}
-                  </div>
-                )}
-              </div>
-
-              {/* Product card style */}
-              <div style={{ borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
-                <div style={{ padding: '12px 14px', background: 'var(--card)', borderBottom: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>📦 Карточки товаров</span>
-                </div>
-                <div style={{ padding: '10px 14px', background: 'var(--bg)' }}>
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>Стиль карточки</div>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-                    {(['vertical', 'horizontal', 'image_only', 'compact'] as const).map(s => (
-                      <button key={s} onClick={() => setBlocksConfig(c => ({ ...c, card_style: s }))} style={{ padding: '5px 10px', borderRadius: 8, fontSize: 11, fontWeight: 600, border: '1.5px solid', borderColor: blocksConfig.card_style === s ? 'var(--accent)' : 'var(--border)', background: blocksConfig.card_style === s ? 'var(--accent-soft)' : 'var(--card)', color: blocksConfig.card_style === s ? 'var(--accent)' : 'var(--muted)', textTransform: 'capitalize' }}>
-                        {s === 'image_only' ? 'Только фото' : s === 'compact' ? 'Компактный' : s === 'horizontal' ? 'Горизонтальный' : 'Вертикальный'}
-                      </button>
-                    ))}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>Колонки</div>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    {([1, 2] as const).map(n => (
-                      <button key={n} onClick={() => setBlocksConfig(c => ({ ...c, card_columns: n }))} style={{ padding: '5px 14px', borderRadius: 8, fontSize: 13, fontWeight: 700, border: '1.5px solid', borderColor: blocksConfig.card_columns === n ? 'var(--accent)' : 'var(--border)', background: blocksConfig.card_columns === n ? 'var(--accent-soft)' : 'var(--card)', color: blocksConfig.card_columns === n ? 'var(--accent)' : 'var(--muted)' }}>
-                        {n}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* About block */}
-              <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', background: 'var(--card)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', flex: 1 }}>ℹ️ О магазине</span>
-                <button onClick={() => setBlocksConfig(c => ({ ...c, about_block_enabled: !c.about_block_enabled }))} style={{ width: 44, height: 26, borderRadius: 999, background: blocksConfig.about_block_enabled ? 'var(--accent)' : 'var(--border)', position: 'relative', border: 'none', cursor: 'pointer' }}>
-                  <div style={{ position: 'absolute', top: 2, width: 20, height: 20, borderRadius: 999, background: 'white', left: blocksConfig.about_block_enabled ? 22 : 2, transition: 'left 0.2s' }} />
-                </button>
-              </div>
-
-              {/* Reviews */}
-              <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', background: 'var(--card)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', flex: 1 }}>⭐ Отзывы</span>
-                <button onClick={() => setBlocksConfig(c => ({ ...c, reviews_enabled: !c.reviews_enabled }))} style={{ width: 44, height: 26, borderRadius: 999, background: blocksConfig.reviews_enabled ? 'var(--accent)' : 'var(--border)', position: 'relative', border: 'none', cursor: 'pointer' }}>
-                  <div style={{ position: 'absolute', top: 2, width: 20, height: 20, borderRadius: 999, background: 'white', left: blocksConfig.reviews_enabled ? 22 : 2, transition: 'left 0.2s' }} />
-                </button>
-              </div>
-
-              {/* Recently viewed */}
-              <div style={{ display: 'flex', alignItems: 'center', padding: '12px 14px', background: 'var(--card)', borderRadius: 12, border: '1px solid var(--border)' }}>
-                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', flex: 1 }}>🕐 Недавно просмотренные</span>
-                <button onClick={() => setBlocksConfig(c => ({ ...c, recently_viewed_enabled: !c.recently_viewed_enabled }))} style={{ width: 44, height: 26, borderRadius: 999, background: blocksConfig.recently_viewed_enabled ? 'var(--accent)' : 'var(--border)', position: 'relative', border: 'none', cursor: 'pointer' }}>
-                  <div style={{ position: 'absolute', top: 2, width: 20, height: 20, borderRadius: 999, background: 'white', left: blocksConfig.recently_viewed_enabled ? 22 : 2, transition: 'left 0.2s' }} />
-                </button>
-              </div>
-
-            </div>
-          </div>
-          <div style={{ padding: '0 16px 32px' }}>
-            <button
-              onClick={() => blocksMutation.mutate(blocksConfig)}
-              disabled={blocksMutation.isPending}
-              style={{ width: '100%', height: 50, borderRadius: 14, background: 'var(--accent)', color: 'white', fontWeight: 700, fontSize: 16, border: 'none', cursor: 'pointer', opacity: blocksMutation.isPending ? 0.7 : 1 }}
-            >
-              {blocksMutation.isPending ? 'Сохраняем...' : 'Сохранить блоки'}
-            </button>
-          </div>
         </BottomSheet>
       )}
 
