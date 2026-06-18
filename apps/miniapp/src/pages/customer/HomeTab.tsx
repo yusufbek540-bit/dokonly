@@ -1716,51 +1716,77 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
         )}
         {(activeStory.title || activeStory.caption || activeStory.cta_text) && (
           <div
-            data-story-bottom-center
+            data-story-bottom-row
             style={{
               position: 'absolute',
               left: 0,
               right: 0,
               bottom: 0,
               zIndex: 18,
-              padding: '96px 22px 34px',
+              padding: '78px 18px 30px',
               background: 'linear-gradient(to top, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.45) 48%, transparent 100%)',
               pointerEvents: 'none',
               display: 'flex',
-              flexDirection: 'column',
               alignItems: 'center',
-              textAlign: 'center',
+              justifyContent: 'space-between',
+              gap: 14,
+              textAlign: 'left',
             }}
           >
-            {activeStory.title && (
-              <div style={{ maxWidth: 320, fontSize: 24, color: 'white', lineHeight: 1.08, fontWeight: 950, letterSpacing: '-0.035em', marginBottom: activeStory.caption ? 8 : 0 }}>
-                {activeStory.title}
-              </div>
-            )}
-            {activeStory.caption && (
-              <p style={{ maxWidth: 320, fontSize: 15, color: 'rgba(255,255,255,0.92)', lineHeight: 1.45, marginBottom: activeStory.cta_text ? 14 : 0, fontWeight: 650 }}>
-                {activeStory.caption}
-              </p>
-            )}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {activeStory.title && (
+                <div style={{
+                  maxWidth: 260,
+                  fontSize: 19,
+                  color: 'white',
+                  lineHeight: 1.06,
+                  fontWeight: 950,
+                  letterSpacing: '-0.02em',
+                  display: '-webkit-box',
+                  WebkitLineClamp: activeStory.caption ? 2 : 3,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}>
+                  {activeStory.title}
+                </div>
+              )}
+              {activeStory.caption && (
+                <p style={{
+                  maxWidth: 260,
+                  marginTop: activeStory.title ? 5 : 0,
+                  fontSize: 12,
+                  color: 'rgba(255,255,255,0.88)',
+                  lineHeight: 1.25,
+                  fontWeight: 650,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}>
+                  {activeStory.caption}
+                </p>
+              )}
+            </div>
             {activeStory.cta_text && (
               <button
                 type="button"
                 onClick={() => openStoryTarget(activeStory, onShowCatalog)}
                 style={{
                   pointerEvents: 'auto',
-                  minHeight: 46,
-                  maxWidth: '92%',
-                  padding: '12px 18px',
+                  minHeight: 36,
+                  maxWidth: '42%',
+                  flexShrink: 0,
+                  padding: '9px 12px',
                   borderRadius: 999,
                   background: 'white',
                   color: '#111827',
                   fontWeight: 900,
-                  fontSize: 14,
+                  fontSize: 11,
                   lineHeight: 1.15,
                   textAlign: 'center',
                   whiteSpace: 'normal',
                   overflowWrap: 'anywhere',
-                  boxShadow: '0 14px 30px rgba(0,0,0,0.24)',
+                  boxShadow: '0 12px 26px rgba(0,0,0,0.24)',
                 }}
               >
                 {activeStory.cta_text}
