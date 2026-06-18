@@ -30,8 +30,6 @@ interface Props {
   products: any[]
   onProduct: (id: string) => void
   onShowCatalog: (category?: string) => void
-  onOpenCart?: () => void
-  cartCount?: number
 }
 
 function fmtPrice(n: number, currency: string) {
@@ -1234,14 +1232,11 @@ function PresetProductCard({
 function PresetStorefront({
   preset, shop, activeProducts, onShowCatalog, stories, shopStats, uniqueCats, catCounts,
   wishlistIds, justAdded, toggleWishlist, handleQuickAdd, handleViewProduct, setActiveStory,
-  onOpenCart, cartCount,
 }: {
   preset: PresetId
   shop: ShopData
   activeProducts: any[]
   onShowCatalog: (cat?: string) => void
-  onOpenCart: () => void
-  cartCount: number
   stories: any[]
   shopStats: any
   uniqueCats: string[]
@@ -1302,20 +1297,19 @@ function PresetStorefront({
         </div>
       </div>
 
-      <div style={{ padding: '14px 12px 0' }}>
+      <div style={{ padding: '0' }}>
         <div
-          data-premium-hero-actions
           style={{
             width: '100%',
-            height: 'clamp(420px, 70dvh, 560px)',
-            minHeight: 420,
+            height: 'clamp(300px, 48dvh, 390px)',
+            minHeight: 300,
             position: 'relative',
             overflow: 'hidden',
             border: 'none',
-            borderRadius: 32,
+            borderRadius: 0,
             background: copy.hero,
             textAlign: 'left',
-            boxShadow: preset === 'minimal' ? '0 1px 0 rgba(17,17,17,0.12)' : '0 30px 70px rgba(15,23,42,0.22)',
+            boxShadow: 'none',
           }}
         >
           {heroImage && (
@@ -1327,60 +1321,13 @@ function PresetStorefront({
           )}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(3,7,18,0.70) 0%, rgba(3,7,18,0.30) 38%, rgba(3,7,18,0.02) 72%, transparent 100%)', pointerEvents: 'none' }} />
 
-          <div style={{ position: 'absolute', top: 18, right: 18, display: 'flex', alignItems: 'center', gap: 10, zIndex: 4 }}>
-            <button
-              type="button"
-              onClick={() => onShowCatalog()}
-              aria-label="Поиск"
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 999,
-                background: 'rgba(255,255,255,0.86)',
-                border: '1px solid rgba(255,255,255,0.55)',
-                boxShadow: '0 16px 32px rgba(15,23,42,0.18)',
-                backdropFilter: 'blur(14px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Icon name="search" size={22} color="#111827" />
-            </button>
-            <button
-              type="button"
-              onClick={onOpenCart}
-              aria-label="Корзина"
-              style={{
-                minWidth: 74,
-                height: 56,
-                borderRadius: 999,
-                padding: '0 17px',
-                background: 'rgba(255,255,255,0.90)',
-                border: '1px solid rgba(255,255,255,0.58)',
-                boxShadow: '0 16px 32px rgba(15,23,42,0.18)',
-                backdropFilter: 'blur(14px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 9,
-                color: '#111827',
-                fontSize: 17,
-                fontWeight: 850,
-              }}
-            >
-              <Icon name="cart" size={21} color="#111827" />
-              <span>{cartCount}</span>
-            </button>
-          </div>
-
-          <div style={{ position: 'absolute', left: 22, right: 22, bottom: 50, zIndex: 3 }}>
+          <div style={{ position: 'absolute', left: 20, right: 20, bottom: 42, zIndex: 3 }}>
             <div style={{
-              maxWidth: 320,
-              fontSize: 'clamp(42px, 14vw, 66px)',
-              lineHeight: 0.95,
+              maxWidth: 280,
+              fontSize: 'clamp(26px, 8.4vw, 40px)',
+              lineHeight: 1,
               fontWeight: 950,
-              letterSpacing: '-0.055em',
+              letterSpacing: '-0.035em',
               color: 'white',
               textShadow: '0 2px 22px rgba(0,0,0,0.30)',
             }}>
@@ -1397,10 +1344,10 @@ function PresetStorefront({
                 onClick={() => activeHeroBanner ? openStoryTarget(activeHeroBanner, onShowCatalog) : onShowCatalog()}
                 style={{
                   marginTop: 22,
-                  minHeight: 52,
+                  minHeight: 46,
                   maxWidth: '92%',
                   borderRadius: 999,
-                  padding: '0 17px 0 22px',
+                  padding: '0 14px 0 18px',
                   background: 'rgba(255,255,255,0.94)',
                   color: '#111827',
                   boxShadow: '0 16px 38px rgba(0,0,0,0.22)',
@@ -1408,7 +1355,7 @@ function PresetStorefront({
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 13,
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: 820,
                   lineHeight: 1.15,
                   whiteSpace: 'normal',
@@ -1579,7 +1526,7 @@ function PresetStorefront({
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog, onOpenCart = () => {}, cartCount = 0 }: Props) {
+export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: Props) {
   const qc = useQueryClient()
   const addToCart = useCart(s => s.add)
   const activeProducts = products.filter((p: any) => p.is_active)
@@ -1857,8 +1804,6 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog, on
           handleQuickAdd={handleQuickAdd}
           handleViewProduct={handleViewProduct}
           setActiveStory={openStory}
-          onOpenCart={onOpenCart}
-          cartCount={cartCount}
         />
         {storyOverlay}
       </div>
