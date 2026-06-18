@@ -165,7 +165,7 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
     setTimeout(() => setJustAdded(null), 1200)
   }
 
-  useEffect(() => { setVisibleCount(PAGE_SIZE) }, [cat, search, sort, activeMinPrice, activeMaxPrice, activeInStock, activeHasDiscount, activeHasVideo, activeAttrs])
+  useEffect(() => { setVisibleCount(PAGE_SIZE) }, [cat, collectionId, search, sort, activeMinPrice, activeMaxPrice, activeInStock, activeHasDiscount, activeHasVideo, activeAttrs])
 
   const loadMore = useCallback(() => {
     setVisibleCount(n => n + PAGE_SIZE)
@@ -224,8 +224,9 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
     imageUrl: categoryImages[name],
   }))
   const productCollections = normalizeProductCollections(shop.settings?.product_collections)
+  const enabledProductCollections = productCollections.filter((collection) => collection.enabled)
   const activeCollection = collectionId
-    ? productCollections.find((collection) => collection.id === collectionId && collection.enabled)
+    ? enabledProductCollections.find((collection) => collection.id === collectionId)
     : null
   const productsForActiveCollection = activeCollection
     ? productsForCollection(activeProducts, activeCollection)
@@ -283,10 +284,6 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
       return 0
     })
 
-  const allActive = products.filter((p: any) => p.is_active)
-  const trulyFeatured = allActive.filter((p: any) => p.is_featured)
-  const featured = trulyFeatured.length > 0 ? trulyFeatured.slice(0, 4) : allActive.slice(0, 4)
-
   const pendingFilterCount = productsForActiveCollection.filter((p: any) => {
     if (!activeCollection && cat !== 'Все' && (p.category ?? p.category_name ?? p.category_title) !== cat) return false
     const price = Number(p.price)
@@ -318,6 +315,30 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
     setActiveAttrs(filterAttrs)
     setShowFilter(false)
   }
+
+  const clearCatalogFilters = () => {
+    setCollectionId(null)
+    setCat('Все')
+    setFilterMinPrice('')
+    setFilterMaxPrice('')
+    setFilterInStock(false)
+    setFilterHasDiscount(false)
+    setFilterHasVideo(false)
+    setFilterAttrs({})
+    setActiveMinPrice('')
+    setActiveMaxPrice('')
+    setActiveInStock(false)
+    setActiveHasDiscount(false)
+    setActiveHasVideo(false)
+    setActiveAttrs({})
+  }
+
+  const clearCatalogSort = () => {
+    setSort('newest')
+  }
+
+  const hasCatalogFilters = hasActiveFilters || Boolean(activeCollection)
+  const hasCatalogSelections = hasCatalogFilters || sort !== 'newest'
 
   // Live overlay search results
   const overlayResults = debouncedOverlay.trim()
@@ -573,15 +594,15 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
             style={{
               position: 'relative',
               width: 36, height: 36, borderRadius: 10,
-              background: hasActiveFilters ? 'var(--accent-soft)' : 'var(--subtle)',
-              border: `1px solid ${hasActiveFilters ? 'var(--accent)' : 'var(--border)'}`,
+              background: hasCatalogFilters ? 'var(--accent-soft)' : 'var(--subtle)',
+              border: `1px solid ${hasCatalogFilters ? 'var(--accent)' : 'var(--border)'}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={hasActiveFilters ? 'var(--accent)' : 'var(--ink)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={hasCatalogFilters ? 'var(--accent)' : 'var(--ink)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
             </svg>
-            {hasActiveFilters && (
+            {hasCatalogFilters && (
               <div style={{
                 position: 'absolute', top: -3, right: -3,
                 width: 10, height: 10, borderRadius: 999,
@@ -596,8 +617,21 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
       {showSort && (
         <FullPage onClose={() => setShowSort(false)}>
           <div style={{ padding: '0 16px 32px' }}>
-            <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)', marginBottom: 16 }}>
-              Сортировка
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)' }}>
+                Сортировка
+              </div>
+              {sort !== 'newest' && (
+                <button
+                  onClick={() => {
+                    clearCatalogSort()
+                    setShowSort(false)
+                  }}
+                  style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                >
+                  Сбросить
+                </button>
+              )}
             </div>
             {(Object.keys(SORT_LABELS) as SortOption[]).map(opt => (
               <button
@@ -632,16 +666,64 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <div style={{ fontFamily: 'Sora', fontWeight: 700, fontSize: 17, color: 'var(--ink)' }}>Фильтры</div>
               <button
-                onClick={() => {
-                  setFilterMinPrice(''); setFilterMaxPrice('')
-                  setFilterInStock(false); setFilterHasDiscount(false); setFilterHasVideo(false)
-                  setFilterAttrs({})
-                }}
+                onClick={clearCatalogFilters}
                 style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
               >
                 Сбросить
               </button>
             </div>
+
+            {enabledProductCollections.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--muted-strong)', marginBottom: 10 }}>
+                  Подборки
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCollectionId(null)
+                      setCat('Все')
+                    }}
+                    style={{
+                      padding: '8px 13px',
+                      borderRadius: 999,
+                      background: !activeCollection ? 'var(--accent-soft)' : 'var(--subtle)',
+                      color: !activeCollection ? 'var(--accent)' : 'var(--ink)',
+                      border: `1.5px solid ${!activeCollection ? 'var(--accent)' : 'var(--border)'}`,
+                      fontSize: 13,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Все товары
+                  </button>
+                  {enabledProductCollections.map((collection) => {
+                    const selected = activeCollection?.id === collection.id
+                    return (
+                      <button
+                        key={collection.id}
+                        type="button"
+                        onClick={() => {
+                          setCollectionId(selected ? null : collection.id)
+                          setCat('Все')
+                        }}
+                        style={{
+                          padding: '8px 13px',
+                          borderRadius: 999,
+                          background: selected ? 'var(--accent-soft)' : 'var(--subtle)',
+                          color: selected ? 'var(--accent)' : 'var(--ink)',
+                          border: `1.5px solid ${selected ? 'var(--accent)' : 'var(--border)'}`,
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {collection.title}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Price range dual-slider */}
             <div style={{ marginBottom: 20 }}>
@@ -859,8 +941,26 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
         </div>
 
         {/* Active filter chips */}
-        {hasActiveFilters && (
+        {hasCatalogSelections && (
           <div style={{ display: 'flex', gap: 6, padding: '0 16px 10px', flexWrap: 'wrap' }}>
+            {activeCollection && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}>
+                {activeCollection.title}
+                <button
+                  onClick={() => {
+                    setCollectionId(null)
+                    setCat('Все')
+                  }}
+                  style={{ background: 'none', border: 'none', color: 'var(--accent)', fontWeight: 700, fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                >×</button>
+              </span>
+            )}
+            {sort !== 'newest' && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}>
+                {SORT_LABELS[sort]}
+                <button onClick={clearCatalogSort} style={{ background: 'none', border: 'none', color: 'var(--accent)', fontWeight: 700, fontSize: 14, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
+              </span>
+            )}
             {activeMinPrice && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 999, background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}>
                 от {activeMinPrice}
@@ -909,6 +1009,24 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
                 </span>
               ))
             )}
+            <button
+              type="button"
+              onClick={() => {
+                clearCatalogFilters()
+                clearCatalogSort()
+              }}
+              style={{
+                padding: '4px 10px',
+                borderRadius: 999,
+                background: 'var(--subtle)',
+                color: 'var(--muted-strong)',
+                border: '1px solid var(--border)',
+                fontSize: 12,
+                fontWeight: 700,
+              }}
+            >
+              Очистить
+            </button>
           </div>
         )}
 
@@ -922,32 +1040,6 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
                 setCat(name ?? 'Все')
               }}
             />
-          </div>
-        )}
-
-        {/* Featured strip */}
-        {!activeCollection && cat === 'Все' && !search && featured.length > 0 && (
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 16px 10px' }}>
-              <Icon name="starFilled" size={14} color="var(--warning)"/>
-              <span style={{ fontFamily: 'Sora', fontWeight: 600, fontSize: 15, color: 'var(--ink)' }}>Хиты</span>
-            </div>
-            <div style={{ display: 'flex', gap: 10, overflowX: 'auto', padding: '0 16px 4px' }}>
-              {featured.map((p: any) => (
-                <button key={p.id} onClick={() => onProduct(p.id)} style={{ flexShrink: 0, width: 148, textAlign: 'left' }}>
-                  {p.images?.[0]
-                    ? <img src={p.images[0]} alt={p.name} style={{ width: 148, height: 148, borderRadius: 12, objectFit: 'cover' }}/>
-                    : <div className="img-ph" data-tone={tone(p.name)} style={{ width: 148, height: 148 }}><span>{p.name.split(' ').slice(0,2).join(' ')}</span></div>
-                  }
-                  <div style={{ padding: '8px 2px 0' }}>
-                    <div style={{ fontSize: 12, fontWeight: 500, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-                    <div style={{ fontFamily: 'JetBrains Mono', fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginTop: 4 }}>
-                      {fmtPrice(Number(p.price), shop.currency)}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
           </div>
         )}
 
