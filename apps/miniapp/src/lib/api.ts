@@ -97,6 +97,8 @@ export const api = {
     ),
   getStories: (tenantId: string) =>
     request<any[]>(`/api/v1/shop/${tenantId}/stories`),
+  getCategories: (tenantId: string) =>
+    request<any[]>(`/api/v1/shop/${tenantId}/categories`),
   checkChannelMembership: (tenantId: string) =>
     request<{ is_member: boolean }>(`/api/v1/shop/${tenantId}/check-channel-membership`),
   getWishlist: (tenantId: string) =>

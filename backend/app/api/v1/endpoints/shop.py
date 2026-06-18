@@ -13,9 +13,10 @@ from app.core.crypto import decrypt
 from app.core.database import get_db
 from app.core.miniapp_urls import product_miniapp_url
 from app.bot.share import prepared_product_share_result
+from app.services.category_payload import category_payload
 from app.models.order import Order, OrderItem, Customer, WishlistItem
 from app.models.promo import PromoCode
-from app.models.product import Product
+from app.models.product import Category, Product
 from app.models.tenant import Tenant
 
 router = APIRouter(prefix="/shop", tags=["shop"])
@@ -171,7 +172,6 @@ async def get_shop_role(
 
 @router.get("/{tenant_id}/products")
 async def get_shop_products(tenant_id: str, db: AsyncSession = Depends(get_db)):
-    from app.models.product import Category
     result = await db.execute(
         select(Product, Category.name.label("category_name"), Category.image_url.label("category_image_url"))
         .outerjoin(Category, Product.category_id == Category.id)
@@ -204,6 +204,16 @@ async def get_shop_products(tenant_id: str, db: AsyncSession = Depends(get_db)):
         }
         out.append(d)
     return out
+
+
+@router.get("/{tenant_id}/categories")
+async def get_shop_categories(tenant_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Category)
+        .where(Category.tenant_id == tenant_id)
+        .order_by(Category.sort_order)
+    )
+    return [category_payload(category) for category in result.scalars().all()]
 
 
 @router.get("/{tenant_id}/products/{product_id}/reviews")

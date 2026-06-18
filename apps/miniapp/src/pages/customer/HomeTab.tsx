@@ -1231,7 +1231,7 @@ function PresetProductCard({
 
 function PresetStorefront({
   preset, shop, activeProducts, onShowCatalog, stories, shopStats, uniqueCats, catCounts,
-  wishlistIds, justAdded, toggleWishlist, handleQuickAdd, handleViewProduct, setActiveStory,
+  categoryImages, wishlistIds, justAdded, toggleWishlist, handleQuickAdd, handleViewProduct, setActiveStory,
 }: {
   preset: PresetId
   shop: ShopData
@@ -1241,6 +1241,7 @@ function PresetStorefront({
   shopStats: any
   uniqueCats: string[]
   catCounts: Record<string, number>
+  categoryImages: Record<string, string>
   wishlistIds: string[]
   justAdded: string | null
   toggleWishlist: (id: string) => void
@@ -1264,13 +1265,6 @@ function PresetStorefront({
   const storyHighlights = buildStoryHighlights(stories).slice(0, 8)
   const announcement = announcements[0]
   const gridCols = preset === 'marketplace' ? '1fr 1fr' : preset === 'minimal' ? '1fr' : '1fr 1fr'
-  const categoryImages: Record<string, string> = {}
-  for (const product of activeProducts) {
-    const cat = categoryName(product)
-    if (cat && product.category_image_url && !categoryImages[cat]) {
-      categoryImages[cat] = product.category_image_url
-    }
-  }
 
   useEffect(() => {
     if (heroBanners.length <= 1) return
@@ -1560,9 +1554,29 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
   const featured = (featuredProducts.length > 0 ? featuredProducts : activeProducts).slice(0, 5)
   const preview = activeProducts.slice(0, 4)
 
-  const uniqueCats = Array.from(new Set(activeProducts.map(categoryName).filter(Boolean))) as string[]
+  const { data: publicCategories = [] } = useQuery({
+    queryKey: ['shop-categories', tenantId],
+    queryFn: () => api.getCategories(tenantId),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const categoryNames = (publicCategories as any[])
+    .map((category: any) => category.name)
+    .filter(Boolean)
+  const productCategoryNames = activeProducts.map(categoryName).filter(Boolean)
+  const uniqueCats = Array.from(new Set([...categoryNames, ...productCategoryNames])) as string[]
   const catCounts: Record<string, number> = {}
   for (const c of uniqueCats) catCounts[c] = activeProducts.filter((p: any) => categoryName(p) === c).length
+  const categoryImages: Record<string, string> = {}
+  for (const category of publicCategories as any[]) {
+    if (category.name && category.image_url) categoryImages[category.name] = category.image_url
+  }
+  for (const product of activeProducts) {
+    const cat = categoryName(product)
+    if (cat && product.category_image_url && !categoryImages[cat]) {
+      categoryImages[cat] = product.category_image_url
+    }
+  }
 
   const hasCover = !!shop.cover_url
 
@@ -1850,6 +1864,7 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
           shopStats={shopStats}
           uniqueCats={uniqueCats}
           catCounts={catCounts}
+          categoryImages={categoryImages}
           wishlistIds={wishlistIds}
           justAdded={justAdded}
           toggleWishlist={toggleWishlist}

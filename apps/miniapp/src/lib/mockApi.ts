@@ -283,6 +283,7 @@ export async function mockRequest<T>(path: string, init?: RequestInit): Promise<
   if (path === '/api/v1/shop/test') return ok(demoShop) as T
   if (path.startsWith('/api/v1/shop/test?')) return ok(demoShop) as T
   if (path === `/api/v1/shop/${tenantId}/products`) return ok(products.filter((p: any) => p.is_active !== false)) as T
+  if (path === `/api/v1/shop/${tenantId}/categories`) return ok(categories) as T
   if (path === `/api/v1/shop/${tenantId}/stats`) return ok({ avg_rating: 4.8, review_count: 18, customer_count: 124 }) as T
   if (path === `/api/v1/shop/${tenantId}/stories`) return ok(readDemoStories().filter((story: any) => story.is_active !== false)) as T
   if (path === `/api/v1/shop/${tenantId}/check-channel-membership`) return ok({ is_member: true }) as T
