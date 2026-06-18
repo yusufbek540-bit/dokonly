@@ -30,6 +30,8 @@ interface Props {
   products: any[]
   onProduct: (id: string) => void
   onShowCatalog: (category?: string) => void
+  onOpenCart?: () => void
+  cartCount?: number
 }
 
 function fmtPrice(n: number, currency: string) {
@@ -1232,11 +1234,14 @@ function PresetProductCard({
 function PresetStorefront({
   preset, shop, activeProducts, onShowCatalog, stories, shopStats, uniqueCats, catCounts,
   wishlistIds, justAdded, toggleWishlist, handleQuickAdd, handleViewProduct, setActiveStory,
+  onOpenCart, cartCount,
 }: {
   preset: PresetId
   shop: ShopData
   activeProducts: any[]
   onShowCatalog: (cat?: string) => void
+  onOpenCart: () => void
+  cartCount: number
   stories: any[]
   shopStats: any
   uniqueCats: string[]
@@ -1258,6 +1263,8 @@ function PresetStorefront({
   const activeHeroBanner = heroBanners.length ? heroBanners[heroBannerIndex % heroBanners.length] : null
   const heroImage = activeHeroBanner?.media_url || activeHeroBanner?.image_url || shop.cover_url || (heroProduct ? imageOf(heroProduct) : null)
   const heroTitle = clampText(activeHeroBanner?.title || activeHeroBanner?.caption || copy.headline, 82)
+  const heroCaption = activeHeroBanner?.title ? activeHeroBanner?.caption : null
+  const heroCta = activeHeroBanner?.cta_text || (activeHeroBanner?.cta_url ? 'Смотреть' : null)
   const storyHighlights = buildStoryHighlights(stories).slice(0, 8)
   const announcement = announcements[0]
   const gridCols = preset === 'marketplace' ? '1fr 1fr' : preset === 'minimal' ? '1fr' : '1fr 1fr'
@@ -1295,18 +1302,20 @@ function PresetStorefront({
         </div>
       </div>
 
-      <div style={{ padding: '14px 18px 0' }}>
+      <div style={{ padding: '14px 12px 0' }}>
         <div
+          data-premium-hero-actions
           style={{
             width: '100%',
-            minHeight: preset === 'marketplace' ? 178 : preset === 'minimal' ? 204 : 216,
+            height: 'clamp(420px, 70dvh, 560px)',
+            minHeight: 420,
             position: 'relative',
             overflow: 'hidden',
             border: 'none',
-            borderRadius: preset === 'minimal' ? 10 : preset === 'boutique' ? 34 : 28,
+            borderRadius: 32,
             background: copy.hero,
             textAlign: 'left',
-            boxShadow: preset === 'minimal' ? '0 1px 0 rgba(17,17,17,0.12)' : '0 30px 60px rgba(15,23,42,0.20)',
+            boxShadow: preset === 'minimal' ? '0 1px 0 rgba(17,17,17,0.12)' : '0 30px 70px rgba(15,23,42,0.22)',
           }}
         >
           {heroImage && (
@@ -1316,97 +1325,118 @@ function PresetStorefront({
               opacity: 1,
             }} />
           )}
-          {!heroImage && preset === 'boutique' && (
-            <div style={{ position: 'absolute', right: -28, top: 18, width: 126, height: 126, borderRadius: 999, border: '1px solid rgba(255,255,255,0.32)' }} />
-          )}
-          {!heroImage && (
-            <div style={{
-              position: 'relative',
-              padding: preset === 'marketplace' ? 22 : 24,
-              minHeight: preset === 'marketplace' ? 178 : preset === 'minimal' ? 204 : 216,
-              display: 'flex',
-              alignItems: 'flex-end',
-            }}>
-              <div style={{
-                maxWidth: preset === 'marketplace' ? '82%' : '92%',
-                fontSize: preset === 'minimal' ? 25 : preset === 'boutique' ? 27 : 25,
-                fontWeight: 950,
-                lineHeight: 1.08,
-                color: copy.heroText,
-                letterSpacing: '-0.035em',
-              }}>
-                {heroTitle}
-              </div>
-            </div>
-          )}
-          {activeHeroBanner && (activeHeroBanner.title || activeHeroBanner.caption || activeHeroBanner.cta_text) && (
-            <div style={{
-              position: 'absolute',
-              left: 16,
-              right: 16,
-              bottom: 16,
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'space-between',
-              gap: 12,
-              pointerEvents: 'none',
-            }}>
-              <div style={{
-                maxWidth: activeHeroBanner.cta_text ? '68%' : '88%',
-                padding: '10px 12px',
-                borderRadius: 16,
-                background: 'rgba(255,255,255,0.88)',
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(3,7,18,0.70) 0%, rgba(3,7,18,0.30) 38%, rgba(3,7,18,0.02) 72%, transparent 100%)', pointerEvents: 'none' }} />
+
+          <div style={{ position: 'absolute', top: 18, right: 18, display: 'flex', alignItems: 'center', gap: 10, zIndex: 4 }}>
+            <button
+              type="button"
+              onClick={() => onShowCatalog()}
+              aria-label="Поиск"
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 999,
+                background: 'rgba(255,255,255,0.86)',
+                border: '1px solid rgba(255,255,255,0.55)',
+                boxShadow: '0 16px 32px rgba(15,23,42,0.18)',
+                backdropFilter: 'blur(14px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Icon name="search" size={22} color="#111827" />
+            </button>
+            <button
+              type="button"
+              onClick={onOpenCart}
+              aria-label="Корзина"
+              style={{
+                minWidth: 74,
+                height: 56,
+                borderRadius: 999,
+                padding: '0 17px',
+                background: 'rgba(255,255,255,0.90)',
+                border: '1px solid rgba(255,255,255,0.58)',
+                boxShadow: '0 16px 32px rgba(15,23,42,0.18)',
+                backdropFilter: 'blur(14px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 9,
                 color: '#111827',
-                boxShadow: '0 14px 32px rgba(15,23,42,0.16)',
-                backdropFilter: 'blur(12px)',
-              }}>
-                {activeHeroBanner.title && (
-                  <div style={{ fontSize: 16, lineHeight: 1.15, fontWeight: 900, letterSpacing: '-0.02em' }}>
-                    {clampText(activeHeroBanner.title, 48)}
-                  </div>
-                )}
-                {activeHeroBanner.caption && (
-                  <div style={{ marginTop: activeHeroBanner.title ? 4 : 0, fontSize: 12, lineHeight: 1.35, color: '#374151', fontWeight: 700 }}>
-                    {clampText(activeHeroBanner.caption, activeHeroBanner.title ? 70 : 90)}
-                  </div>
-                )}
+                fontSize: 17,
+                fontWeight: 850,
+              }}
+            >
+              <Icon name="cart" size={21} color="#111827" />
+              <span>{cartCount}</span>
+            </button>
+          </div>
+
+          <div style={{ position: 'absolute', left: 22, right: 22, bottom: 50, zIndex: 3 }}>
+            <div style={{
+              maxWidth: 320,
+              fontSize: 'clamp(42px, 14vw, 66px)',
+              lineHeight: 0.95,
+              fontWeight: 950,
+              letterSpacing: '-0.055em',
+              color: 'white',
+              textShadow: '0 2px 22px rgba(0,0,0,0.30)',
+            }}>
+              {heroTitle}
+            </div>
+            {heroCaption && (
+              <div style={{ marginTop: 14, maxWidth: 250, color: 'rgba(255,255,255,0.92)', fontSize: 17, lineHeight: 1.18, fontWeight: 650, textShadow: '0 2px 18px rgba(0,0,0,0.28)' }}>
+                {clampText(heroCaption, 72)}
               </div>
-              {activeHeroBanner.cta_text && (
-                <button
-                  type="button"
-                  onClick={() => openStoryTarget(activeHeroBanner, onShowCatalog)}
-                  style={{
-                    pointerEvents: 'auto',
-                    minHeight: 42,
-                    borderRadius: 999,
-                    padding: '0 14px',
-                    background: '#111827',
-                    color: 'white',
-                    fontSize: 12,
-                    fontWeight: 900,
-                    boxShadow: '0 12px 26px rgba(15,23,42,0.24)',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {activeHeroBanner.cta_text}
-                </button>
-              )}
+            )}
+            {heroCta && (
+              <button
+                type="button"
+                onClick={() => activeHeroBanner ? openStoryTarget(activeHeroBanner, onShowCatalog) : onShowCatalog()}
+                style={{
+                  marginTop: 22,
+                  minHeight: 52,
+                  maxWidth: '92%',
+                  borderRadius: 999,
+                  padding: '0 17px 0 22px',
+                  background: 'rgba(255,255,255,0.94)',
+                  color: '#111827',
+                  boxShadow: '0 16px 38px rgba(0,0,0,0.22)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 13,
+                  fontSize: 16,
+                  fontWeight: 820,
+                  lineHeight: 1.15,
+                  whiteSpace: 'normal',
+                  textAlign: 'center',
+                }}
+              >
+                <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>{heroCta}</span>
+                <span style={{ width: 26, height: 26, borderRadius: 999, background: '#1f2937', color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  ›
+                </span>
+              </button>
+            )}
+          </div>
+
+          {heroBanners.length > 1 && (
+            <div style={{ position: 'absolute', left: 0, right: 0, bottom: 18, zIndex: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, minHeight: 8 }}>
+              {heroBanners.map((b: any, i: number) => (
+                <div key={b.id ?? i} style={{
+                  width: i === heroBannerIndex % heroBanners.length ? 34 : 28,
+                  height: 5,
+                  borderRadius: 999,
+                  background: i === heroBannerIndex % heroBanners.length ? 'rgba(255,255,255,0.96)' : 'rgba(255,255,255,0.34)',
+                  transition: 'width 0.2s ease, background 0.2s ease',
+                }} />
+              ))}
             </div>
           )}
         </div>
-        {heroBanners.length > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 10, minHeight: 8 }}>
-            {heroBanners.map((b: any, i: number) => (
-              <div key={b.id ?? i} style={{
-                width: i === heroBannerIndex % heroBanners.length ? 24 : 8,
-                height: 5,
-                borderRadius: 999,
-                background: i === heroBannerIndex % heroBanners.length ? '#111827' : 'rgba(17,24,39,0.22)',
-                transition: 'width 0.2s ease, background 0.2s ease',
-              }} />
-            ))}
-          </div>
-        )}
       </div>
 
       {storyHighlights.length > 0 && (
@@ -1549,7 +1579,7 @@ function PresetStorefront({
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: Props) {
+export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog, onOpenCart = () => {}, cartCount = 0 }: Props) {
   const qc = useQueryClient()
   const addToCart = useCart(s => s.add)
   const activeProducts = products.filter((p: any) => p.is_active)
@@ -1743,14 +1773,30 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 64, background: 'linear-gradient(145deg, #111827, #0f766e)' }}>🎬</div>
         )}
         {(activeStory.title || activeStory.caption || activeStory.cta_text) && (
-          <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 18, padding: '96px 20px 28px', background: 'linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.42) 52%, transparent 100%)', pointerEvents: 'none' }}>
+          <div
+            data-story-bottom-center
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 18,
+              padding: '96px 22px 34px',
+              background: 'linear-gradient(to top, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.45) 48%, transparent 100%)',
+              pointerEvents: 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              textAlign: 'center',
+            }}
+          >
             {activeStory.title && (
-              <div style={{ fontSize: 24, color: 'white', lineHeight: 1.08, fontWeight: 950, letterSpacing: '-0.035em', marginBottom: activeStory.caption ? 8 : 0 }}>
+              <div style={{ maxWidth: 320, fontSize: 24, color: 'white', lineHeight: 1.08, fontWeight: 950, letterSpacing: '-0.035em', marginBottom: activeStory.caption ? 8 : 0 }}>
                 {activeStory.title}
               </div>
             )}
             {activeStory.caption && (
-              <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.92)', lineHeight: 1.45, marginBottom: activeStory.cta_text ? 14 : 0, fontWeight: 650 }}>
+              <p style={{ maxWidth: 320, fontSize: 15, color: 'rgba(255,255,255,0.92)', lineHeight: 1.45, marginBottom: activeStory.cta_text ? 14 : 0, fontWeight: 650 }}>
                 {activeStory.caption}
               </p>
             )}
@@ -1758,7 +1804,22 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
               <button
                 type="button"
                 onClick={() => openStoryTarget(activeStory, onShowCatalog)}
-                style={{ pointerEvents: 'auto', minHeight: 46, padding: '0 18px', borderRadius: 999, background: 'white', color: '#111827', fontWeight: 900, fontSize: 14, boxShadow: '0 14px 30px rgba(0,0,0,0.24)' }}
+                style={{
+                  pointerEvents: 'auto',
+                  minHeight: 46,
+                  maxWidth: '92%',
+                  padding: '12px 18px',
+                  borderRadius: 999,
+                  background: 'white',
+                  color: '#111827',
+                  fontWeight: 900,
+                  fontSize: 14,
+                  lineHeight: 1.15,
+                  textAlign: 'center',
+                  whiteSpace: 'normal',
+                  overflowWrap: 'anywhere',
+                  boxShadow: '0 14px 30px rgba(0,0,0,0.24)',
+                }}
               >
                 {activeStory.cta_text}
               </button>
@@ -1796,6 +1857,8 @@ export function HomeTab({ shop, tenantId, products, onProduct, onShowCatalog }: 
           handleQuickAdd={handleQuickAdd}
           handleViewProduct={handleViewProduct}
           setActiveStory={openStory}
+          onOpenCart={onOpenCart}
+          cartCount={cartCount}
         />
         {storyOverlay}
       </div>

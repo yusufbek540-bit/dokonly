@@ -549,6 +549,8 @@ function ShopApp() {
           products={products}
           onProduct={setProductId}
           onShowCatalog={handleShowCatalog}
+          onOpenCart={() => handleTabChange('cart')}
+          cartCount={cartCount}
         />
       )}
       {tab === 'catalog' && (
