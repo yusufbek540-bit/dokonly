@@ -11,6 +11,8 @@ from app.core.auth import _owner_id_from_tg, _validate_init_data
 from app.core.config import settings
 from app.core.crypto import decrypt
 from app.core.database import get_db
+from app.core.miniapp_urls import product_miniapp_url
+from app.bot.share import prepared_product_share_result
 from app.models.order import Order, OrderItem, Customer, WishlistItem
 from app.models.promo import PromoCode
 from app.models.product import Product
@@ -1146,6 +1148,96 @@ async def create_share_intent(
     bot_username = tenant.bot_username or ""
     deep_link = f"https://t.me/{bot_username}?start=share_{share_id}" if bot_username else ""
     return {"share_id": share_id, "referral_code": None, "deep_link": deep_link}
+
+
+def _fmt_product_price(price: float, currency: str) -> str:
+    if currency == "UZS":
+        return f"{int(price):,} сум".replace(",", " ")
+    return f"{price:,.2f} {currency}"
+
+
+@router.post("/{tenant_id}/products/{product_id}/share-prepare")
+async def prepare_product_share(
+    tenant_id: str,
+    product_id: str,
+    x_telegram_init_data: str = Header(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    if not x_telegram_init_data:
+        raise HTTPException(401, "Auth required")
+
+    tenant_result = await db.execute(select(Tenant).where(Tenant.id == tenant_id, Tenant.is_active == True))  # noqa: E712
+    tenant = tenant_result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(404, "Shop not found")
+
+    bot_token = None
+    if tenant.bot_token_enc:
+        try:
+            bot_token = decrypt(tenant.bot_token_enc)
+        except Exception:
+            bot_token = None
+    bot_token = bot_token or settings.telegram_bot_token
+    if not bot_token:
+        raise HTTPException(500, "Telegram bot token is not configured")
+
+    tg_user = _validate_init_data(x_telegram_init_data)
+    if tg_user is None and tenant.bot_token_enc:
+        tg_user = _validate_init_data(x_telegram_init_data, bot_token=bot_token)
+    if tg_user is None:
+        raise HTTPException(401, "Invalid auth")
+
+    product_result = await db.execute(
+        select(Product).where(
+            Product.id == product_id,
+            Product.tenant_id == tenant.id,
+            Product.is_active == True,  # noqa: E712
+        )
+    )
+    product = product_result.scalar_one_or_none()
+    if not product:
+        raise HTTPException(404, "Product not found")
+
+    deep_link = (
+        f"https://t.me/{tenant.bot_username}?startapp=product_{product.id}"
+        if tenant.bot_username
+        else product_miniapp_url(tenant.slug, product.id)
+    )
+    prepared_result = prepared_product_share_result(
+        product=product,
+        tenant=tenant,
+        price_str=_fmt_product_price(float(product.price), product.currency),
+        deep_link=deep_link,
+    )
+
+    if not settings.is_production and x_telegram_init_data.startswith("mock:"):
+        return {"id": f"mock-prepared-{product.id}"}
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        tg_res = await client.post(
+            f"https://api.telegram.org/bot{bot_token}/savePreparedInlineMessage",
+            json={
+                "user_id": tg_user["id"],
+                "result": prepared_result,
+                "allow_user_chats": True,
+                "allow_bot_chats": False,
+                "allow_group_chats": True,
+                "allow_channel_chats": True,
+            },
+        )
+
+    if not tg_res.is_success:
+        detail = tg_res.text
+        raise HTTPException(502, {"error": "Telegram API error", "detail": detail})
+
+    body = tg_res.json()
+    if not body.get("ok"):
+        raise HTTPException(502, body.get("description") or "Telegram refused prepared message")
+
+    prepared_id = (body.get("result") or {}).get("id")
+    if not prepared_id:
+        raise HTTPException(502, "Telegram did not return prepared message id")
+    return {"id": prepared_id}
 
 
 @router.get("/{tenant_id}/products/{product_id}/recommendations")

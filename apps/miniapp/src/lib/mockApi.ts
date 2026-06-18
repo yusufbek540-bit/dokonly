@@ -336,6 +336,7 @@ export async function mockRequest<T>(path: string, init?: RequestInit): Promise<
   if (pathname.includes('/reviews')) return ok({ avg_rating: 4.8, count: 2, reviews: [{ rating: 5, text: 'Отлично', reviewer_name: 'Demo Buyer', created_at: now() }] }) as T
   if (pathname.includes('/recommendations')) return ok(products.slice(0, 2)) as T
   if (pathname.endsWith('/share-intent')) return ok({ share_id: `share-${Date.now()}`, referral_code: 'DEMO', deep_link: `${window.location.origin}?shop=test` }) as T
+  if (pathname.endsWith('/share-prepare')) return ok({ id: `mock-prepared-${Date.now()}` }) as T
   if (path === `/api/v1/shop/${tenantId}/my-loyalty-history`) return ok([{ id: 'loyalty-1', type: 'earn', points: 10, description: 'Demo order reward', created_at: now() }]) as T
   if (path === `/api/v1/shop/${tenantId}/my-referral`) {
     return ok({ is_active: true, code: 'DEMO', link: `${window.location.origin}?shop=test&ref=DEMO`, stats: { invited: 2, completed: 1, pending: 1, earned: 12000 }, friends: [] }) as T

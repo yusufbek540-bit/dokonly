@@ -37,8 +37,10 @@ interface TelegramWebApp {
     selectionChanged: () => void
   }
   colorScheme: 'light' | 'dark'
+  isVersionAtLeast?: (version: string) => boolean
   openLink: (url: string) => void
   switchInlineQuery: (query: string, types?: string[]) => void
+  shareMessage?: (preparedMessageId: string) => void
   shareToStory: (media_url: string, params?: object) => void
 }
 

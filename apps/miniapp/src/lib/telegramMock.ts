@@ -96,8 +96,14 @@ export function installTelegramMock() {
       requestFullscreen: noop,
       onEvent,
       offEvent,
+      isVersionAtLeast: () => true,
       openLink: (url: string) => window.open(url, '_blank', 'noopener,noreferrer'),
       openTelegramLink: (url: string) => window.open(url, '_blank', 'noopener,noreferrer'),
+      shareMessage: (preparedMessageId: string) => {
+        showMockAlert(
+          `Mock Telegram: открылся бы нативный выбор чата и отправилось сообщение от бота с inline-кнопкой.\n\nPrepared message: ${preparedMessageId}`,
+        )
+      },
       switchInlineQuery: (query: string) => {
         showMockAlert(
           `Mock Telegram: в настоящем Telegram откроется выбор чата, а бот отправит карточку товара с inline-кнопкой.\n\nInline query: ${query}`,

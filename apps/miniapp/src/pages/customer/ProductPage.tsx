@@ -37,6 +37,7 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
   const [added, setAdded] = useState(false)
   const [descExpanded, setDescExpanded] = useState(false)
   const [showShare, setShowShare] = useState(false)
+  const [shareBusy, setShareBusy] = useState(false)
   const [copied, setCopied] = useState(false)
   const [reviewSort, setReviewSort] = useState<'recent' | 'highest' | 'lowest'>('recent')
   const [showImageViewer, setShowImageViewer] = useState(false)
@@ -151,8 +152,28 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
     setShowShare(true)
   }
 
-  const handleTelegramShare = () => {
+  const handleTelegramShare = async () => {
+    if (shareBusy) return
     const tg = (window as any).Telegram?.WebApp
+    const supportsPrepared =
+      typeof tg?.shareMessage === 'function' &&
+      typeof tg?.isVersionAtLeast === 'function' &&
+      tg.isVersionAtLeast('8.0')
+
+    if (supportsPrepared) {
+      setShareBusy(true)
+      try {
+        const { id } = await api.prepareProductShare(tenantId, productId)
+        tg.shareMessage(id)
+        setShowShare(false)
+        return
+      } catch {
+        // Fall back to inline query below for older/incomplete bot setups.
+      } finally {
+        setShareBusy(false)
+      }
+    }
+
     if (botUsername && typeof tg?.switchInlineQuery === 'function') {
       try {
         tg.switchInlineQuery(`${productId}`, ['users', 'groups', 'channels'])
@@ -604,10 +625,12 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
             {/* Send via Telegram */}
             <button
               onClick={handleTelegramShare}
+              disabled={shareBusy}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 14,
                 padding: '14px 16px', borderRadius: 14, marginBottom: 8,
                 background: 'var(--card)', border: '1px solid var(--border)', cursor: 'pointer',
+                opacity: shareBusy ? 0.72 : 1,
               }}
             >
               <div style={{
@@ -620,7 +643,7 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
                 </svg>
               </div>
               <div style={{ flex: 1, textAlign: 'left' }}>
-                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Отправить в Telegram</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{shareBusy ? 'Готовим сообщение...' : 'Отправить в Telegram'}</div>
                 <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>Сообщение от бота с кнопкой товара</div>
               </div>
             </button>

@@ -185,6 +185,11 @@ export const api = {
       `/api/v1/shop/${tenantId}/products/${productId}/share-intent`,
       { method: 'POST' },
     ),
+  prepareProductShare: (tenantId: string, productId: string) =>
+    request<{ id: string }>(
+      `/api/v1/shop/${tenantId}/products/${productId}/share-prepare`,
+      { method: 'POST' },
+    ),
   getRecommendations: (tenantId: string, productId: string) =>
     request<any[]>(`/api/v1/shop/${tenantId}/products/${productId}/recommendations`),
 

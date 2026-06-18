@@ -126,3 +126,30 @@ def test_inline_product_share_copy_uses_bot_style_message_without_raw_link():
     assert "5 000 000 сум" in caption
     assert "http" not in caption.lower()
     assert product_share_button_text(tenant) == "Открыть в IDESERVE"
+
+
+def test_prepared_product_share_result_has_clean_button_without_raw_link():
+    from app.bot.share import prepared_product_share_result
+
+    product = SimpleNamespace(id="p_1", name="Рандомная Сумка")
+    tenant = SimpleNamespace(name="IDESERVE")
+
+    result = prepared_product_share_result(
+        product=product,
+        tenant=tenant,
+        price_str="5 000 000 сум",
+        deep_link="https://t.me/ideserve_shop_bot?startapp=product_p_1",
+    )
+
+    assert result["type"] == "article"
+    assert result["id"] == "share-product-p_1"
+    assert result["input_message_content"]["parse_mode"] == "HTML"
+    assert result["input_message_content"]["link_preview_options"] == {"is_disabled": True}
+    assert "Смотри, что я нашла на IDESERVE" in result["input_message_content"]["message_text"]
+    assert "<b>Рандомная Сумка</b>" in result["input_message_content"]["message_text"]
+    assert "5 000 000 сум" in result["input_message_content"]["message_text"]
+    assert "https://" not in result["input_message_content"]["message_text"]
+    assert result["reply_markup"]["inline_keyboard"][0][0] == {
+        "text": "Открыть в IDESERVE",
+        "url": "https://t.me/ideserve_shop_bot?startapp=product_p_1",
+    }
