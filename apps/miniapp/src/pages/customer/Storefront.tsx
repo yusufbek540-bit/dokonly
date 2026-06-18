@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Icon } from '@/components/Icon'
+import { CategoryImageRail } from '@/components/CategoryImageRail'
 import { useCart } from '@/store/cart'
 import { FullPage } from '@/components/FullPage'
 
@@ -116,6 +117,12 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
     queryFn: () => api.getProducts(shop.id) as Promise<any[]>,
   })
 
+  const { data: publicCategories = [] } = useQuery({
+    queryKey: ['shop-categories', shop.id],
+    queryFn: () => api.getCategories(shop.id),
+    staleTime: 5 * 60 * 1000,
+  })
+
   const { data: wishlistIds = [] } = useQuery({
     queryKey: ['wishlist', shop.id],
     queryFn: () => api.getWishlist(shop.id),
@@ -182,10 +189,27 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
   })
 
   const activeProducts = products.filter((p: any) => p.is_active)
-  const uniqueCats = Array.from(new Set(activeProducts.map((p: any) => p.category).filter(Boolean))) as string[]
-  const catCounts: Record<string, number> = { 'Все': activeProducts.length }
-  for (const c of uniqueCats) catCounts[c] = activeProducts.filter((p: any) => p.category === c).length
-  const categories = ['Все', ...uniqueCats]
+  const savedCategoryNames = (publicCategories as any[])
+    .map((category: any) => category.name)
+    .filter(Boolean)
+  const productCategoryNames = activeProducts
+    .map((p: any) => p.category ?? p.category_name ?? p.category_title)
+    .filter(Boolean)
+  const uniqueCats = Array.from(new Set([...savedCategoryNames, ...productCategoryNames])) as string[]
+  const categoryImages: Record<string, string> = {}
+  for (const category of publicCategories as any[]) {
+    if (category.name && category.image_url) categoryImages[category.name] = category.image_url
+  }
+  for (const product of activeProducts) {
+    const productCategory = product.category ?? product.category_name ?? product.category_title
+    if (productCategory && product.category_image_url && !categoryImages[productCategory]) {
+      categoryImages[productCategory] = product.category_image_url
+    }
+  }
+  const categoryRailItems = uniqueCats.map((name) => ({
+    name,
+    imageUrl: categoryImages[name],
+  }))
 
   // Collect attribute options from all active products
   const attrOptions: Record<string, string[]> = {}
@@ -209,7 +233,7 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
 
   const visible = activeProducts
     .filter((p: any) => {
-      if (cat !== 'Все' && p.category !== cat) return false
+      if (cat !== 'Все' && (p.category ?? p.category_name ?? p.category_title) !== cat) return false
       if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !(p.description ?? '').toLowerCase().includes(search.toLowerCase())) return false
       const price = Number(p.price)
       if (activeMinPrice && price < Number(activeMinPrice)) return false
@@ -244,7 +268,7 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
   const featured = trulyFeatured.length > 0 ? trulyFeatured.slice(0, 4) : allActive.slice(0, 4)
 
   const pendingFilterCount = activeProducts.filter((p: any) => {
-    if (cat !== 'Все' && p.category !== cat) return false
+    if (cat !== 'Все' && (p.category ?? p.category_name ?? p.category_title) !== cat) return false
     const price = Number(p.price)
     if (filterMinPrice && price < Number(filterMinPrice)) return false
     if (filterMaxPrice && price > Number(filterMaxPrice)) return false
@@ -868,35 +892,13 @@ export function CatalogContent({ shop, onProduct, initialCategory }: Props) {
           </div>
         )}
 
-        {/* Categories */}
-        {categories.length > 1 && (
-          <div style={{ display: 'flex', gap: 6, padding: '0 16px 16px', overflowX: 'auto' }}>
-            {categories.map(c => (
-              <button
-                key={c}
-                onClick={() => setCat(c)}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 5,
-                  padding: '7px 14px', borderRadius: 999,
-                  background: cat === c ? 'var(--ink)' : 'var(--subtle)',
-                  color: cat === c ? 'var(--bg)' : 'var(--ink)',
-                  fontSize: 13, fontWeight: 500,
-                  whiteSpace: 'nowrap', flexShrink: 0,
-                  border: '1px solid transparent',
-                  transition: 'all 0.15s',
-                }}
-              >
-                {c}
-                <span style={{
-                  fontSize: 11, fontWeight: 600,
-                  background: cat === c ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.08)',
-                  borderRadius: 999, padding: '1px 5px',
-                  color: cat === c ? 'var(--bg)' : 'var(--muted)',
-                }}>
-                  {catCounts[c] ?? 0}
-                </span>
-              </button>
-            ))}
+        {categoryRailItems.length > 0 && (
+          <div style={{ paddingBottom: 18 }}>
+            <CategoryImageRail
+              items={categoryRailItems}
+              selected={cat === 'Все' ? null : cat}
+              onSelect={(name) => setCat(name ?? 'Все')}
+            />
           </div>
         )}
 

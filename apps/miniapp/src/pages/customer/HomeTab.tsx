@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import type { CSSProperties } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Icon } from '@/components/Icon'
+import { CategoryImageRail } from '@/components/CategoryImageRail'
 import { api } from '@/lib/api'
 import { useCart } from '@/store/cart'
 
@@ -1265,6 +1266,10 @@ function PresetStorefront({
   const storyHighlights = buildStoryHighlights(stories).slice(0, 8)
   const announcement = announcements[0]
   const gridCols = preset === 'marketplace' ? '1fr 1fr' : preset === 'minimal' ? '1fr' : '1fr 1fr'
+  const categoryRailItems = uniqueCats.map((name) => ({
+    name,
+    imageUrl: categoryImages[name],
+  }))
 
   useEffect(() => {
     if (heroBanners.length <= 1) return
@@ -1400,59 +1405,13 @@ function PresetStorefront({
         </div>
       )}
 
-      {uniqueCats.length > 0 && (
-        <div style={{
-          padding: '18px 18px 0',
-          display: preset === 'marketplace' ? 'grid' : 'flex',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 10,
-          overflowX: preset === 'marketplace' ? undefined : 'auto',
-          scrollbarWidth: 'none',
-        }}>
-          {uniqueCats.slice(0, preset === 'marketplace' ? 6 : 8).map((c) => {
-            const imageUrl = categoryImages[c]
-            return (
-              <button
-                key={c}
-                onClick={() => onShowCatalog(c)}
-                style={{
-                  flexShrink: 0,
-                  minWidth: preset === 'marketplace' ? undefined : 132,
-                  minHeight: preset === 'marketplace' ? 82 : 46,
-                  borderRadius: preset === 'minimal' ? 999 : preset === 'boutique' ? 18 : 16,
-                  border: presetBorder(preset),
-                  background: preset === 'marketplace' ? '#ffffff' : 'rgba(255,255,255,0.82)',
-                  padding: preset === 'marketplace' ? '10px 12px' : '0 12px',
-                  textAlign: 'left',
-                  boxShadow: preset === 'marketplace' ? '0 12px 24px rgba(15,23,42,0.06)' : '0 8px 18px rgba(15,23,42,0.04)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                }}
-              >
-                <div style={{
-                  width: preset === 'marketplace' ? 46 : 32,
-                  height: preset === 'marketplace' ? 46 : 32,
-                  borderRadius: preset === 'minimal' ? 999 : 12,
-                  overflow: 'hidden',
-                  background: 'var(--accent-soft)',
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--accent)',
-                  fontSize: 13,
-                  fontWeight: 900,
-                }}>
-                  {imageUrl ? <StorefrontMedia src={imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : c.slice(0, 1)}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 900, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c}</div>
-                  <div style={{ marginTop: 3, fontSize: 11, color: '#6b7280' }}>{catCounts[c]} товаров</div>
-                </div>
-              </button>
-            )
-          })}
+      {categoryRailItems.length > 0 && (
+        <div style={{ paddingTop: 18 }}>
+          <CategoryImageRail
+            items={categoryRailItems}
+            maxItems={preset === 'marketplace' ? 6 : 8}
+            onSelect={(name) => onShowCatalog(name)}
+          />
         </div>
       )}
 
