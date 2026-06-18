@@ -939,6 +939,10 @@ function storyHighlightSlug(value: string) {
     .replace(/^-+|-+$/g, '')
 }
 
+function isVideoUrl(value?: string | null) {
+  return !!value && /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(value)
+}
+
 const STORY_BANNER_KIND_COPY: Record<StoryBannerKind, { label: string; icon: string; hint: string }> = {
   story: {
     label: 'Story',
@@ -1125,7 +1129,9 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
   const [mediaUrl, setMediaUrl] = useState('')
   const [isActive, setIsActive] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [uploadingHighlightCover, setUploadingHighlightCover] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const highlightCoverFileRef = useRef<HTMLInputElement>(null)
 
   const { data: stories = [], isLoading } = useQuery({
     queryKey: ['seller-stories'],
@@ -1189,6 +1195,18 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
       const { url } = await api.seller.uploadFile(f)
       setMediaUrl(url)
     } catch { } finally { setUploading(false) }
+  }
+
+  async function handleHighlightCoverFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]; if (!f) return
+    setUploadingHighlightCover(true)
+    try {
+      const { url } = await api.seller.uploadFile(f)
+      setHighlightCoverUrl(url)
+    } catch { } finally {
+      setUploadingHighlightCover(false)
+      e.target.value = ''
+    }
   }
 
   function resetForm(nextKind: StoryBannerKind = 'story') {
@@ -1440,6 +1458,7 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
             </div>
 
             <input ref={fileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleFile} />
+            <input ref={highlightCoverFileRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleHighlightCoverFile} />
             {kind === 'story' && (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
                 <input
@@ -1454,12 +1473,42 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
                     <option key={highlight.highlight_id ?? highlight.highlight_title ?? highlight.id} value={highlight.highlight_title ?? ''} />
                   ))}
                 </datalist>
-                <input
-                  value={highlightCoverUrl}
-                  onChange={e => setHighlightCoverUrl(e.target.value)}
-                  placeholder="Обложка хайлайта (необязательно)"
-                  style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--subtle)', fontSize: 14, color: 'var(--ink)' }}
-                />
+                <div style={{ border: '1px solid var(--border)', borderRadius: 14, background: 'var(--card)', padding: 12, display: 'grid', gridTemplateColumns: highlightCoverUrl ? '72px 1fr' : '1fr', gap: 12, alignItems: 'center' }}>
+                  {highlightCoverUrl && (
+                    <div style={{ width: 72, height: 72, borderRadius: 18, overflow: 'hidden', background: 'var(--subtle)', border: '1px solid var(--border)' }}>
+                      {isVideoUrl(highlightCoverUrl) ? (
+                        <video src={highlightCoverUrl} muted playsInline autoPlay loop style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <img src={highlightCoverUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      )}
+                    </div>
+                  )}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', marginBottom: 4 }}>Обложка хайлайта</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.35, marginBottom: 10 }}>
+                      Показывается в кружке хайлайта на главной витрине.
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => highlightCoverFileRef.current?.click()}
+                        disabled={uploadingHighlightCover}
+                        style={{ minHeight: 36, borderRadius: 10, padding: '0 12px', background: 'var(--accent-soft)', color: 'var(--accent)', fontSize: 12, fontWeight: 800, border: '1px solid rgba(0,179,131,0.22)' }}
+                      >
+                        {uploadingHighlightCover ? 'Загрузка...' : 'Загрузить обложку'}
+                      </button>
+                      {highlightCoverUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setHighlightCoverUrl('')}
+                          style={{ minHeight: 36, borderRadius: 10, padding: '0 12px', background: 'var(--subtle)', color: 'var(--muted-strong)', fontSize: 12, fontWeight: 800, border: '1px solid var(--border)' }}
+                        >
+                          Удалить обложку
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>
                   Stories с одинаковым названием хайлайта будут открываться как одна подборка. Если обложка пустая, используется медиа первой story.
                 </div>
