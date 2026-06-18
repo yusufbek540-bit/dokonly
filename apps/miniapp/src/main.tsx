@@ -34,8 +34,7 @@ installTelegramMock()
     const diff = Math.round(window.screen.height - (tg.viewportHeight || window.innerHeight))
     if (diff > 20 && diff < 200) { setSafeTop(diff); return }
 
-    // Last resort: Telegram header bar is ~56px on most devices
-    setSafeTop(56)
+    setSafeTop(0)
   }
 
   // Run immediately, again after viewport settles, and on any changes

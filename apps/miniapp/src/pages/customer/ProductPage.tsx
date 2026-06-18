@@ -141,9 +141,9 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
   const colors: string[] = product.colors ?? []
 
   const productUrl = botUsername
-    ? `https://t.me/${botUsername}/store?startapp=p_${productId}`
+    ? `https://t.me/${botUsername}?startapp=product_${productId}`
     : shopSlug
-      ? `https://t.me/${shopSlug}bot/store?startapp=p_${productId}`
+      ? `${window.location.origin}${window.location.pathname}?shop=${encodeURIComponent(shopSlug)}&product=${encodeURIComponent(productId)}`
       : window.location.href
 
   const handleShare = () => {
@@ -166,14 +166,6 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
       setCopied(true)
       setTimeout(() => { setCopied(false); setShowShare(false) }, 1200)
     })
-  }
-
-  const handleStoryShare = () => {
-    const tg = (window as any).Telegram?.WebApp
-    if (tg?.shareToStory) {
-      tg.shareToStory(product.images?.[0] ?? '', { widget_link: { url: productUrl, name: product.name } })
-    }
-    setShowShare(false)
   }
 
   return (
@@ -601,14 +593,6 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
             <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {product.name}
             </div>
-            {/* Referral earn callout */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 12, background: 'var(--accent-soft)', border: '1px solid var(--accent)', marginBottom: 16 }}>
-              <span style={{ fontSize: 20, flexShrink: 0 }}>🎁</span>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>Зарабатывайте с каждого заказа</div>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 1 }}>Ваш реферальный код добавится к ссылке автоматически</div>
-              </div>
-            </div>
             {/* Send via Telegram */}
             <button
               onClick={handleTelegramShare}
@@ -629,34 +613,9 @@ export function ProductPage({ tenantId, productId, currency, shopSlug, botUserna
               </div>
               <div style={{ flex: 1, textAlign: 'left' }}>
                 <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Отправить в Telegram</div>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>Поделитесь с друзьями в чате</div>
+                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>Сообщение от бота с кнопкой товара</div>
               </div>
             </button>
-            {/* Share to Story */}
-            {!!(window as any).Telegram?.WebApp?.shareToStory && product.images?.[0] && (
-              <button
-                onClick={handleStoryShare}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '14px 16px', borderRadius: 14, marginBottom: 8,
-                  background: 'var(--card)', border: '1px solid var(--border)', cursor: 'pointer',
-                }}
-              >
-                <div style={{
-                  width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                  background: 'rgba(131,58,180,0.12)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#833AB4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-                  </svg>
-                </div>
-                <div style={{ flex: 1, textAlign: 'left' }}>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>Добавить в Stories</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 1 }}>Поделитесь в Telegram Stories</div>
-                </div>
-              </button>
-            )}
             {/* Copy link */}
             <button
               onClick={handleCopyLink}

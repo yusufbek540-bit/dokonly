@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { useTelegram, useSafeTop } from '@/hooks/useTelegram'
+import { useTelegram } from '@/hooks/useTelegram'
 import { CatalogContent } from '@/pages/customer/Storefront'
 import { HomeTab } from '@/pages/customer/HomeTab'
 import { CartTab } from '@/pages/customer/CartTab'
+import { FavoritesTab } from '@/pages/customer/FavoritesTab'
 import { ProfileTab } from '@/pages/customer/ProfileTab'
 import { ProductPage } from '@/pages/customer/ProductPage'
 import { Checkout } from '@/pages/customer/Checkout'
@@ -25,7 +26,7 @@ import { MainButtonBar } from '@/components/MainButtonBar'
 const SHOP_SLUG = new URLSearchParams(window.location.search).get('shop')
 
 export type BuyerScreen = 'storefront' | 'product' | 'checkout'
-type BuyerTab = 'home' | 'catalog' | 'cart' | 'profile'
+type BuyerTab = 'home' | 'catalog' | 'cart' | 'favorites' | 'profile'
 
 // ─── Theme ───────────────────────────────────────────────────────────────────
 
@@ -114,7 +115,8 @@ function BottomNav({ tab, onTab, cartCount }: BottomNavProps) {
     { id: 'home',    label: 'Главная', icon: 'home' },
     { id: 'catalog', label: 'Каталог', icon: 'search' },
     { id: 'cart',    label: 'Корзина', icon: 'cart' },
-    { id: 'profile', label: 'Профиль', icon: 'star' },
+    { id: 'favorites', label: 'Избранное', icon: 'star' },
+    { id: 'profile', label: 'Профиль', icon: 'users' },
   ]
 
   return (
@@ -440,7 +442,6 @@ function AiConsultantView({ tenantId, onClose }: { tenantId: string; onClose: ()
  */
 function ShopApp() {
   useTelegram()
-  const safeTop = useSafeTop()
   const slug = SHOP_SLUG!
 
   const [tab, setTab] = useState<BuyerTab>('home')
@@ -566,6 +567,15 @@ function ShopApp() {
           onShowCatalog={() => handleTabChange('catalog')}
         />
       )}
+      {tab === 'favorites' && (
+        <FavoritesTab
+          tenantId={shop.id}
+          currency={shop.currency}
+          products={products}
+          onProduct={setProductId}
+          onShowCatalog={() => handleTabChange('catalog')}
+        />
+      )}
       {tab === 'profile' && (
         <ProfileTab
           tenantId={shop.id}
@@ -578,7 +588,7 @@ function ShopApp() {
   )
 
   return (
-    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--bg)', paddingTop: safeTop }}>
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', height: '100dvh', background: 'var(--bg)', paddingTop: 0 }}>
       <div style={{ flex: 1, overflowY: 'auto', position: 'relative' }}>
         {content}
       </div>

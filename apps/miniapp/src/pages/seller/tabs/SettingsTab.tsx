@@ -1115,6 +1115,10 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
     queryKey: ['seller-stories'],
     queryFn: () => api.seller.stories(),
   })
+  const { data: categories = [] } = useQuery({
+    queryKey: ['seller-categories'],
+    queryFn: () => api.seller.categories(),
+  })
 
   const items = (stories as StoryBannerItem[])
     .map(normalizeStoryBanner)
@@ -1126,6 +1130,7 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
     mutationFn: (body: object) => api.seller.createStory(body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['seller-stories'] })
+      qc.invalidateQueries({ queryKey: ['shop-stories'] })
       closeForm()
     },
   })
@@ -1134,19 +1139,26 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
     mutationFn: ({ id, body }: { id: string; body: object }) => api.seller.updateStory(id, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['seller-stories'] })
+      qc.invalidateQueries({ queryKey: ['shop-stories'] })
       closeForm()
     },
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.seller.deleteStory(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['seller-stories'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['seller-stories'] })
+      qc.invalidateQueries({ queryKey: ['shop-stories'] })
+    },
   })
 
   const reorderMutation = useMutation({
     mutationFn: (updates: { id: string; sort_order: number }[]) =>
       Promise.all(updates.map(update => api.seller.updateStory(update.id, { sort_order: update.sort_order }))),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['seller-stories'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['seller-stories'] })
+      qc.invalidateQueries({ queryKey: ['shop-stories'] })
+    },
   })
 
   async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1421,20 +1433,33 @@ export function StoriesView({ onBack }: { onBack: () => void }) {
               placeholder="Ссылка на изображение или видео"
               style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--subtle)', fontSize: 14, color: 'var(--ink)' }}
             />
-            <input
-              value={ctaText}
-              onChange={e => setCtaText(e.target.value)}
-              placeholder="Текст кнопки CTA (необязательно)"
-              style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--subtle)', fontSize: 14, color: 'var(--ink)' }}
-            />
-            {ctaText && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
               <input
-                value={ctaUrl}
-                onChange={e => setCtaUrl(e.target.value)}
-                placeholder="Ссылка для кнопки"
+                value={ctaText}
+                onChange={e => setCtaText(e.target.value)}
+                placeholder="Текст кнопки в объявлении"
                 style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--subtle)', fontSize: 14, color: 'var(--ink)' }}
               />
-            )}
+              {ctaText && (
+                <select
+                  value={ctaUrl}
+                  onChange={e => setCtaUrl(e.target.value)}
+                  style={{ width: '100%', height: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--subtle)', fontSize: 14, color: 'var(--ink)' }}
+                >
+                  <option value="">Куда ведет кнопка</option>
+                  {(categories as any[]).map((category: any) => (
+                    <option key={category.id ?? category.name} value={`category:${category.name}`}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {kind === 'banner' && mediaUrl && (
+                <div style={{ fontSize: 11, color: 'var(--muted)', lineHeight: 1.4 }}>
+                  Баннер с медиа показывается в верхнем hero и использует только заголовок. Кнопка показывается только у текстового объявления без медиа.
+                </div>
+              )}
+            </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', marginBottom: 8 }}>Срок показа</div>
               <div style={{ display: 'flex', gap: 8 }}>

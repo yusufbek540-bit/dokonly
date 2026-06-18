@@ -1166,19 +1166,35 @@ function PresetStorefront({
   const copy = PRESET_COPY[preset]
   const featured = activeProducts.filter((p: any) => p.is_featured).concat(activeProducts).filter((p, i, arr) => arr.findIndex(x => x.id === p.id) === i)
   const heroProduct = featured[0] ?? activeProducts[0]
-  const heroImage = shop.cover_url ?? (heroProduct ? imageOf(heroProduct) : null)
+  const activeBanners = stories.filter((s: any) => s.kind === 'banner' && s.is_active !== false)
+  const heroBanners = activeBanners.filter((s: any) => s.media_url || s.image_url)
+  const announcements = activeBanners.filter((s: any) => !(s.media_url || s.image_url))
+  const [heroBannerIndex, setHeroBannerIndex] = useState(0)
+  const activeHeroBanner = heroBanners.length ? heroBanners[heroBannerIndex % heroBanners.length] : null
+  const heroImage = activeHeroBanner?.media_url || activeHeroBanner?.image_url || shop.cover_url || (heroProduct ? imageOf(heroProduct) : null)
+  const heroTitle = clampText(activeHeroBanner?.title || activeHeroBanner?.caption || copy.headline, 82)
   const storyItems = stories.filter((s: any) => s.kind !== 'banner' && s.is_active !== false).slice(0, 8)
-  const banner = stories.find((s: any) => s.kind === 'banner' && s.is_active !== false)
+  const announcement = announcements[0]
   const gridCols = preset === 'marketplace' ? '1fr 1fr' : preset === 'minimal' ? '1fr' : '1fr 1fr'
-  const heroStats = [
-    uniqueCats.length ? `${uniqueCats.length} категории` : null,
-    activeProducts.length ? `${activeProducts.length} товаров` : null,
-    shopStats?.avg_rating ? `★ ${shopStats.avg_rating}` : null,
-  ].filter(Boolean)
+
+  useEffect(() => {
+    if (heroBanners.length <= 1) return
+    const timer = setInterval(() => setHeroBannerIndex((i) => (i + 1) % heroBanners.length), 4600)
+    return () => clearInterval(timer)
+  }, [heroBanners.length])
+
+  function openAnnouncement(item: any) {
+    const url = item?.cta_url || ''
+    if (url.startsWith('category:')) {
+      onShowCatalog(url.replace('category:', ''))
+      return
+    }
+    if (url) window.open(url, '_blank')
+  }
 
   return (
     <div className="screen-scroll" style={{ flex: 1, paddingBottom: 24, background: copy.bg }}>
-      <div style={{ padding: '16px 18px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ padding: '12px 18px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
           width: 42, height: 42, borderRadius: preset === 'minimal' ? 999 : 16,
           background: '#fff', border: presetBorder(preset),
@@ -1189,23 +1205,14 @@ function PresetStorefront({
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 900, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '-0.01em' }}>{shop.name}</div>
-          <div style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>{copy.chip}{heroStats[0] ? ` · ${heroStats[0]}` : ''}</div>
         </div>
-        <button onClick={() => onShowCatalog()} style={{
-          width: 42, height: 42, borderRadius: 999, background: 'rgba(255,255,255,0.86)',
-          border: presetBorder(preset), display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 10px 24px rgba(15,23,42,0.08)',
-        }}>
-          <Icon name="search" size={18} color="#111827" />
-        </button>
       </div>
 
       <div style={{ padding: '14px 18px 0' }}>
-        <button
-          onClick={() => onShowCatalog()}
+        <div
           style={{
             width: '100%',
-            minHeight: preset === 'marketplace' ? 202 : preset === 'minimal' ? 236 : 252,
+            minHeight: preset === 'marketplace' ? 178 : preset === 'minimal' ? 204 : 216,
             position: 'relative',
             overflow: 'hidden',
             border: 'none',
@@ -1227,36 +1234,41 @@ function PresetStorefront({
             position: 'absolute',
             inset: 0,
             background: preset === 'marketplace'
-              ? 'linear-gradient(90deg, rgba(15,23,42,0.94), rgba(15,23,42,0.30) 62%, rgba(255,255,255,0.10))'
+              ? 'linear-gradient(90deg, rgba(15,23,42,0.82), rgba(15,23,42,0.20) 68%, rgba(255,255,255,0.08))'
               : preset === 'minimal'
-                ? 'linear-gradient(180deg, rgba(17,17,17,0.18), rgba(17,17,17,0.76))'
-                : 'linear-gradient(180deg, rgba(0,0,0,0.04), rgba(0,0,0,0.72))',
+                ? 'linear-gradient(180deg, rgba(17,17,17,0.04), rgba(17,17,17,0.60))'
+                : 'linear-gradient(180deg, rgba(0,0,0,0.02), rgba(0,0,0,0.62))',
           }} />
           {preset === 'boutique' && (
             <div style={{ position: 'absolute', right: -28, top: 18, width: 126, height: 126, borderRadius: 999, border: '1px solid rgba(255,255,255,0.32)' }} />
           )}
-          <div style={{ position: 'relative', padding: preset === 'marketplace' ? 22 : 24, minHeight: preset === 'marketplace' ? 202 : preset === 'minimal' ? 236 : 252, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ display: 'inline-flex', padding: '6px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.18)', color: copy.heroText, fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em', backdropFilter: 'blur(12px)' }}>
-                {copy.eyebrow}
-              </div>
-              <div style={{ maxWidth: preset === 'marketplace' ? '82%' : '94%', marginTop: 14, fontSize: preset === 'minimal' ? 31 : preset === 'boutique' ? 30 : 27, fontWeight: 950, lineHeight: 1.02, color: copy.heroText, letterSpacing: '-0.045em' }}>
-                {copy.headline}
-              </div>
-              {heroStats.length > 0 && (
-                <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-                  {heroStats.map((stat) => (
-                    <span key={stat} style={{ padding: '5px 8px', borderRadius: 999, background: 'rgba(255,255,255,0.14)', color: 'rgba(255,255,255,0.88)', fontSize: 11, fontWeight: 800, backdropFilter: 'blur(12px)' }}>{stat}</span>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, alignSelf: 'flex-start', padding: '11px 14px', borderRadius: 999, background: '#ffffff', color: '#111827', fontSize: 13, fontWeight: 900, boxShadow: '0 14px 30px rgba(0,0,0,0.18)' }}>
-              {copy.cta}
-              <Icon name="chevronRight" size={14} color="#111827" />
+          <div style={{
+            position: 'relative',
+            padding: preset === 'marketplace' ? 22 : 24,
+            minHeight: preset === 'marketplace' ? 178 : preset === 'minimal' ? 204 : 216,
+            display: 'flex',
+            alignItems: 'flex-end',
+          }}>
+            <div style={{
+              maxWidth: preset === 'marketplace' ? '82%' : '92%',
+              fontSize: preset === 'minimal' ? 25 : preset === 'boutique' ? 27 : 25,
+              fontWeight: 950,
+              lineHeight: 1.08,
+              color: copy.heroText,
+              letterSpacing: '-0.035em',
+              textShadow: '0 14px 30px rgba(0,0,0,0.22)',
+            }}>
+              {heroTitle}
             </div>
           </div>
-        </button>
+          {heroBanners.length > 1 && (
+            <div style={{ position: 'absolute', left: 24, right: 24, bottom: 14, display: 'flex', gap: 5 }}>
+              {heroBanners.map((b: any, i: number) => (
+                <div key={b.id ?? i} style={{ flex: 1, height: 3, borderRadius: 999, background: i === heroBannerIndex % heroBanners.length ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.34)' }} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {storyItems.length > 0 && (
@@ -1309,24 +1321,29 @@ function PresetStorefront({
         </div>
       )}
 
-      {banner && (
+      {announcement && (
         <div style={{ padding: '18px 18px 0' }}>
-          <button onClick={() => banner.cta_url && window.open(banner.cta_url, '_blank')} style={{
-            width: '100%', minHeight: 92, borderRadius: preset === 'minimal' ? 12 : copy.radius, border: presetBorder(preset),
-            background: preset === 'food' ? '#fff0d8' : preset === 'boutique' ? 'linear-gradient(135deg, #fffaf2 0%, #efe0c8 100%)' : '#ffffff',
+          <button onClick={() => openAnnouncement(announcement)} style={{
+            width: '100%', minHeight: 76, borderRadius: preset === 'minimal' ? 12 : 20, border: presetBorder(preset),
+            background: '#ffffff',
             textAlign: 'left',
-            padding: 16,
+            padding: '14px 15px',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
             boxShadow: presetShadow(preset),
           }}>
             <div>
-              <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Акция магазина</div>
-              <div style={{ marginTop: 7, fontSize: 17, lineHeight: 1.15, fontWeight: 900, color: '#111827', letterSpacing: '-0.015em' }}>{banner.title || banner.caption}</div>
-              {banner.caption && banner.title && (
-                <div style={{ marginTop: 4, fontSize: 12, color: '#6b7280', lineHeight: 1.3 }}>{banner.caption}</div>
+              <div style={{ fontSize: 10, fontWeight: 900, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Объявление</div>
+              <div style={{ marginTop: 6, fontSize: 15, lineHeight: 1.25, fontWeight: 850, color: '#111827' }}>{announcement.title || announcement.caption}</div>
+              {announcement.caption && announcement.title && (
+                <div style={{ marginTop: 3, fontSize: 12, color: '#6b7280', lineHeight: 1.3 }}>{announcement.caption}</div>
               )}
             </div>
-            <div style={{ width: 44, height: 44, borderRadius: 999, background: preset === 'boutique' ? '#1d1712' : 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            {announcement.cta_text && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: 'var(--accent)', fontSize: 12, fontWeight: 850, flexShrink: 0 }}>
+                {announcement.cta_text}
+              </div>
+            )}
+            <div style={{ width: 36, height: 36, borderRadius: 999, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Icon name="chevronRight" size={18} color="white" />
             </div>
           </button>

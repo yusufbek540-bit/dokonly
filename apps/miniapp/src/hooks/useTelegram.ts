@@ -45,13 +45,11 @@ interface TelegramWebApp {
 function computeSafeTop(): number {
   const tg = (window as any).Telegram?.WebApp
   if (!tg) return 0
-  // Always check official API first — works in both normal and fullscreen mode
   const apiTop = (tg.safeAreaInset?.top ?? 0) + (tg.contentSafeAreaInset?.top ?? 0)
   if (apiTop > 0) return apiTop
-  // In fullscreen mode viewportHeight ≈ screen.height so diff ≈ 0 → falls to 56px below
   const diff = Math.round(window.screen.height - (tg.viewportHeight || window.innerHeight))
   if (diff > 20 && diff < 200) return diff
-  return 56
+  return 0
 }
 
 export function useSafeTop(): number {
