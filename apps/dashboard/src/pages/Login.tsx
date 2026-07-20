@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { signIn, signUp } from '@/store/auth'
+import { signIn } from '@/store/auth'
 import { api } from '@/lib/api'
+
+const createStoreBotUrl = import.meta.env.VITE_CREATE_STORE_BOT_URL ?? 'https://t.me/dokonlybot'
 
 export function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [twoFaState, setTwoFaState] = useState<'idle' | 'checking' | 'setup_needed' | 'verify_needed'>('idle')
   const [twoFaCode, setTwoFaCode] = useState('')
   const [twoFaError, setTwoFaError] = useState('')
@@ -15,25 +16,21 @@ export function Login() {
     e.preventDefault()
     setError('')
     try {
-      if (mode === 'login') {
-        await signIn(email, password)
-        // After successful sign-in, check 2FA status for platform users
-        try {
-          setTwoFaState('checking')
-          const status = await api.platform.auth.status2fa()
-          if (status.required && !status.enabled) {
-            setTwoFaState('setup_needed')
-          } else if (status.required && status.enabled) {
-            setTwoFaState('verify_needed')
-          } else {
-            setTwoFaState('idle')
-          }
-        } catch {
-          // Not a platform user or endpoint unavailable — proceed normally
+      await signIn(email, password)
+      // After successful sign-in, check 2FA status for platform users
+      try {
+        setTwoFaState('checking')
+        const status = await api.platform.auth.status2fa()
+        if (status.required && !status.enabled) {
+          setTwoFaState('setup_needed')
+        } else if (status.required && status.enabled) {
+          setTwoFaState('verify_needed')
+        } else {
           setTwoFaState('idle')
         }
-      } else {
-        await signUp(email, password)
+      } catch {
+        // Not a platform user or endpoint unavailable — proceed normally
+        setTwoFaState('idle')
       }
     } catch (err: unknown) {
       setTwoFaState('idle')
@@ -153,17 +150,29 @@ export function Login() {
           type="submit"
           className="w-full bg-accent text-white rounded-xl py-2.5 font-medium"
         >
-          {mode === 'login' ? 'Войти' : 'Создать аккаунт'}
+          Войти
         </button>
+
+        <div className="relative py-2">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-100" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-white px-3 text-xs text-gray-400">или</span>
+          </div>
+        </div>
+
         <button
           type="button"
-          onClick={() => setMode((m) => (m === 'login' ? 'signup' : 'login'))}
-          className="w-full text-sm text-gray-500"
+          onClick={() => window.open(createStoreBotUrl, '_blank', 'noopener,noreferrer')}
+          className="w-full rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-medium text-gray-800 hover:border-accent hover:text-accent"
         >
-          {mode === 'login'
-            ? 'Нет аккаунта? Зарегистрироваться'
-            : 'Уже есть аккаунт? Войти'}
+          Создать магазин в Telegram
         </button>
+
+        <p className="text-center text-xs leading-relaxed text-gray-500">
+          Новые магазины создаются через Telegram-бота. Email-вход нужен только для уже подключенного web dashboard.
+        </p>
       </form>
     </div>
   )
