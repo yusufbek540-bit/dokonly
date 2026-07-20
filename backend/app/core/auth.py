@@ -46,6 +46,30 @@ def _owner_id_from_tg(telegram_user_id: int) -> uuid.UUID:
     return uuid.uuid5(uuid.NAMESPACE_X500, f"telegram:{telegram_user_id}")
 
 
+def _csv_values(value: str) -> set[str]:
+    return {item.strip() for item in value.split(",") if item.strip()}
+
+
+def is_platform_admin_owner_id(owner_id: str | uuid.UUID) -> bool:
+    owner_id_str = str(owner_id)
+    if owner_id_str in _csv_values(settings.platform_admin_owner_ids):
+        return True
+
+    for telegram_id in _csv_values(settings.platform_admin_telegram_ids):
+        try:
+            if str(_owner_id_from_tg(int(telegram_id))) == owner_id_str:
+                return True
+        except ValueError:
+            continue
+    return False
+
+
+def get_platform_admin_user(user: dict = Depends(get_current_user)) -> dict:
+    if user.get("is_platform_admin") is True or is_platform_admin_owner_id(str(user.get("sub", ""))):
+        return user
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Platform admin access required")
+
+
 def _validate_init_data(init_data: str, bot_token: str | None = None) -> dict | None:
     """Validate Telegram WebApp initData and return the user dict.
 

@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useAuth } from '@/store/auth'
 
 const links = [
   { to: '/', label: 'Обзор', icon: '📊' },
@@ -32,6 +33,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onSearchOpen, onAIToggle, aiOpen }: SidebarProps) {
+  const isPlatformAdmin = useAuth((state) => state.isPlatformAdmin)
+
   return (
     <aside className="w-56 bg-white border-r border-gray-100 min-h-screen p-4 flex flex-col gap-1 flex-shrink-0">
       <div className="px-3 py-4 mb-1">
@@ -68,26 +71,30 @@ export function Sidebar({ onSearchOpen, onAIToggle, aiOpen }: SidebarProps) {
         </NavLink>
       ))}
 
-      <div className="mt-4 px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-        Platform Ops
-      </div>
-      {platformLinks.map((l) => (
-        <NavLink
-          key={l.to}
-          to={l.to}
-          end={l.to === '/platform'}
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
-              isActive
-                ? 'bg-accent/10 text-accent'
-                : 'text-gray-600 hover:bg-gray-50'
-            }`
-          }
-        >
-          <span>{l.icon}</span>
-          {l.label}
-        </NavLink>
-      ))}
+      {isPlatformAdmin && (
+        <>
+          <div className="mt-4 px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            Platform Ops
+          </div>
+          {platformLinks.map((l) => (
+            <NavLink
+              key={l.to}
+              to={l.to}
+              end={l.to === '/platform'}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-accent/10 text-accent'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`
+              }
+            >
+              <span>{l.icon}</span>
+              {l.label}
+            </NavLink>
+          ))}
+        </>
+      )}
 
       {/* AI Helper toggle */}
       <div className="mt-auto pt-4">

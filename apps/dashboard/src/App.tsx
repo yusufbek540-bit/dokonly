@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { getStoredDashboardToken, signInWithTelegramDashboardToken, useAuth } from '@/store/auth'
@@ -29,7 +29,7 @@ import { BillingPage } from '@/pages/Billing'
 import { TwoFactorSetupPage } from '@/pages/TwoFactorSetup'
 
 export default function App() {
-  const { token, setToken } = useAuth()
+  const { token, setToken, isPlatformAdmin } = useAuth()
   const [authReady, setAuthReady] = useState(false)
 
   useEffect(() => {
@@ -117,16 +117,16 @@ export default function App() {
           <Route path="/marketing" element={<MarketingPage />} />
           <Route path="/team" element={<TeamPage />} />
           <Route path="/billing" element={<BillingPage />} />
-          <Route path="/platform" element={<PlatformOverviewPage />} />
-          <Route path="/platform/tenants" element={<PlatformTenantsPage />} />
-          <Route path="/platform/subscriptions" element={<PlatformSubscriptionsPage />} />
-          <Route path="/platform/analytics" element={<PlatformAnalyticsPage />} />
-          <Route path="/platform/team" element={<PlatformTeamPage />} />
-          <Route path="/platform/audit" element={<PlatformAuditLogPage />} />
-          <Route path="/platform/status" element={<PlatformStatusPage />} />
-          <Route path="/platform/support" element={<PlatformSupportPage />} />
-          <Route path="/platform/content" element={<PlatformContentPage />} />
-          <Route path="/platform/config" element={<PlatformConfigPage />} />
+          <Route path="/platform" element={isPlatformAdmin ? <PlatformOverviewPage /> : <Navigate to="/" replace />} />
+          <Route path="/platform/tenants" element={isPlatformAdmin ? <PlatformTenantsPage /> : <Navigate to="/" replace />} />
+          <Route path="/platform/subscriptions" element={isPlatformAdmin ? <PlatformSubscriptionsPage /> : <Navigate to="/" replace />} />
+          <Route path="/platform/analytics" element={isPlatformAdmin ? <PlatformAnalyticsPage /> : <Navigate to="/" replace />} />
+          <Route path="/platform/team" element={isPlatformAdmin ? <PlatformTeamPage /> : <Navigate to="/" replace />} />
+          <Route path="/platform/audit" element={isPlatformAdmin ? <PlatformAuditLogPage /> : <Navigate to="/" replace />} />
+          <Route path="/platform/status" element={isPlatformAdmin ? <PlatformStatusPage /> : <Navigate to="/" replace />} />
+          <Route path="/platform/support" element={isPlatformAdmin ? <PlatformSupportPage /> : <Navigate to="/" replace />} />
+          <Route path="/platform/content" element={isPlatformAdmin ? <PlatformContentPage /> : <Navigate to="/" replace />} />
+          <Route path="/platform/config" element={isPlatformAdmin ? <PlatformConfigPage /> : <Navigate to="/" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>

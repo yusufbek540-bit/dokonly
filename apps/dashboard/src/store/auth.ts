@@ -6,12 +6,32 @@ const CUSTOM_DASHBOARD_TOKEN_KEY = 'dokonly_dashboard_token'
 
 interface AuthStore {
   token: string | null
+  isPlatformAdmin: boolean
   setToken: (t: string | null) => void
+}
+
+function decodeJwtPayload(token: string | null): Record<string, unknown> | null {
+  if (!token) return null
+  const payload = token.split('.')[1]
+  if (!payload) return null
+
+  try {
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized.padEnd(normalized.length + ((4 - normalized.length % 4) % 4), '=')
+    return JSON.parse(atob(padded)) as Record<string, unknown>
+  } catch {
+    return null
+  }
+}
+
+function tokenIsPlatformAdmin(token: string | null) {
+  return decodeJwtPayload(token)?.is_platform_admin === true
 }
 
 export const useAuth = create<AuthStore>((set) => ({
   token: null,
-  setToken: (t) => set({ token: t }),
+  isPlatformAdmin: false,
+  setToken: (t) => set({ token: t, isPlatformAdmin: tokenIsPlatformAdmin(t) }),
 }))
 
 export async function signIn(email: string, password: string) {

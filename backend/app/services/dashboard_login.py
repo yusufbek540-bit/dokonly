@@ -8,6 +8,7 @@ import jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import is_platform_admin_owner_id
 from app.core.config import settings
 from app.models.auth import DashboardLoginToken
 from app.models.tenant import Tenant
@@ -55,6 +56,7 @@ async def exchange_dashboard_login_token(db: AsyncSession, raw_token: str) -> di
             "role": "authenticated",
             "email": f"telegram-owner-{login_token.owner_id}@dokonly.local",
             "telegram_dashboard_login": True,
+            "is_platform_admin": is_platform_admin_owner_id(login_token.owner_id),
             "tenant_id": str(tenant.id),
             "exp": int(time.time()) + 60 * 60 * 24 * 7,
         },

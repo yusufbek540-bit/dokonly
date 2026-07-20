@@ -36,6 +36,8 @@ class Settings(BaseSettings):
 
     # Auth
     supabase_jwt_secret: str = ""
+    platform_admin_owner_ids: str = ""
+    platform_admin_telegram_ids: str = "733400880"
 
     # OpenAI
     openai_api_key: str = ""

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuth } from '@/store/auth'
 
 interface SearchResult {
   type: 'order' | 'product' | 'tenant'
@@ -21,6 +22,7 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
   const [activeIdx, setActiveIdx] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
+  const isPlatformAdmin = useAuth((state) => state.isPlatformAdmin)
 
   const { data: orders = [] } = useQuery({
     queryKey: ['orders'],
@@ -71,7 +73,7 @@ export function GlobalSearch({ onClose }: GlobalSearchProps) {
     { icon: '🛒', label: 'Заказы', path: '/orders' },
     { icon: '📦', label: 'Товары', path: '/products' },
     { icon: '📊', label: 'Аналитика', path: '/' },
-    { icon: '🏪', label: 'Магазины', path: '/platform/tenants' },
+    ...(isPlatformAdmin ? [{ icon: '🏪', label: 'Магазины', path: '/platform/tenants' }] : []),
   ]
 
   const items = query.trim() ? results : []
