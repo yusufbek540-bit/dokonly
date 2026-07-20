@@ -11,6 +11,7 @@ from app.core.database import AsyncSessionLocal
 from app.core.miniapp_urls import master_miniapp_url, shop_miniapp_url
 from app.models.tenant import Tenant as TenantModel
 from app.schemas.tenant import normalize_tenant_slug
+from app.services.dashboard_login import create_dashboard_login_url
 
 router = Router()
 
@@ -83,6 +84,7 @@ async def got_slug(message: Message, state: FSMContext):
             return
 
     owner_id = _telegram_owner_id(message.from_user.id)
+    dashboard_login_url = ""
     async with AsyncSessionLocal() as db:
         tenant = TenantModel(
             owner_id=owner_id,
@@ -97,10 +99,14 @@ async def got_slug(message: Message, state: FSMContext):
             await db.rollback()
             await message.answer("Этот адрес уже занят. Попробуйте другой.")
             return
+        await db.refresh(tenant)
+        dashboard_login_url = await create_dashboard_login_url(db, tenant)
+        await db.commit()
 
     await state.clear()
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⚙️ Открыть панель", web_app=WebAppInfo(url=master_miniapp_url()))],
+        [InlineKeyboardButton(text="🖥 Открыть web dashboard", url=dashboard_login_url)],
+        [InlineKeyboardButton(text="⚙️ Открыть Telegram-панель", web_app=WebAppInfo(url=master_miniapp_url()))],
         [InlineKeyboardButton(text="🛍 Посмотреть витрину", web_app=WebAppInfo(url=shop_miniapp_url(slug)))],
     ])
     await message.answer(

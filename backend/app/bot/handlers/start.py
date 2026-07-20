@@ -9,8 +9,13 @@ from app.core.database import AsyncSessionLocal
 from app.core.miniapp_urls import master_miniapp_url, product_miniapp_url, shop_miniapp_url
 from app.models.product import Product
 from app.models.tenant import Tenant
+from app.services.dashboard_login import create_dashboard_login_url
 
 router = Router()
+
+
+def _telegram_owner_id(telegram_user_id: int) -> uuid.UUID:
+    return uuid.uuid5(uuid.NAMESPACE_X500, f"telegram:{telegram_user_id}")
 
 
 @router.message(CommandStart(deep_link=True))
@@ -94,7 +99,29 @@ async def cmd_start(message: Message, tenant: Tenant | None):
 
 
 async def _send_master_welcome(message: Message) -> None:
+    owner_id = _telegram_owner_id(message.from_user.id)
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(Tenant).where(Tenant.owner_id == owner_id, Tenant.is_active == True)  # noqa: E712
+        )
+        existing_tenant = result.scalar_one_or_none()
+        dashboard_login_url = (
+            await create_dashboard_login_url(db, existing_tenant)
+            if existing_tenant
+            else None
+        )
+        await db.commit()
+
+    existing_rows = []
+    if existing_tenant and dashboard_login_url:
+        existing_rows = [
+            [InlineKeyboardButton(text="🖥 Открыть web dashboard", url=dashboard_login_url)],
+            [InlineKeyboardButton(text="⚙️ Открыть Telegram-панель", web_app=WebAppInfo(url=master_miniapp_url()))],
+            [InlineKeyboardButton(text="🛍 Посмотреть витрину", web_app=WebAppInfo(url=shop_miniapp_url(existing_tenant.slug)))],
+        ]
+
     kb = InlineKeyboardMarkup(inline_keyboard=[
+        *existing_rows,
         [InlineKeyboardButton(
             text="🛍 Открыть панель продавца",
             web_app=WebAppInfo(url=master_miniapp_url()),

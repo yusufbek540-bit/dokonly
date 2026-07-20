@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/store/auth'
+import { getStoredDashboardToken, signInWithTelegramDashboardToken, useAuth } from '@/store/auth'
 import { api } from '@/lib/api'
 import { Login } from '@/pages/Login'
 import { SetupPage } from '@/pages/Setup'
@@ -33,14 +33,28 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setToken(data.session?.access_token ?? null)
-      setAuthReady(true)
-    })
+    const url = new URL(window.location.href)
+    const telegramToken = url.searchParams.get('telegram_token')
+    if (telegramToken) {
+      signInWithTelegramDashboardToken(telegramToken)
+        .then(() => {
+          url.searchParams.delete('telegram_token')
+          window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`)
+        })
+        .catch(() => {
+          setToken(null)
+        })
+        .finally(() => setAuthReady(true))
+    } else {
+      supabase.auth.getSession().then(({ data }) => {
+        setToken(data.session?.access_token ?? getStoredDashboardToken())
+        setAuthReady(true)
+      })
+    }
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_, session) => {
-      setToken(session?.access_token ?? null)
+      setToken(session?.access_token ?? getStoredDashboardToken())
     })
     return () => subscription.unsubscribe()
   }, [setToken])

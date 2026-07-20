@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     lead_alert_chat_id: str = ""
     webhook_base_url: str = ""
     miniapp_url: str = "https://dokonly-miniapp.pages.dev"
+    dashboard_url: str = "https://dokonly-dashboard.pages.dev"
 
     # CORS — comma-separated list of allowed origins in production
     # e.g. "https://dokonly-miniapp.pages.dev,https://dokonly-dashboard.pages.dev"

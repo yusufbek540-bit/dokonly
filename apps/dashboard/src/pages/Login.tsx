@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { signIn } from '@/store/auth'
 import { api } from '@/lib/api'
 
-const createStoreBotUrl = import.meta.env.VITE_CREATE_STORE_BOT_URL ?? 'https://t.me/dokonlybot'
+const createStoreBotUrl = import.meta.env.VITE_CREATE_STORE_BOT_URL ?? 'https://t.me/dokonly_bot'
 
 export function Login() {
   const [email, setEmail] = useState('')

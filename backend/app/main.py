@@ -138,6 +138,21 @@ MIGRATIONS = [
     """
     ALTER TABLE categories ADD COLUMN IF NOT EXISTS image_url TEXT;
     """,
+    # 007 - Telegram to web dashboard one-time login links
+    """
+    CREATE TABLE IF NOT EXISTS dashboard_login_tokens (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+        owner_id UUID NOT NULL,
+        token_hash VARCHAR(64) UNIQUE NOT NULL,
+        expires_at TIMESTAMPTZ NOT NULL,
+        used_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT now() NOT NULL,
+        updated_at TIMESTAMPTZ DEFAULT now() NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_dashboard_login_tokens_hash ON dashboard_login_tokens(token_hash);
+    CREATE INDEX IF NOT EXISTS idx_dashboard_login_tokens_tenant ON dashboard_login_tokens(tenant_id);
+    """,
 ]
 
 
