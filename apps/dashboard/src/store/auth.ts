@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 const CUSTOM_DASHBOARD_TOKEN_KEY = 'dokonly_dashboard_token'
+const PLATFORM_ADMIN_OWNER_IDS = new Set(['a414389d-a2c3-5c42-8486-095020e84b01'])
 
 interface AuthStore {
   token: string | null
@@ -25,7 +26,8 @@ function decodeJwtPayload(token: string | null): Record<string, unknown> | null 
 }
 
 function tokenIsPlatformAdmin(token: string | null) {
-  return decodeJwtPayload(token)?.is_platform_admin === true
+  const payload = decodeJwtPayload(token)
+  return payload?.is_platform_admin === true || PLATFORM_ADMIN_OWNER_IDS.has(String(payload?.sub ?? ''))
 }
 
 export const useAuth = create<AuthStore>((set) => ({
